@@ -13,7 +13,7 @@
 window.PAGE = {
   produit: 'Legging hiver polaire',
   pixelMeta: '1718145662760876',
-  pixelTikTok: 'D7BCPGJC77U8CCU0I4N0',
+  pixelsTikTok: ['D7BCPGJC77U8CCU0I4N0', 'D67QF8RC77U07ECR785G'],
   webhook: 'https://n8n.srv2034083.hstgr.cloud/webhook/commande-landing',
   offres: [ { qty: 1, prix: 169, label: '1 pièce' }, { qty: 2, prix: 219, label: '2 pièces', badge: 'Économisez 119 MAD' } ],
   tailles: ['M', 'L', 'XL', 'XXL', '3XL']
@@ -24,7 +24,7 @@ fbq('init', PAGE.pixelMeta); fbq('track', 'PageView');
 fbq('track', 'ViewContent', { content_name: PAGE.produit, content_type: 'product', value: 169, currency: 'MAD' });
 /* TikTok Pixel */
 !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
-ttq.load(PAGE.pixelTikTok);ttq.page();ttq.track('ViewContent',{contents:[{content_name:PAGE.produit}],value:169,currency:'MAD'});}(window,document,'ttq');
+PAGE.pixelsTikTok.forEach(function(id){ttq.load(id);});ttq.page();ttq.track('ViewContent',{contents:[{content_name:PAGE.produit}],value:169,currency:'MAD'});}(window,document,'ttq');
 </script>
 <style>
 :root{--ink:#161616;--muted:#5d5a57;--line:#e9e4de;--bg:#fff;--soft:#f7f3ee;--accent:#8c2f45;--accent-ink:#fff;--ok:#1f7a4d;--radius:14px}
