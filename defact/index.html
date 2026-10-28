@@ -131,7 +131,8 @@ form.order{background:var(--cream);color:var(--ink);border-radius:22px;padding:2
 .submit{width:100%;margin-top:16px;border-radius:14px}
 .submit:disabled{opacity:.6;cursor:wait}
 .small{font-size:13.5px;color:var(--muted);text-align:center;margin:8px 0 0}
-.hp{position:absolute;left:-9999px}
+.hp{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;clip:rect(0 0 0 0)}
+html,body{overflow-x:clip}
 .thanks{display:none;background:var(--cream);color:var(--ink);border-radius:22px;padding:34px 20px;text-align:center}
 .thanks .ok{width:60px;height:60px;border-radius:50%;background:var(--wine);color:#fff;display:grid;place-items:center;font-size:28px;margin:0 auto 12px}
 
