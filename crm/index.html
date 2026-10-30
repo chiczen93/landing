@@ -359,7 +359,7 @@ function majSync() {
   $('#sync').textContent = (m < 1 ? 'À jour' : 'Mis à jour il y a ' + m + ' min') + ' · ' + st.commandes.length + ' commandes';
 }
 setInterval(majSync, 30000);
-setInterval(() => { if (document.visibilityState === 'visible' && st.pin && !st.ouvert.size && st.view === 'orders') charger(true); }, 90000);
+setInterval(() => { if (document.visibilityState === 'visible' && st.pin && !st.ouvert.size && st.view === 'orders') charger(true); }, 60000);
 setInterval(() => { if (document.visibilityState === 'visible' && st.pin) chargerStats(); }, 300000);
 $('#refresh').addEventListener('click', () => { charger(); chargerStats(); });
 $('#f-agent').addEventListener('change', () => charger());
@@ -390,6 +390,8 @@ function rendreTabs() {
 function rendreListe() {
   const tab = TABS.find(t => t.id === st.tab);
   const rows = visibles().filter(tab.f);
+  // livraison : dernier changement de statut en premier ; confirmation : commande la plus récente en premier
+  if (st.tab.startsWith('l-')) { const t = o => Date.parse(String(o.dliv || o.date).replace(' ', 'T')) || 0; rows.sort((x, y) => t(y) - t(x)); }
   const n = st.page * 40;
   if (!rows.length) { $('#list').replaceChildren(el('div', { class: 'empty', text: st.at ? 'Aucune commande dans cette liste.' : 'Chargement des commandes…' })); $('#more').hidden = true; return; }
   $('#list').replaceChildren(...rows.slice(0, n).map(carte));
