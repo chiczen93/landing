@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0f3d3a">
+<title>Zena CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+  /* Layout: one column of order cards under a sticky header, tabs as filters; admin gets a performance view */
+  :root {
+    --bg: #f3f5f4; --panel: #ffffff; --ink: #14201f; --muted: #5f6e6c; --line: #dfe5e3;
+    --brand: #0f6b62; --brand-ink: #ffffff; --brand-soft: #e2f1ee;
+    --ok: #1d8a4e; --ok-soft: #e3f4ea; --bad: #c2412d; --bad-soft: #fbe9e5;
+    --warn: #b7791f; --warn-soft: #fbf1df; --info: #2f5fb3; --info-soft: #e6edf9;
+    --shadow: 0 1px 2px rgba(16, 40, 36, .06), 0 4px 14px rgba(16, 40, 36, .05);
+    --r: 14px;
+    --font: "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1413; --panel: #151f1e; --ink: #e7efed; --muted: #95a6a3; --line: #263432;
+      --brand: #3fb5a6; --brand-ink: #062320; --brand-soft: #173431;
+      --ok: #4cc98a; --ok-soft: #15301f; --bad: #f08470; --bad-soft: #3a1c17;
+      --warn: #e7b25a; --warn-soft: #362a14; --info: #86aef2; --info-soft: #18243a;
+      --shadow: none; color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.5; -webkit-tap-highlight-color: transparent; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 max(14px, env(safe-area-inset-right)) 96px max(14px, env(safe-area-inset-left)); }
+
+  /* login */
+  .login { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+  .login-card { width: min(100%, 360px); background: var(--panel); border-radius: 20px; padding: 28px 22px; box-shadow: var(--shadow); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; text-align: center; }
+  .logo { font-weight: 700; font-size: 26px; letter-spacing: .02em; color: var(--brand); direction: ltr; }
+  .login-card p { margin: 0; color: var(--muted); }
+  .pin { text-align: center; font-size: 26px; letter-spacing: .35em; padding: 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--bg); direction: ltr; }
+  .pin:focus { outline: none; border-color: var(--brand); }
+  .btn { border: 0; border-radius: 12px; padding: 12px 16px; font-weight: 600; cursor: pointer; background: var(--brand); color: var(--brand-ink); }
+  .btn:disabled { opacity: .6; }
+  .btn.ghost { background: transparent; color: var(--brand); border: 1.5px solid var(--line); }
+  .err { color: var(--bad); font-size: 14px; min-height: 1.4em; }
+
+  /* header */
+  header.top { background: var(--bg); padding-top: env(safe-area-inset-top); }
+  .tabs-wrap { position: sticky; top: 0; z-index: 20; background: var(--bg); padding-top: calc(6px + env(safe-area-inset-top)); }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 12px 0 8px; }
+  .who { display: flex; flex-direction: column; line-height: 1.2; flex: 1; min-width: 0; }
+  .who b { font-size: 18px; }
+  .who small { color: var(--muted); font-size: 12px; }
+  .icon-btn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); display: grid; place-items: center; cursor: pointer; font-size: 18px; flex: none; }
+  .icon-btn.spin span { display: inline-block; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .views { display: flex; gap: 6px; padding-bottom: 8px; }
+  .view-btn { flex: 1; border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
+  .view-btn[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding-bottom: 8px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; min-width: 0; }
+  .kpi span { display: block; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi b { font-size: 18px; font-variant-numeric: tabular-nums; }
+
+  .tools { display: flex; gap: 8px; padding-bottom: 8px; flex-wrap: wrap; }
+  .search { flex: 1 1 180px; min-width: 0; border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 9px 12px; }
+  .sel { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 9px 10px; }
+  .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .tab .n { display: inline-block; min-width: 20px; padding: 0 6px; margin-inline-start: 4px; border-radius: 999px; background: var(--bg); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .tab[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+  .tab[aria-pressed="true"] .n { background: rgba(255,255,255,.18); }
+
+  /* cards */
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); padding: 14px; display: flex; flex-direction: column; gap: 10px; border-inline-start: 4px solid var(--line); }
+  .card.s-CONFIRMER { border-inline-start-color: var(--ok); }
+  .card.s-ANNULER, .card.s-DOUBLE { border-inline-start-color: var(--bad); }
+  .card.s-PS, .card.s-WTSP { border-inline-start-color: var(--warn); }
+  .card.s-new { border-inline-start-color: var(--info); }
+  .row1 { display: flex; align-items: flex-start; gap: 8px; }
+  .name { font-weight: 700; font-size: 16px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .date { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--bg); color: var(--muted); font-weight: 600; }
+  .chip.ok { background: var(--ok-soft); color: var(--ok); }
+  .chip.bad { background: var(--bad-soft); color: var(--bad); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.info { background: var(--info-soft); color: var(--info); }
+  .chip.brand { background: var(--brand-soft); color: var(--brand); }
+  .prod { font-size: 14px; background: var(--bg); border-radius: 10px; padding: 8px 10px; overflow-wrap: anywhere; }
+  .prod b { color: var(--brand); }
+  .meta { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 14px; }
+  .meta span:nth-child(odd) { color: var(--muted); }
+  .meta span { overflow-wrap: anywhere; min-width: 0; }
+  .contact { display: flex; gap: 8px; }
+  .contact a { flex: 1; text-align: center; text-decoration: none; border-radius: 10px; padding: 9px; font-weight: 600; font-size: 14px; border: 1px solid var(--line); color: var(--ink); background: var(--panel); }
+  .contact a.wa { background: #25d366; border-color: #25d366; color: #05301a; }
+  .contact .tel-num { direction: ltr; unicode-bidi: embed; }
+  .acts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .act { border: 1.5px solid var(--line); background: var(--panel); border-radius: 10px; padding: 8px 4px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .act[aria-pressed="true"].a-CONFIRMER { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .act[aria-pressed="true"].a-ANNULER, .act[aria-pressed="true"].a-DOUBLE { background: var(--bad); border-color: var(--bad); color: #fff; }
+  .act[aria-pressed="true"].a-PS, .act[aria-pressed="true"].a-WTSP { background: var(--warn); border-color: var(--warn); color: #fff; }
+  .edit { display: grid; gap: 8px; }
+  .edit label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  .edit input, .edit textarea, .edit select { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 9px 10px; width: 100%; color: var(--ink); }
+  .edit textarea { min-height: 60px; resize: vertical; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .save-row { display: flex; gap: 8px; }
+  .save-row .btn { flex: 1; }
+  .more { background: none; border: 0; color: var(--brand); font-weight: 600; cursor: pointer; padding: 0; font-size: 14px; justify-self: start; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 10px; }
+  .toast { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--panel); padding: 10px 16px; border-radius: 12px; font-weight: 600; z-index: 50; max-width: calc(100% - 32px); }
+  .toast.bad { background: var(--bad); color: #fff; }
+  .loadmore { width: 100%; margin-top: 10px; }
+
+  /* performance */
+  .periods { display: flex; gap: 6px; padding-bottom: 10px; flex-wrap: wrap; }
+  .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 10px; }
+  .pcard { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow); }
+  .phead { display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: #fff; font-size: 13px; flex: none; }
+  .ring { width: 70px; height: 70px; flex: none; }
+  .ring-row { display: flex; align-items: center; gap: 12px; }
+  .big { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .cells { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .cell { border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; display: flex; flex-direction: column; min-width: 0; }
+  .cell b { font-variant-numeric: tabular-nums; }
+  .cell span { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cell.ok b { color: var(--ok); } .cell.bad b { color: var(--bad); } .cell.warn b { color: var(--warn); }
+  .note { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
+  @media (max-width: 420px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (prefers-reduced-motion: reduce) { .icon-btn.spin span { animation: none; } }
+  :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<section class="login" id="v-login">
+  <div class="login-card">
+    <div class="logo">Zena CRM</div>
+    <p>دخلي الكود ديالك</p>
+    <input class="pin" id="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" aria-label="الكود">
+    <button class="btn" id="go">دخول</button>
+    <div class="err" id="login-err"></div>
+  </div>
+</section>
+
+<div id="v-app" hidden>
+  <header class="top">
+    <div class="wrap" style="padding-bottom:0">
+      <div class="bar">
+        <div class="who"><b id="me">—</b><small id="sync">—</small></div>
+        <button class="icon-btn" id="refresh" aria-label="تحديث"><span>⟳</span></button>
+        <button class="icon-btn" id="logout" aria-label="خروج" style="width:auto;padding:0 10px;font-size:13px;font-weight:600">خروج</button>
+      </div>
+      <div class="views" id="views">
+        <button class="view-btn" data-view="orders" aria-pressed="true">الطلبات</button>
+        <button class="view-btn" data-view="perf" aria-pressed="false">الأداء</button>
+      </div>
+      <div id="orders-head">
+        <div class="kpis" id="kpis"></div>
+        <div class="tools">
+          <input class="search" id="q" type="search" placeholder="قلّب بالسمية ولا النمرة" aria-label="بحث">
+          <select class="sel" id="f-agent" hidden aria-label="البنت"></select>
+          <select class="sel" id="f-jours" hidden aria-label="الفترة">
+            <option value="1">اليوم</option><option value="3">3 أيام</option><option value="7" selected>7 أيام</option><option value="30">30 يوم</option>
+          </select>
+        </div>
+        </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="orders">
+      <div class="tabs-wrap"><div class="tabs" id="tabs"></div></div>
+      <div class="list" id="list"></div>
+      <button class="btn ghost loadmore" id="more" hidden>زيد</button>
+    </section>
+    <section id="perf" hidden>
+      <div class="periods" id="periods">
+        <button class="tab" data-p="aujourdhui">اليوم</button>
+        <button class="tab" data-p="7j" aria-pressed="true">7 أيام</button>
+        <button class="tab" data-p="30j">30 يوم</button>
+        <button class="tab" data-p="tout">الكل</button>
+      </div>
+      <div class="pgrid" id="pgrid"></div>
+      <p class="note" id="perf-note">نسبة التأكيد = المؤكدة ÷ (الطلبات − الدوبل). نسبة التوصيل = المسلمة ÷ (المسلمة + الراجعة). كتحسب كل 15 دقيقة.</p>
+    </section>
+  </main>
+</div>
+
+<datalist id="villes"></datalist>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
+const STATUTS = [
+  { v: 'CONFIRMER', t: '✅ أكدات', c: 'CONFIRMER' },
+  { v: 'PS REPOND', t: '📵 ما جاوبش', c: 'PS' },
+  { v: '2 PS RPS', t: '📵 مرتين', c: 'PS' },
+  { v: 'MESSAGE WTSP', t: '💬 واتساب', c: 'WTSP' },
+  { v: 'ANNULER', t: '❌ ملغي', c: 'ANNULER' },
+  { v: 'DOUBLE', t: '♊ دوبل', c: 'DOUBLE' },
+];
+const LABEL = Object.fromEntries(STATUTS.map(s => [s.v, s.t]));
+const CLASSE = Object.fromEntries(STATUTS.map(s => [s.v, s.c]));
+const AGENTES = ['HAJIBA', 'BTISSAM', 'GHIZLANE', 'SAMIRA', 'SOUMIA', 'SANAA'];
+const COULEURS = { HAJIBA: '#0f6b62', BTISSAM: '#7a4bc2', GHIZLANE: '#c2412d', SAMIRA: '#2f5fb3', SOUMIA: '#b7791f', SANAA: '#1d8a4e' };
+const TABS = [
+  { id: 'new', t: 'جداد', f: o => !o.statut },
+  { id: 'ps', t: 'ما جاوبوش', f: o => ['PS REPOND', '2 PS RPS', 'MESSAGE WTSP'].includes(o.statut) },
+  { id: 'ok', t: 'مؤكدة', f: o => o.statut === 'CONFIRMER' },
+  { id: 'liv', t: 'ف التوصيل', f: o => o.statut === 'CONFIRMER' && !!o.colis && !/livr|retour|annul|refus/i.test(o.livraison) },
+  { id: 'ko', t: 'ملغية', f: o => ['ANNULER', 'DOUBLE'].includes(o.statut) },
+  { id: 'all', t: 'الكل', f: () => true },
+];
+
+const st = { pin: '', agent: '', role: '', commandes: [], tab: 'new', q: '', page: 1, ouvert: new Set(), brouillon: {}, villes: [], stats: [], periode: '7j', view: 'orders', at: 0, busy: false };
+const $ = s => document.querySelector(s);
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return e;
+};
+const store = { get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} } };
+
+async function api(action, extra = {}) {
+  const body = new URLSearchParams({ payload: JSON.stringify({ pin: st.pin, action, ...extra }) });
+  const r = await fetch(API, { method: 'POST', body });
+  if (!r.ok) throw new Error('الخادم ما جاوبش (' + r.status + ')');
+  const d = await r.json();
+  if (!d.ok) throw new Error(d.erreur || 'وقع مشكل');
+  return d;
+}
+let toastT;
+function toast(m, bad) { const t = $('#toast'); t.textContent = m; t.className = 'toast' + (bad ? ' bad' : ''); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, bad ? 4500 : 2200); }
+
+// ---------- login ----------
+async function login(pin) {
+  st.pin = pin;
+  const d = await api('login');
+  st.agent = d.agent; st.role = d.role;
+  store.set('crm_pin', pin);
+  $('#v-login').hidden = true; $('#v-app').hidden = false;
+  $('#me').textContent = st.role === 'admin' ? 'الإدارة' : st.agent;
+  if (st.role === 'admin') {
+    $('#f-agent').hidden = false; $('#f-jours').hidden = false;
+    $('#f-agent').replaceChildren(el('option', { value: 'TOUS', text: 'كاع البنات' }), el('option', { value: 'LIBRE', text: 'بلا بنت' }), ...AGENTES.map(a => el('option', { value: a, text: a })), el('option', { value: 'NO APPEL', text: 'NO APPEL' }));
+  }
+  charger();
+  api('villes').then(d => { st.villes = d.villes; $('#villes').replaceChildren(...d.villes.map(v => el('option', { value: v }))); }).catch(() => {});
+  chargerStats();
+}
+$('#go').addEventListener('click', async () => {
+  const p = $('#pin').value.trim(); if (!p) return;
+  $('#go').disabled = true; $('#login-err').textContent = '';
+  try { await login(p); } catch (e) { $('#login-err').textContent = e.message; } finally { $('#go').disabled = false; }
+});
+$('#pin').addEventListener('keydown', e => { if (e.key === 'Enter') $('#go').click(); });
+$('#logout').addEventListener('click', () => { store.set('crm_pin', ''); location.reload(); });
+
+// ---------- data ----------
+async function charger(silencieux) {
+  if (st.busy) return; st.busy = true;
+  $('#refresh').classList.add('spin');
+  try {
+    const extra = st.role === 'admin' ? { filtre: $('#f-agent').value, jours: Number($('#f-jours').value) } : {};
+    const d = await api('commandes', extra);
+    st.commandes = d.commandes; st.at = Date.now();
+    rendre();
+  } catch (e) { if (!silencieux) toast(e.message, true); }
+  finally { st.busy = false; $('#refresh').classList.remove('spin'); majSync(); }
+}
+async function chargerStats() {
+  try { const d = await api('stats'); st.stats = d.stats; rendreKpis(); rendrePerf(); } catch (e) {}
+}
+function majSync() {
+  if (!st.at) { $('#sync').textContent = '…'; return; }
+  const m = Math.round((Date.now() - st.at) / 60000);
+  $('#sync').textContent = (m < 1 ? 'محدث دابا' : 'آخر تحديث قبل ' + m + ' دقيقة') + ' · ' + st.commandes.length + ' طلب';
+}
+setInterval(majSync, 30000);
+setInterval(() => { if (document.visibilityState === 'visible' && st.pin && !st.ouvert.size && st.view === 'orders') charger(true); }, 90000);
+setInterval(() => { if (document.visibilityState === 'visible' && st.pin) chargerStats(); }, 300000);
+$('#refresh').addEventListener('click', () => { charger(); chargerStats(); });
+$('#f-agent').addEventListener('change', () => charger());
+$('#f-jours').addEventListener('change', () => charger());
+$('#q').addEventListener('input', e => { st.q = e.target.value.trim().toLowerCase(); st.page = 1; rendreListe(); });
+
+// ---------- rendering ----------
+function relatif(iso) {
+  const t = Date.parse(iso); if (!t) return '';
+  const m = Math.round((Date.now() - t) / 60000);
+  if (m < 60) return 'قبل ' + Math.max(1, m) + ' د';
+  const h = Math.round(m / 60); if (h < 24) return 'قبل ' + h + ' س';
+  const d = new Date(t); return d.toLocaleDateString('fr-MA', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('fr-MA', { hour: '2-digit', minute: '2-digit' });
+}
+function visibles() {
+  const q = st.q;
+  return st.commandes.filter(o => !q || (o.client + ' ' + o.tel + ' ' + o.id + ' ' + o.adresse + ' ' + o.ville).toLowerCase().includes(q));
+}
+function rendre() { rendreTabs(); rendreListe(); }
+function rendreTabs() {
+  const base = visibles();
+  $('#tabs').replaceChildren(...TABS.map(t => el('button', { class: 'tab', 'aria-pressed': String(st.tab === t.id), onclick: () => { st.tab = t.id; st.page = 1; rendre(); } }, t.t, el('span', { class: 'n', text: base.filter(t.f).length }))));
+}
+function rendreListe() {
+  const tab = TABS.find(t => t.id === st.tab);
+  const rows = visibles().filter(tab.f);
+  const n = st.page * 40;
+  const list = $('#list');
+  if (!rows.length) { list.replaceChildren(el('div', { class: 'empty', text: st.commandes.length ? 'ما كاين حتى طلب هنا' : 'كنحمّل الطلبات…' })); $('#more').hidden = true; return; }
+  list.replaceChildren(...rows.slice(0, n).map(carte));
+  $('#more').hidden = rows.length <= n;
+}
+$('#more').addEventListener('click', () => { st.page++; rendreListe(); });
+
+function chipLivraison(s) {
+  if (!s) return null;
+  const c = /livr[ée] au client/i.test(s) ? 'ok' : /retour|annul|refus/i.test(s) ? 'bad' : /r[ée]pond|injoign|report/i.test(s) ? 'warn' : 'info';
+  return el('span', { class: 'chip ' + c, text: '🚚 ' + s });
+}
+function carte(o) {
+  const key = o.id + '|' + o.row;
+  const b = st.brouillon[key] || (st.brouillon[key] = {});
+  const statut = 'statut' in b ? b.statut : o.statut;
+  const cls = statut ? (CLASSE[statut] || '') : 'new';
+  const t9 = o.tel.replace(/\D/g, '').slice(-9);
+  const ouvert = st.ouvert.has(key);
+  const libre = !o.agent;
+
+  const chips = el('div', { class: 'chips' },
+    statut ? el('span', { class: 'chip ' + (cls === 'CONFIRMER' ? 'ok' : cls === 'ANNULER' || cls === 'DOUBLE' ? 'bad' : 'warn'), text: LABEL[statut] || statut }) : el('span', { class: 'chip info', text: '🆕 جديد' }),
+    libre ? el('span', { class: 'chip brand', text: 'بلا بنت' }) : (st.role === 'admin' ? el('span', { class: 'chip', text: '👩 ' + o.agent }) : null),
+    o.wa ? el('span', { class: 'chip ' + (/oui|✅/i.test(o.wa) ? 'ok' : /non|❌/i.test(o.wa) ? 'bad' : ''), text: 'WA: ' + o.wa }) : null,
+    o.ancien ? el('span', { class: 'chip info', text: '⭐ ' + o.ancien }) : null,
+    chipLivraison(o.livraison),
+  );
+
+  const msg = encodeURIComponent('السلام عليكم ' + (o.client || '') + '، معاك ' + (st.role === 'admin' ? 'Zena Shop' : 'Zena Shop') + ' بخصوص الطلب ديالك: ' + o.produit);
+  const contact = t9.length === 9 ? el('div', { class: 'contact' },
+    el('a', { href: 'tel:0' + t9 }, '📞 ', el('span', { class: 'tel-num', text: '0' + t9 })),
+    el('a', { class: 'wa', href: 'https://wa.me/212' + t9 + '?text=' + msg, target: '_blank', rel: 'noopener' }, 'واتساب'),
+  ) : el('div', { class: 'meta' }, el('span', { text: 'النمرة' }), el('span', { text: o.tel }));
+
+  const acts = el('div', { class: 'acts' }, ...STATUTS.map(s => el('button', {
+    class: 'act a-' + s.c, 'aria-pressed': String(statut === s.v),
+    onclick: () => { b.statut = statut === s.v ? '' : s.v; if (b.statut === 'CONFIRMER') st.ouvert.add(key); rerender(); },
+  }, s.t)));
+
+  const val = k => (k in b ? b[k] : (o[k] || ''));
+  const champ = (k, label, type) => el('label', {}, label, type === 'area'
+    ? el('textarea', { oninput: e => { b[k] = e.target.value; } }, val(k))
+    : el('input', { value: val(k), list: k === 'ville' ? 'villes' : null, oninput: e => { b[k] = e.target.value; }, autocomplete: 'off' }));
+  const edit = ouvert ? el('div', { class: 'edit' },
+    el('div', { class: 'two' }, champ('ville', 'المدينة (Irsaliyat)'), champ('total', 'الثمن')),
+    champ('adresse', 'العنوان', 'area'),
+    champ('produit', 'المنتوج (المقاس / شحال من قطعة)', 'area'),
+    champ('remarque', 'ملاحظة'),
+    st.role === 'admin' ? el('label', {}, 'البنت', el('select', { onchange: e => { b.agent = e.target.value; } },
+      el('option', { value: '', text: '—' }), ...[...AGENTES, 'NO APPEL'].map(a => el('option', { value: a, text: a, selected: val('agent') === a })))) : null,
+  ) : null;
+
+  const modifs = Object.keys(b).filter(k => (b[k] ?? '') !== (o[k] ?? ''));
+  const save = (modifs.length || ouvert) ? el('div', { class: 'save-row' },
+    el('button', { class: 'btn', onclick: ev => enregistrer(o, key, ev.currentTarget) }, 'سجّل'),
+    el('button', { class: 'btn ghost', onclick: () => { delete st.brouillon[key]; st.ouvert.delete(key); rerender(); } }, 'رجّع'),
+  ) : null;
+
+  return el('article', { class: 'card s-' + cls, 'data-key': key },
+    el('div', { class: 'row1' }, el('div', { class: 'name', text: o.client || '—' }), el('div', { class: 'date', text: relatif(o.date) })),
+    chips,
+    el('div', { class: 'prod' }, o.produit || '—', o.total ? el('b', { text: ' · ' + o.total }) : null),
+    el('div', { class: 'meta' },
+      el('span', { text: 'العنوان' }), el('span', { text: o.adresse || '—' }),
+      el('span', { text: 'المدينة' }), el('span', { text: o.ville || '—' }),
+      o.colis ? el('span', { text: 'الكوليا' }) : null, o.colis ? el('span', { text: o.colis }) : null,
+      o.remarque ? el('span', { text: 'ملاحظة' }) : null, o.remarque ? el('span', { text: o.remarque }) : null,
+    ),
+    contact, acts,
+    el('button', { class: 'more', onclick: () => { ouvert ? st.ouvert.delete(key) : st.ouvert.add(key); rerender(); } }, ouvert ? 'سد التعديل ▲' : '✏️ عدّل المدينة / العنوان / المنتوج'),
+    edit, save,
+  );
+}
+function rerender() {
+  const y = window.scrollY; rendre(); window.scrollTo(0, y);
+}
+async function enregistrer(o, key, btn) {
+  const b = st.brouillon[key];
+  const champs = {};
+  for (const k of Object.keys(b)) if ((b[k] ?? '') !== (o[k] ?? '')) champs[k] = b[k];
+  if (champs.statut === 'CONFIRMER' && !(champs.ville || o.ville)) { toast('ختاري المدينة قبل ما تأكدي', true); st.ouvert.add(key); rerender(); return; }
+  if (champs.ville && st.villes.length && !st.villes.includes(champs.ville)) { toast('المدينة خاصها تكون من اللائحة', true); return; }
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    const d = await api('maj', { row: o.row, id: o.id, champs });
+    Object.assign(o, champs);
+    if (d.champs && d.champs.agent !== undefined) o.agent = String(d.champs.agent).toUpperCase();
+    delete st.brouillon[key]; st.ouvert.delete(key);
+    toast('تسجل ✓'); rerender();
+  } catch (e) { toast(e.message, true); btn.disabled = false; btn.textContent = 'سجّل'; }
+}
+
+// ---------- KPIs + performance ----------
+const fmt = n => (Number(n) || 0).toLocaleString('fr-MA');
+const pct = n => (Math.round((Number(n) || 0) * 10) / 10) + '%';
+function rendreKpis() {
+  const moi = st.role === 'admin' ? 'TOTAL' : st.agent;
+  const auj = st.stats.find(r => r.agent === moi && r.periode === 'aujourdhui') || {};
+  const s7 = st.stats.find(r => r.agent === moi && r.periode === '7j') || {};
+  $('#kpis').replaceChildren(
+    el('div', { class: 'kpi' }, el('span', { text: 'طلبات اليوم' }), el('b', { text: fmt(auj.assignes) })),
+    el('div', { class: 'kpi' }, el('span', { text: 'أكدات اليوم' }), el('b', { text: fmt(auj.confirmes) })),
+    el('div', { class: 'kpi' }, el('span', { text: 'التأكيد 7 أيام' }), el('b', { text: pct(s7.taux_conf) })),
+    el('div', { class: 'kpi' }, el('span', { text: 'التوصيل 7 أيام' }), el('b', { text: pct(s7.taux_livr) })),
+  );
+}
+function anneau(taux, col) {
+  const NS = 'http://www.w3.org/2000/svg', R = 29, L = 2 * Math.PI * R;
+  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 70 70'); svg.setAttribute('class', 'ring');
+  const c1 = document.createElementNS(NS, 'circle'); Object.entries({ cx: 35, cy: 35, r: R, fill: 'none', stroke: 'var(--line)', 'stroke-width': 7 }).forEach(([k, v]) => c1.setAttribute(k, v));
+  const c2 = document.createElementNS(NS, 'circle'); Object.entries({ cx: 35, cy: 35, r: R, fill: 'none', stroke: col, 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-dasharray': (L * Math.min(100, Math.max(0, taux)) / 100) + ' ' + L, transform: 'rotate(-90 35 35)' }).forEach(([k, v]) => c2.setAttribute(k, v));
+  const t = document.createElementNS(NS, 'text'); Object.entries({ x: 35, y: 40, 'text-anchor': 'middle', 'font-size': 15, 'font-weight': 700, fill: 'currentColor' }).forEach(([k, v]) => t.setAttribute(k, v)); t.textContent = Math.round(taux) + '%';
+  svg.append(c1, c2, t); return svg;
+}
+function cell(v, label, ton) { return el('div', { class: 'cell' + (ton ? ' ' + ton : '') }, el('b', { text: v }), el('span', { text: label })); }
+function rendrePerf() {
+  const rows = st.stats.filter(r => r.periode === st.periode && r.agent !== 'TOTAL' && (Number(r.assignes) > 0 || Number(r.colis) > 0));
+  rows.sort((a, b) => Number(b.confirmes) - Number(a.confirmes));
+  const tot = st.stats.find(r => r.periode === st.periode && r.agent === 'TOTAL');
+  const cartes = rows.map(r => {
+    const col = COULEURS[r.agent] || 'var(--brand)';
+    const tl = Number(r.taux_livr) || 0, fermes = Number(r.livres) + Number(r.retours);
+    return el('div', { class: 'pcard' },
+      el('div', { class: 'phead' }, el('div', { class: 'avatar', style: 'background:' + col, text: r.agent.slice(0, 2) }), el('b', { text: r.agent })),
+      el('div', { class: 'ring-row' }, anneau(Number(r.taux_conf) || 0, col), el('div', {}, el('div', { class: 'big', text: fmt(r.confirmes) }), el('div', { class: 'note', style: 'margin:0', text: 'مؤكدة من ' + fmt(r.assignes) + ' طلب' }))),
+      el('div', { class: 'cells' },
+        cell(fmt(r.annules), 'ملغية', Number(r.annules) ? 'bad' : ''), cell(fmt(r.pas_repond), 'ما جاوبوش', Number(r.pas_repond) ? 'warn' : ''), cell(fmt(r.en_attente), 'ف الانتظار'),
+        cell(fmt(r.livres), 'مسلمة', 'ok'), cell(fmt(r.retours), 'راجعة', Number(r.retours) ? 'bad' : ''), cell(fermes ? pct(tl) : '—', 'نسبة التوصيل', !fermes ? '' : tl >= 50 ? 'ok' : tl >= 35 ? 'warn' : 'bad'),
+        cell(fmt(r.en_cours), 'ف الطريق'), cell(fmt(r.colis), 'كاع الكوليات'), cell(fmt(r.ca_livre), 'درهم مسلمة'),
+      ),
+    );
+  });
+  if (tot && st.role === 'admin') cartes.unshift(el('div', { class: 'pcard' },
+    el('div', { class: 'phead' }, el('div', { class: 'avatar', style: 'background:var(--ink);color:var(--panel)', text: '∑' }), el('b', { text: 'المجموع' })),
+    el('div', { class: 'ring-row' }, anneau(Number(tot.taux_conf) || 0, 'var(--brand)'), el('div', {}, el('div', { class: 'big', text: fmt(tot.confirmes) }), el('div', { class: 'note', style: 'margin:0', text: 'مؤكدة من ' + fmt(tot.assignes) + ' طلب' }))),
+    el('div', { class: 'cells' }, cell(fmt(tot.livres), 'مسلمة', 'ok'), cell(fmt(tot.retours), 'راجعة', 'bad'), cell(pct(tot.taux_livr), 'نسبة التوصيل'), cell(fmt(tot.en_cours), 'ف الطريق'), cell(fmt(tot.en_attente), 'ف الانتظار'), cell(fmt(tot.ca_livre), 'درهم مسلمة')),
+  ));
+  $('#pgrid').replaceChildren(...(cartes.length ? cartes : [el('div', { class: 'empty', text: 'ما كاين والو ف هاد الفترة' })]));
+  const maj = (tot || rows[0] || {}).maj;
+  if (maj) $('#perf-note').textContent = 'نسبة التأكيد = المؤكدة ÷ (الطلبات − الدوبل). نسبة التوصيل = المسلمة ÷ (المسلمة + الراجعة). آخر حساب: ' + maj;
+}
+for (const b of document.querySelectorAll('#periods .tab')) b.addEventListener('click', () => {
+  st.periode = b.dataset.p; for (const x of document.querySelectorAll('#periods .tab')) x.setAttribute('aria-pressed', String(x === b)); rendrePerf();
+});
+for (const b of document.querySelectorAll('#views .view-btn')) b.addEventListener('click', () => {
+  st.view = b.dataset.view;
+  for (const x of document.querySelectorAll('#views .view-btn')) x.setAttribute('aria-pressed', String(x === b));
+  $('#orders').hidden = st.view !== 'orders'; $('#orders-head').hidden = st.view !== 'orders'; $('#perf').hidden = st.view !== 'perf';
+  if (st.view === 'perf') chargerStats();
+});
+
+// ---------- start ----------
+const saved = store.get('crm_pin');
+if (saved) login(saved).catch(() => { store.set('crm_pin', ''); $('#v-login').hidden = false; $('#v-app').hidden = true; });
+</script>
+</body>
+</html>
