@@ -260,7 +260,8 @@ const GROUPES = [
   { id: 'pr', t: 'Injoignable', c: 'warn', f: s => /r[ée]pond|injoign|joignable|bo[iî]te vocale|ferm[ée]/i.test(s), msg: 'السلام عليكم {c}، معاك Zena Shop. الليفرور حاول يتاصل بيك باش يسلم ليك الطلب ديالك ({p}) وما جاوبتيش. واش نقولو ليه يدوز عندك اليوم؟' },
   { id: 'an', t: 'Refusées', c: 'bad', f: s => /annul|refus/i.test(s), msg: 'السلام عليكم {c}، معاك Zena Shop. شفنا الطلب ديالك ({p}) تلغى. واش كاين شي مشكل نقدرو نعاونوك فيه؟ إلا مازال بغيتيه نعاودو نصيفطوه ليك.' },
   { id: 'rp', t: 'Reportées', c: 'info', f: s => /report|int[ée]ress|programm|rendez/i.test(s), msg: 'السلام عليكم {c}، معاك Zena Shop بخصوص الطلب ديالك ({p}). فوقاش يناسبك نصيفطو ليك الليفرور؟' },
-  { id: 'rt', t: 'Retours', c: 'bad', f: s => /retour|retourn/i.test(s), msg: '' },
+  { id: 'rr', t: 'Retours reçus', c: '', f: s => /retour livr[ée] au client/i.test(s) || /^retourn[ée]$/i.test(s), msg: '' },
+  { id: 'rt', t: 'Retours en route', c: 'bad', f: s => /retour|retourn/i.test(s), msg: '' },
   { id: 'ok', t: 'Livrées', c: 'ok', f: s => /^livr[ée] au client/i.test(s), msg: 'السلام عليكم {c}، معاك Zena Shop. شكرا على الثقة ديالك 🌸 عجبك المنتوج ({p})؟' },
   { id: 'rd', t: 'En cours', c: 'info', f: () => true, msg: 'السلام عليكم {c}، معاك Zena Shop. الطلب ديالك ({p}) خرج مع شركة التوصيل وغادي يوصلك قريب إن شاء الله. خلي التيليفون ديالك مشعول عافاك.' },
 ];
@@ -278,7 +279,8 @@ const TABS = [
   { id: 'l-an', t: 'Refusées', c: 'bad', f: o => !!o.colis && gLiv(o) === 'an' },
   { id: 'l-rp', t: 'Reportées', c: 'info', f: o => !!o.colis && gLiv(o) === 'rp' },
   { id: 'l-rd', t: 'En cours', c: 'info', f: o => !!o.colis && gLiv(o) === 'rd' },
-  { id: 'l-rt', t: 'Retours', c: 'bad', f: o => !!o.colis && gLiv(o) === 'rt' },
+  { id: 'l-rt', t: 'Retours en route', c: 'bad', f: o => !!o.colis && gLiv(o) === 'rt' },
+  { id: 'l-rr', t: 'Retours reçus', c: '', f: o => !!o.colis && gLiv(o) === 'rr' },
   { id: 'l-ok', t: 'Livrées', c: 'ok', f: o => !!o.colis && gLiv(o) === 'ok' },
   { groupe: '' },
   { id: 'all', t: 'Toutes', c: '', f: () => true },
@@ -395,7 +397,7 @@ function rendreListe() {
 }
 $('#more').addEventListener('click', () => { st.page++; rendreListe(); });
 
-function tonLivraison(s) { return /livr[ée] au client/i.test(s) ? 'ok' : /retour|annul|refus/i.test(s) ? 'bad' : /r[ée]pond|injoign|report/i.test(s) ? 'warn' : 'info'; }
+function tonLivraison(s) { return /retour livr[ée] au client/i.test(s) || /^retourn[ée]$/i.test(s) ? 'plain' : /livr[ée] au client/i.test(s) ? 'ok' : /retour|annul|refus/i.test(s) ? 'bad' : /r[ée]pond|injoign|report/i.test(s) ? 'warn' : 'info'; }
 function carte(o) {
   const key = (o.id || o.colis) + '|' + o.row;
   const gl = o.colis ? GROUPES.find(g => g.f(o.livraison || '')) : null;
@@ -406,7 +408,7 @@ function carte(o) {
   const libre = !o.agent && !o.colis;
   const ton = gl ? gl.c : statut ? TON[statut] : 'info';
   const quand = gl ? depuis(o.dliv || o.date) : depuis(o.date);
-  const enRetard = gl && ['pr', 'an', 'rp', 'rd'].includes(gl.id) && quand.h > 48;
+  const enRetard = gl && (['pr', 'an', 'rp', 'rd'].includes(gl.id) && quand.h > 48 || gl.id === 'rt' && quand.h > 168);
 
   const chips = el('div', { class: 'chips' },
     gl ? el('span', { class: 'pill ' + tonLivraison(o.livraison), text: o.livraison || 'Expédiée' })
@@ -516,7 +518,7 @@ function rendrePerf() {
       el('div', { class: 'ring-row' }, anneau(Number(r.taux_conf) || 0, col), el('div', {}, el('div', { class: 'big', text: fmt(r.confirmes) }), el('div', { class: 'sub', text: 'confirmées sur ' + fmt(r.assignes) + ' commandes' }))),
       el('div', { class: 'cells' },
         cell(fmt(r.annules), 'Annulées', Number(r.annules) ? 'bad' : ''), cell(fmt(r.pas_repond), 'Pas répondu', Number(r.pas_repond) ? 'warn' : ''), cell(fmt(r.en_attente), 'En attente'),
-        cell(fmt(r.livres), 'Livrées', 'ok'), cell(fmt(r.retours), 'Retours', Number(r.retours) ? 'bad' : ''), cell(fermes ? pct(tl) : '—', 'Taux livraison', !fermes ? '' : tl >= 50 ? 'ok' : tl >= 35 ? 'warn' : 'bad'),
+        cell(fmt(r.livres), 'Livrées', 'ok'), cell(fmt(r.retours) + (r.retours_recus != null ? ' · ' + fmt(r.retours_recus) + ' reçus' : ''), 'Retours', Number(r.retours) ? 'bad' : ''), cell(fermes ? pct(tl) : '—', 'Taux livraison', !fermes ? '' : tl >= 50 ? 'ok' : tl >= 35 ? 'warn' : 'bad'),
         cell(fmt(r.en_cours), 'En cours'), cell(fmt(r.colis), 'Colis'), cell(fmt(r.ca_livre) + ' DH', 'CA livré'),
       ),
     );
