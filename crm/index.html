@@ -165,6 +165,7 @@
     .who small { max-width: 160px; }
   }
   @media (prefers-reduced-motion: reduce) { .icon-btn.spin svg { animation: none; } }
+  .search-info { font-size: 12.5px; font-weight: 700; color: var(--muted); padding: 0 2px 2px; }
   :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 </style>
 </head>
@@ -287,7 +288,7 @@ const TABS = [
 ];
 const TONCOL = { ok: 'var(--ok)', bad: 'var(--bad)', warn: 'var(--warn)', info: 'var(--info)', '': 'var(--muted)' };
 
-const st = { pin: '', agent: '', role: '', commandes: [], tab: 'new', q: '', page: 1, ouvert: new Set(), brouillon: {}, villes: [], stats: [], periode: '7j', view: 'orders', at: 0, busy: false };
+const st = { res: null, resQ: '', tabQ: null, cherche: null, pin: '', agent: '', role: '', commandes: [], tab: 'new', q: '', page: 1, ouvert: new Set(), brouillon: {}, villes: [], stats: [], periode: '7j', view: 'orders', at: 0, busy: false };
 const $ = s => document.querySelector(s);
 const el = (tag, attrs = {}, ...kids) => {
   const e = document.createElement(tag);
@@ -364,7 +365,23 @@ setInterval(() => { if (document.visibilityState === 'visible' && st.pin) charge
 $('#refresh').addEventListener('click', () => { charger(); chargerStats(); });
 $('#f-agent').addEventListener('change', () => charger());
 $('#f-jours').addEventListener('change', () => charger());
-$('#q').addEventListener('input', e => { st.q = e.target.value.trim().toLowerCase(); st.page = 1; rendre(); });
+// Recherche : résultats de tous les onglets, et recherche serveur sans limite de date
+let rechercheT;
+$('#q').addEventListener('input', e => {
+  st.q = e.target.value.trim().toLowerCase(); st.page = 1; st.tabQ = null; rendre();
+  clearTimeout(rechercheT);
+  if (st.q.length >= 3) rechercheT = setTimeout(rechercher, 450);
+});
+async function rechercher() {
+  const q = st.q; if (q.length < 3) return;
+  st.cherche = q; rendreListe();
+  try {
+    const d = await api('commandes', st.role === 'admin' ? { q, filtre: 'TOUS' } : { q });
+    if (st.q === q) { st.res = d.commandes; st.resQ = q; }
+  } catch (e) { if (st.q === q) toast(e.message, true); }
+  if (st.cherche === q) st.cherche = null;
+  if (st.q === q) rendre();
+}
 
 // ---------- rendering ----------
 function depuis(v) {
@@ -375,26 +392,34 @@ function depuis(v) {
   const d = new Date(t);
   return { t: d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) + ', ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), h };
 }
+function correspond(o, q) {
+  const t = (o.client + ' ' + o.tel + ' ' + o.id + ' ' + o.adresse + ' ' + o.ville + ' ' + (o.colis || '')).toLowerCase();
+  const chiffres = q.replace(/\D/g, '').replace(/^0+/, '');
+  return t.includes(q) || (chiffres.length >= 6 && t.replace(/\D/g, '').includes(chiffres));
+}
 function visibles() {
   const q = st.q;
-  return st.commandes.filter(o => !q || (o.client + ' ' + o.tel + ' ' + o.id + ' ' + o.adresse + ' ' + o.ville + ' ' + (o.colis || '')).toLowerCase().includes(q));
+  if (!q) return st.commandes;
+  const source = st.resQ === q && st.res ? st.res : st.commandes;
+  return source.filter(o => correspond(o, q));
 }
 function rendre() { rendreTabs(); rendreListe(); }
 function rendreTabs() {
   const base = visibles();
   $('#tabs').replaceChildren(...TABS.map(t => t.groupe !== undefined
     ? (t.groupe ? el('span', { class: 'tab-group', text: t.groupe }) : null)
-    : el('button', { class: 'tab', 'aria-pressed': String(st.tab === t.id), onclick: () => { st.tab = t.id; st.page = 1; rendre(); } },
+    : el('button', { class: 'tab', 'aria-pressed': String(st.q ? st.tabQ === t.id : st.tab === t.id), onclick: () => { if (st.q) st.tabQ = st.tabQ === t.id ? null : t.id; else st.tab = t.id; st.page = 1; rendre(); } },
         t.c ? el('span', { class: 'dot', style: 'background:' + TONCOL[t.c] }) : null, t.t, el('span', { class: 'n', text: base.filter(t.f).length }))));
 }
 function rendreListe() {
-  const tab = TABS.find(t => t.id === st.tab);
+  const tab = st.q ? (TABS.find(t => t.id === st.tabQ) || { id: 'q', f: () => true }) : TABS.find(t => t.id === st.tab);
   const rows = visibles().filter(tab.f);
   // livraison : dernier changement de statut en premier ; confirmation : commande la plus récente en premier
-  if (st.tab.startsWith('l-')) { const t = o => Date.parse(String(o.dliv || o.date).replace(' ', 'T')) || 0; rows.sort((x, y) => t(y) - t(x)); }
+  if (!st.q && st.tab.startsWith('l-')) { const t = o => Date.parse(String(o.dliv || o.date).replace(' ', 'T')) || 0; rows.sort((x, y) => t(y) - t(x)); }
   const n = st.page * 40;
-  if (!rows.length) { $('#list').replaceChildren(el('div', { class: 'empty', text: st.at ? 'Aucune commande dans cette liste.' : 'Chargement des commandes…' })); $('#more').hidden = true; return; }
-  $('#list').replaceChildren(...rows.slice(0, n).map(carte));
+  const entete = st.q ? el('div', { class: 'search-info' }, st.cherche === st.q ? 'Recherche dans toutes les commandes…' : rows.length + ' résultat' + (rows.length > 1 ? 's' : '') + ' pour « ' + st.q + ' »' + (st.tabQ ? '' : ' · tous les onglets')) : null;
+  if (!rows.length) { $('#list').replaceChildren(...[entete, el('div', { class: 'empty', text: st.q ? (st.cherche === st.q ? '' : 'Aucune commande trouvée.') : st.at ? 'Aucune commande dans cette liste.' : 'Chargement des commandes…' })].filter(Boolean)); $('#more').hidden = true; return; }
+  $('#list').replaceChildren(...[entete].filter(Boolean), ...rows.slice(0, n).map(carte));
   $('#more').hidden = rows.length <= n;
 }
 $('#more').addEventListener('click', () => { st.page++; rendreListe(); });
