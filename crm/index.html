@@ -139,6 +139,18 @@
   .note { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
   @media (max-width: 420px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (prefers-reduced-motion: reduce) { .icon-btn.spin span { animation: none; } }
+  .cbanner { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-bottom: 10px; }
+  .cb { border-radius: 12px; padding: 10px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; text-align: start; }
+  .cb b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .cb span { font-size: 12px; color: var(--muted); }
+  .cb.bad b { color: var(--bad); } .cb.warn b { color: var(--warn); } .cb.ok b { color: var(--ok); }
+  .ccard { border-inline-start-width: 4px; }
+  .ccard.g-pr { border-inline-start-color: var(--warn); } .ccard.g-an { border-inline-start-color: var(--bad); }
+  .ccard.g-rp { border-inline-start-color: var(--info); } .ccard.g-rt { border-inline-start-color: var(--bad); }
+  .ccard.g-ok { border-inline-start-color: var(--ok); } .ccard.g-rt, .ccard.g-ok { opacity: .92; }
+  .code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: var(--muted); direction: ltr; unicode-bidi: embed; overflow-wrap: anywhere; }
+  .since { font-size: 12px; font-weight: 600; }
+  .since.late { color: var(--bad); }
   :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 </style>
 </head>
@@ -215,12 +227,19 @@ const LABEL = Object.fromEntries(STATUTS.map(s => [s.v, s.t]));
 const CLASSE = Object.fromEntries(STATUTS.map(s => [s.v, s.c]));
 const AGENTES = ['HAJIBA', 'BTISSAM', 'GHIZLANE', 'SAMIRA', 'SOUMIA', 'SANAA'];
 const COULEURS = { HAJIBA: '#0f6b62', BTISSAM: '#7a4bc2', GHIZLANE: '#c2412d', SAMIRA: '#2f5fb3', SOUMIA: '#b7791f', SANAA: '#1d8a4e' };
+const PS = ['PS REPOND', '2 PS RPS', 'MESSAGE WTSP'];
+const gLiv = o => (GROUPES.find(g => g.f(o.livraison || '')) || {}).id;
 const TABS = [
-  { id: 'new', t: 'جداد', f: o => !o.statut },
-  { id: 'ps', t: 'ما جاوبوش', f: o => ['PS REPOND', '2 PS RPS', 'MESSAGE WTSP'].includes(o.statut) },
-  { id: 'ok', t: 'مؤكدة', f: o => o.statut === 'CONFIRMER' },
-  { id: 'liv', t: 'ف التوصيل', f: o => o.statut === 'CONFIRMER' && !!o.colis && !/livr|retour|annul|refus/i.test(o.livraison) },
-  { id: 'ko', t: 'ملغية', f: o => ['ANNULER', 'DOUBLE'].includes(o.statut) },
+  { id: 'new', t: 'جداد', f: o => !o.colis && !o.statut },
+  { id: 'ps', t: 'ما جاوبوش', f: o => !o.colis && PS.includes(o.statut) },
+  { id: 'ok', t: 'مؤكدة (مازال ما خرجات)', f: o => !o.colis && o.statut === 'CONFIRMER' },
+  { id: 'l-pr', t: '📦📵 ما كيجاوبش الليفرور', f: o => !!o.colis && gLiv(o) === 'pr' },
+  { id: 'l-an', t: '📦❌ رفض / ملغي', f: o => !!o.colis && gLiv(o) === 'an' },
+  { id: 'l-rp', t: '📦⏳ مأجلة', f: o => !!o.colis && gLiv(o) === 'rp' },
+  { id: 'l-rd', t: '🚚 ف الطريق', f: o => !!o.colis && gLiv(o) === 'rd' },
+  { id: 'ko', t: 'ملغية', f: o => !o.colis && ['ANNULER', 'DOUBLE'].includes(o.statut) },
+  { id: 'l-rt', t: '📦↩️ راجعة', f: o => !!o.colis && gLiv(o) === 'rt' },
+  { id: 'l-ok', t: '📦✅ تسلمات', f: o => !!o.colis && gLiv(o) === 'ok' },
   { id: 'all', t: 'الكل', f: () => true },
 ];
 
@@ -335,13 +354,14 @@ function chipLivraison(s) {
   return el('span', { class: 'chip ' + c, text: '🚚 ' + s });
 }
 function carte(o) {
-  const key = o.id + '|' + o.row;
+  const key = (o.id || o.colis) + '|' + o.row;
+  const gl = o.colis ? GROUPES.find(g => g.f(o.livraison || '')) : null;
   const b = st.brouillon[key] || (st.brouillon[key] = {});
   const statut = 'statut' in b ? b.statut : o.statut;
   const cls = statut ? (CLASSE[statut] || '') : 'new';
   const t9 = o.tel.replace(/\D/g, '').slice(-9);
   const ouvert = st.ouvert.has(key);
-  const libre = !o.agent;
+  const libre = !o.agent && !o.colis;
 
   const chips = el('div', { class: 'chips' },
     statut ? el('span', { class: 'chip ' + (cls === 'CONFIRMER' ? 'ok' : cls === 'ANNULER' || cls === 'DOUBLE' ? 'bad' : 'warn'), text: LABEL[statut] || statut }) : el('span', { class: 'chip info', text: '🆕 جديد' }),
@@ -349,9 +369,11 @@ function carte(o) {
     o.wa ? el('span', { class: 'chip ' + (/oui|✅/i.test(o.wa) ? 'ok' : /non|❌/i.test(o.wa) ? 'bad' : ''), text: 'WA: ' + o.wa }) : null,
     o.ancien ? el('span', { class: 'chip info', text: '⭐ ' + o.ancien }) : null,
     chipLivraison(o.livraison),
+    o.colis && o.dliv ? el('span', { class: 'chip', text: '🕒 ' + relatif(o.dliv) }) : null,
   );
 
-  const msg = encodeURIComponent('السلام عليكم ' + (o.client || '') + '، معاك ' + (st.role === 'admin' ? 'Zena Shop' : 'Zena Shop') + ' بخصوص الطلب ديالك: ' + o.produit);
+  const modele = gl ? gl.msg : 'السلام عليكم {c}، معاك Zena Shop بخصوص الطلب ديالك: {p}';
+  const msg = encodeURIComponent((modele || 'السلام عليكم {c}، معاك Zena Shop بخصوص الطلب ديالك: {p}').replace('{c}', o.client || '').replace('{p}', o.produit || ''));
   const contact = t9.length === 9 ? el('div', { class: 'contact' },
     el('a', { href: 'tel:0' + t9 }, '📞 ', el('span', { class: 'tel-num', text: '0' + t9 })),
     el('a', { class: 'wa', href: 'https://wa.me/212' + t9 + '?text=' + msg, target: '_blank', rel: 'noopener' }, 'واتساب'),
@@ -381,7 +403,7 @@ function carte(o) {
     el('button', { class: 'btn ghost', onclick: () => { delete st.brouillon[key]; st.ouvert.delete(key); rerender(); } }, 'رجّع'),
   ) : null;
 
-  return el('article', { class: 'card s-' + cls, 'data-key': key },
+  return el('article', { class: 'card ' + (gl ? 'ccard g-' + gl.id : 's-' + cls), 'data-key': key },
     el('div', { class: 'row1' }, el('div', { class: 'name', text: o.client || '—' }), el('div', { class: 'date', text: relatif(o.date) })),
     chips,
     el('div', { class: 'prod' }, o.produit || '—', o.total ? el('b', { text: ' · ' + o.total }) : null),
@@ -391,8 +413,8 @@ function carte(o) {
       o.colis ? el('span', { text: 'الكوليا' }) : null, o.colis ? el('span', { text: o.colis }) : null,
       o.remarque ? el('span', { text: 'ملاحظة' }) : null, o.remarque ? el('span', { text: o.remarque }) : null,
     ),
-    contact, acts,
-    el('button', { class: 'more', onclick: () => { ouvert ? st.ouvert.delete(key) : st.ouvert.add(key); rerender(); } }, ouvert ? 'سد التعديل ▲' : '✏️ عدّل المدينة / العنوان / المنتوج'),
+    contact, gl ? null : acts,
+    gl ? null : el('button', { class: 'more', onclick: () => { ouvert ? st.ouvert.delete(key) : st.ouvert.add(key); rerender(); } }, ouvert ? 'سد التعديل ▲' : '✏️ عدّل المدينة / العنوان / المنتوج'),
     edit, save,
   );
 }
@@ -473,6 +495,17 @@ for (const b of document.querySelectorAll('#views .view-btn')) b.addEventListene
   $('#orders').hidden = st.view !== 'orders'; $('#orders-head').hidden = st.view !== 'orders'; $('#perf').hidden = st.view !== 'perf';
   if (st.view === 'perf') chargerStats();
 });
+
+// ---------- delivery groups ----------
+const GROUPES = [
+  { id: 'pr', t: '📦📵 ما كيجاوبش الليفرور', c: 'warn', f: s => /r[ée]pond|injoign|joignable|bo[iî]te vocale|ferm[ée]/i.test(s), msg: 'السلام عليكم {c}، معاك Zena Shop. الليفرور حاول يتاصل بيك باش يسلم ليك الطلب ديالك ({p}) وما جاوبتيش. واش نقولو ليه يدوز عندك اليوم؟' },
+  { id: 'an', t: '📦❌ رفض / ملغي', c: 'bad', f: s => /annul|refus/i.test(s), msg: 'السلام عليكم {c}، معاك Zena Shop. شفنا الطلب ديالك ({p}) تلغى. واش كاين شي مشكل نقدرو نعاونوك فيه؟ إلا مازال بغيتيه نعاودو نصيفطوه ليك.' },
+  { id: 'rp', t: '📦⏳ مأجلة', c: 'info', f: s => /report|int[ée]ress|programm|rendez/i.test(s), msg: 'السلام عليكم {c}، معاك Zena Shop بخصوص الطلب ديالك ({p}). فوقاش يناسبك نصيفطو ليك الليفرور؟' },
+  { id: 'rt', t: '📦↩️ راجعة', c: 'bad', f: s => /retour|retourn/i.test(s), msg: '' },
+  { id: 'ok', t: '📦✅ تسلمات', c: 'ok', f: s => /^livr[ée] au client/i.test(s), msg: 'السلام عليكم {c}، معاك Zena Shop. شكرا على الثقة ديالك 🌸 عجبك المنتوج ({p})؟' },
+  { id: 'rd', t: '🚚 ف الطريق', c: 'info', f: () => true, msg: 'السلام عليكم {c}، معاك Zena Shop. الطلب ديالك ({p}) خرج مع شركة التوصيل وغادي يوصلك قريب إن شاء الله. خلي التيليفون ديالك مشعول عافاك.' },
+];
+const groupe = s => GROUPES.find(g => g.f(s || ''));
 
 // ---------- start ----------
 const saved = store.get('crm_pin');
