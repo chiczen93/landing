@@ -248,6 +248,17 @@
 
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
+// Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
+const VERSION = '202610301953';
+async function verifierVersion() {
+  try {
+    const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
+    const v = (await r.text()).trim();
+    if (v && v !== VERSION && !(typeof st !== 'undefined' && st.ouvert && st.ouvert.size)) location.replace(location.pathname + '?v=' + v + location.hash);
+  } catch (e) {}
+}
+verifierVersion();
+setInterval(verifierVersion, 60000);
 const STATUTS = [
   { v: 'CONFIRMER', t: 'Confirmé', c: 'ok' },
   { v: 'PS REPOND', t: 'Pas répondu', c: 'warn' },
