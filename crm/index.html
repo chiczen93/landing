@@ -166,6 +166,11 @@
   }
   @media (prefers-reduced-motion: reduce) { .icon-btn.spin svg { animation: none; } }
   .search-info { font-size: 12.5px; font-weight: 700; color: var(--muted); padding: 0 2px 2px; }
+  .card.dbl { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 7%, var(--panel)); }
+  .card.dbl::before { background: var(--bad); width: 5px; }
+  .dbl-box { border: 1px solid color-mix(in srgb, var(--bad) 40%, var(--line)); background: var(--bad-soft); color: var(--bad); border-radius: 9px; padding: 8px 10px; font-size: 12.5px; font-weight: 600; }
+  .dbl-box b { font-weight: 800; }
+  .dbl-box span { display: block; color: var(--ink-2); font-weight: 500; margin-top: 2px; overflow-wrap: anywhere; }
   :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 </style>
 </head>
@@ -443,7 +448,12 @@ function carte(o) {
     libre ? el('span', { class: 'pill brand plain', text: 'Non attribuée' }) : (st.role === 'admin' && o.agent ? el('span', { class: 'pill plain', text: nomPropre(o.agent) }) : null),
     !gl && o.wa ? el('span', { class: 'pill ' + (/oui|✅/i.test(o.wa) ? 'ok' : /non|❌/i.test(o.wa) ? 'bad' : 'plain'), text: 'WhatsApp : ' + o.wa.replace(/[✅❌⏳]\s*/g, '') }) : null,
     o.ancien ? el('span', { class: 'pill plain', text: 'Client fidèle' }) : null,
+    o.doublon ? el('span', { class: 'pill bad', text: 'Doublon' }) : null,
   );
+  const d = o.doublon;
+  const boiteDbl = d ? el('div', { class: 'dbl-box' },
+    el('b', { text: 'Doublon : même modèle déjà commandé le ' + new Date(d.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) }),
+    el('span', { text: d.produit + ' · ' + (d.livraison || LABEL[d.statut] || 'Nouvelle') + (d.agent ? ' · ' + nomPropre(d.agent) : '') })) : null;
 
   const msg = encodeURIComponent(((gl ? gl.msg : MSG_DEFAUT) || MSG_DEFAUT).replace('{c}', o.client || '').replace('{p}', o.produit || ''));
   const contact = t9.length === 9 ? el('div', { class: 'contact' },
@@ -482,9 +492,9 @@ function carte(o) {
     o.remarque ? el('dt', { text: 'Remarque' }) : null, o.remarque ? el('dd', { text: o.remarque }) : null,
   );
 
-  return el('article', { class: 'card t-' + ton, 'data-key': key },
+  return el('article', { class: 'card t-' + ton + (o.doublon ? ' dbl' : ''), 'data-key': key },
     el('div', { class: 'row1' }, el('div', { class: 'name', text: o.client || '—' }), el('div', { class: 'date' + (enRetard ? ' late' : ''), text: quand.t })),
-    chips,
+    chips, boiteDbl,
     el('div', { class: 'prod' }, o.produit || '—', o.total ? el('b', { text: '  ·  ' + o.total.replace('درهم', 'DH') }) : null),
     meta,
     contact, gl ? null : acts,
