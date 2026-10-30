@@ -166,7 +166,8 @@
   }
   @media (prefers-reduced-motion: reduce) { .icon-btn.spin svg { animation: none; } }
   .search-info { font-size: 12.5px; font-weight: 700; color: var(--muted); padding: 0 2px 2px; }
-  .card.dbl { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 7%, var(--panel)); }
+  .card.dbl { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 16%, var(--panel)); }
+  .card.dbl .prod, .card.dbl .contact a:not(.wa), .card.dbl .act:not([aria-pressed="true"]) { background: color-mix(in srgb, var(--bad) 8%, var(--panel)); }
   .card.dbl::before { background: var(--bad); width: 5px; }
   .dbl-box { border: 1px solid color-mix(in srgb, var(--bad) 40%, var(--line)); background: var(--bad-soft); color: var(--bad); border-radius: 9px; padding: 8px 10px; font-size: 12.5px; font-weight: 600; }
   .dbl-box b { font-weight: 800; }
@@ -492,7 +493,7 @@ function carte(o) {
     o.remarque ? el('dt', { text: 'Remarque' }) : null, o.remarque ? el('dd', { text: o.remarque }) : null,
   );
 
-  return el('article', { class: 'card t-' + ton + (o.doublon ? ' dbl' : ''), 'data-key': key },
+  return el('article', { class: 'card t-' + ton + (o.doublon || statut === 'DOUBLE' ? ' dbl' : ''), 'data-key': key },
     el('div', { class: 'row1' }, el('div', { class: 'name', text: o.client || '—' }), el('div', { class: 'date' + (enRetard ? ' late' : ''), text: quand.t })),
     chips, boiteDbl,
     el('div', { class: 'prod' }, o.produit || '—', o.total ? el('b', { text: '  ·  ' + o.total.replace('درهم', 'DH') }) : null),
