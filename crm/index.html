@@ -273,7 +273,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202610312211';
+const VERSION = '202610312353';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -419,16 +419,23 @@ function barre(texte, bouton, action, cle) {
   if (store.get('pwa_ferme_' + cle) === '1') { b.hidden = true; return; }
   const kids = [el('img', { src: 'icons/icon-192.png', alt: '' }), el('span', { text: texte })];
   if (bouton) { const x = el('button', { class: 'btn', text: bouton }); x.addEventListener('click', action); kids.push(x); }
-  const f = el('button', { class: 'x', text: '×', 'aria-label': 'Fermer' }); f.addEventListener('click', () => { store.set('pwa_ferme_' + cle, '1'); b.hidden = true; });
+  const f = el('button', { class: 'x', text: '×', 'aria-label': 'Fermer' }); f.addEventListener('click', () => { if (!/^notif/.test(cle)) store.set('pwa_ferme_' + cle, '1'); b.hidden = true; });
   kids.push(f);
   b.replaceChildren(...kids); b.hidden = false;
 }
 function majBarreApp() {
   const b = $('#pwa-bar');
+  const peutNotif = 'Notification' in window && 'PushManager' in window;
+  if (!estApp && !estIOS && peutNotif && Notification.permission === 'default') {
+    return barre('Recevez une notification à chaque nouvelle commande.', 'Activer', async () => { try { await Notification.requestPermission(); } catch (e) {} await abonnerPush(); majBarreApp(); }, 'notif-web');
+  }
   if (!estApp) {
     if (invite) return barre("Installez Zena CRM sur votre téléphone, comme une vraie application.", 'Installer', async () => { invite.prompt(); await invite.userChoice; invite = null; majBarreApp(); }, 'inst');
     if (estIOS) return barre("Ajoutez Zena CRM à l'écran d'accueil : touchez Partager ⬆︎ puis « Sur l'écran d'accueil ».", '', null, 'ios');
     b.hidden = true; return;
+  }
+  if ('Notification' in window && Notification.permission === 'denied') {
+    return barre(estIOS ? 'Notifications bloquées : Réglages → Notifications → Zena CRM → Autoriser.' : 'Notifications bloquées : touchez le cadenas à côté de l’adresse → Notifications → Autoriser.', '', null, 'notif-bloque');
   }
   if ('Notification' in window && Notification.permission === 'default') {
     return barre('Recevez une notification à chaque nouvelle commande.', 'Activer', async () => { try { await Notification.requestPermission(); } catch (e) {} await abonnerPush(); majBarreApp(); }, 'notif');
