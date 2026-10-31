@@ -18,7 +18,7 @@ self.addEventListener('push', e => {
   const titre = d.titre || '🛒 Nouvelle commande';
   const corps = d.corps || 'Une nouvelle commande vous attend dans Zena CRM.';
   e.waitUntil(Promise.all([
-    self.registration.showNotification(titre, { body: corps, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'nouvelle-commande', renotify: true }),
+    self.registration.showNotification(titre, { body: corps, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: d.tag || 'zena-' + Date.now(), renotify: true }),
     self.navigator && self.navigator.setAppBadge ? self.navigator.setAppBadge().catch(() => {}) : Promise.resolve(),
   ]));
 });
