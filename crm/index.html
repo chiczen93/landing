@@ -7,6 +7,13 @@
 <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0e1117" media="(prefers-color-scheme: dark)">
 <title>Zena CRM</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Zena CRM">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;600&display=swap">
@@ -46,7 +53,8 @@
   .login { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
   .login-card { width: min(100%, 360px); background: var(--panel); border-radius: 16px; padding: 32px 24px; box-shadow: var(--shadow); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
   .brandline { display: flex; align-items: center; gap: 10px; }
-  .mark { width: 34px; height: 34px; border-radius: 9px; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; font-weight: 800; font-size: 17px; letter-spacing: -.02em; flex: none; }
+  .mark img { width: 100%; height: 100%; display: block; }
+  .mark { overflow: hidden; width: 34px; height: 34px; border-radius: 9px; background: #11141c; color: var(--brand-ink); display: grid; place-items: center; font-weight: 800; font-size: 17px; letter-spacing: -.02em; flex: none; }
   .brandname { font-weight: 800; font-size: 18px; letter-spacing: -.01em; }
   .brandname span { color: var(--muted); font-weight: 600; }
   .login-card h1 { margin: 6px 0 0; font-size: 20px; letter-spacing: -.01em; }
@@ -137,6 +145,12 @@
   .save-row .btn { flex: 1; }
   .more { background: none; border: 0; color: var(--brand); font-weight: 700; cursor: pointer; padding: 0; font-size: 13px; justify-self: start; display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; }
   .empty { text-align: center; color: var(--muted); padding: 48px 10px; }
+  .pwa-bar { display: flex; align-items: center; gap: 10px; background: var(--brand-soft); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+  .pwa-bar[hidden] { display: none; }
+  .pwa-bar img { width: 34px; height: 34px; border-radius: 9px; flex: none; }
+  .pwa-bar span { flex: 1; line-height: 1.4; }
+  .pwa-bar button { flex: none; }
+  .pwa-bar .x { background: none; border: 0; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0 4px; }
   .toast { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--panel); padding: 10px 16px; border-radius: 10px; font-weight: 700; z-index: 50; max-width: calc(100% - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.18); }
   .toast.bad { background: var(--bad); color: #fff; }
   .loadmore { width: 100%; margin-top: 12px; }
@@ -196,7 +210,7 @@
 
 <section class="login" id="v-login">
   <div class="login-card">
-    <div class="brandline"><div class="mark">Z</div><div class="brandname">Zena <span>CRM</span></div></div>
+    <div class="brandline"><div class="mark"><img src="icons/icon-192.png" alt=""></div><div class="brandname">Zena <span>CRM</span></div></div>
     <h1>Connexion</h1>
     <p>Entrez votre code personnel.</p>
     <input class="pin" id="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" aria-label="Code">
@@ -210,12 +224,13 @@
     <div class="wrap">
       <div class="bar">
         <div class="brandline">
-          <div class="mark">Z</div>
+          <div class="mark"><img src="icons/icon-192.png" alt=""></div>
           <div class="who"><b id="me">—</b><small id="sync">—</small></div>
         </div>
         <button class="icon-btn" id="refresh" aria-label="Actualiser"><svg class="i"><use href="#i-refresh"/></svg></button>
         <button class="icon-btn" id="logout" aria-label="Déconnexion"><svg class="i"><use href="#i-out"/></svg><span>Quitter</span></button>
       </div>
+      <div class="pwa-bar" id="pwa-bar" hidden></div>
       <div class="seg" id="views" role="group" aria-label="Vue">
         <button data-view="orders" aria-pressed="true">Commandes</button>
         <button data-view="perf" aria-pressed="false">Performance</button>
@@ -258,7 +273,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202610312037';
+const VERSION = '202610312059';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -374,6 +389,7 @@ async function charger(silencieux) {
     const d = await api('commandes', extra);
     st.commandes = d.commandes; st.at = Date.now();
     rendre();
+    if (st.role === 'agent') signalerNouvelles();
   } catch (e) { if (!silencieux) toast(e.message, true); }
   finally { st.busy = false; $('#refresh').classList.remove('spin'); majSync(); }
 }
@@ -389,6 +405,58 @@ setInterval(majSync, 30000);
 setInterval(() => { if (document.visibilityState === 'visible' && st.pin && !st.ouvert.size && st.view === 'orders') charger(true); }, 60000);
 setInterval(() => { if (document.visibilityState === 'visible' && st.pin) chargerStats(); }, 300000);
 $('#refresh').addEventListener('click', () => { charger(); chargerStats(); });
+
+// ---------- application (PWA) : installation, notifications, pastille ----------
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+const estApp = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const estIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+let invite = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); invite = e; majBarreApp(); });
+window.addEventListener('appinstalled', () => { invite = null; majBarreApp(); });
+function barre(texte, bouton, action, cle) {
+  const b = $('#pwa-bar');
+  if (store.get('pwa_ferme_' + cle) === '1') { b.hidden = true; return; }
+  const kids = [el('img', { src: 'icons/icon-192.png', alt: '' }), el('span', { text: texte })];
+  if (bouton) { const x = el('button', { class: 'btn', text: bouton }); x.addEventListener('click', action); kids.push(x); }
+  const f = el('button', { class: 'x', text: '×', 'aria-label': 'Fermer' }); f.addEventListener('click', () => { store.set('pwa_ferme_' + cle, '1'); b.hidden = true; });
+  kids.push(f);
+  b.replaceChildren(...kids); b.hidden = false;
+}
+function majBarreApp() {
+  const b = $('#pwa-bar');
+  if (!estApp) {
+    if (invite) return barre("Installez Zena CRM sur votre téléphone, comme une vraie application.", 'Installer', async () => { invite.prompt(); await invite.userChoice; invite = null; majBarreApp(); }, 'inst');
+    if (estIOS) return barre("Ajoutez Zena CRM à l'écran d'accueil : touchez Partager ⬆︎ puis « Sur l'écran d'accueil ».", '', null, 'ios');
+    b.hidden = true; return;
+  }
+  if ('Notification' in window && Notification.permission === 'default') {
+    return barre('Recevez une notification à chaque nouvelle commande.', 'Activer', async () => { try { await Notification.requestPermission(); } catch (e) {} majBarreApp(); }, 'notif');
+  }
+  b.hidden = true;
+}
+// nouvelles commandes : notification + pastille sur l'icône
+let dejaVues = null;
+async function signalerNouvelles() {
+  const nouvelles = st.commandes.filter(o => !o.colis && !o.statut && o.row);
+  const n = nouvelles.length;
+  try { if ('setAppBadge' in navigator) n ? navigator.setAppBadge(n) : navigator.clearAppBadge(); } catch (e) {}
+  const ids = new Set(nouvelles.map(o => o.id || String(o.row)));
+  if (dejaVues === null) { dejaVues = ids; return; }
+  const neuves = nouvelles.filter(o => !dejaVues.has(o.id || String(o.row)));
+  for (const i of ids) dejaVues.add(i);
+  if (!neuves.length || !('Notification' in window) || Notification.permission !== 'granted') return;
+  const reg = await navigator.serviceWorker?.getRegistration().catch(() => null);
+  for (const o of neuves.slice(0, 3)) {
+    const titre = (o.doublon ? '🔴 Doublon · ' : '🛒 Nouvelle commande · ') + (o.client || 'Client');
+    const corps = [o.produit, o.total].filter(Boolean).join(' · ');
+    const opt = { body: corps, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'cmd-' + (o.id || o.row) };
+    try { reg ? reg.showNotification(titre, opt) : new Notification(titre, opt); } catch (e) {}
+  }
+  if (neuves.length > 3) { try { reg && reg.showNotification('🛒 ' + neuves.length + ' nouvelles commandes', { icon: 'icons/icon-192.png', tag: 'cmd-lot' }); } catch (e) {} }
+}
+// dans l'application installée, on continue à vérifier les commandes même en arrière-plan (tant que le téléphone le permet)
+setInterval(() => { if (estApp && document.visibilityState !== 'visible' && st.pin && st.view === 'orders') charger(true); }, 60000);
+majBarreApp();
 $('#f-agent').addEventListener('change', () => charger());
 $('#f-jours').addEventListener('change', () => charger());
 // Recherche : résultats de tous les onglets, et recherche serveur sans limite de date
