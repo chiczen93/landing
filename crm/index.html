@@ -258,7 +258,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202610302113';
+const VERSION = '202610312037';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -278,8 +278,8 @@ const STATUTS = [
 ];
 const LABEL = Object.fromEntries(STATUTS.map(s => [s.v, s.t]));
 const TON = Object.fromEntries(STATUTS.map(s => [s.v, s.c]));
-const AGENTES = ['HAJIBA', 'BTISSAM', 'GHIZLANE', 'SAMIRA', 'SOUMIA', 'SANAA'];
-const COULEURS = { HAJIBA: '#3651d4', BTISSAM: '#7c4dbe', GHIZLANE: '#c2362b', SAMIRA: '#0e7490', SOUMIA: '#b45309', SANAA: '#0f7b55' };
+const AGENTES = ['HAJIBA', 'BTISSAM', 'GHIZLANE', 'SAMIRA', 'ILHAM', 'SOUMIA', 'SANAA'];
+const COULEURS = { HAJIBA: '#3651d4', BTISSAM: '#7c4dbe', GHIZLANE: '#c2362b', SAMIRA: '#0e7490', SOUMIA: '#b45309', SANAA: '#0f7b55', ILHAM: '#be185d' };
 const nomPropre = a => a ? a.charAt(0) + a.slice(1).toLowerCase() : '';
 
 // Statuts de livraison (Irsaliyat / Colya). Les messages WhatsApp aux clients restent en darija.
