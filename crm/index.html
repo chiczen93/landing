@@ -273,7 +273,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202610312059';
+const VERSION = '202610312156';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -389,7 +389,8 @@ async function charger(silencieux) {
     const d = await api('commandes', extra);
     st.commandes = d.commandes; st.at = Date.now();
     rendre();
-    if (st.role === 'agent') signalerNouvelles();
+    signalerNouvelles();
+    if (!st.pushOk) { st.pushOk = true; abonnerPush(); }
   } catch (e) { if (!silencieux) toast(e.message, true); }
   finally { st.busy = false; $('#refresh').classList.remove('spin'); majSync(); }
 }
@@ -430,9 +431,21 @@ function majBarreApp() {
     b.hidden = true; return;
   }
   if ('Notification' in window && Notification.permission === 'default') {
-    return barre('Recevez une notification à chaque nouvelle commande.', 'Activer', async () => { try { await Notification.requestPermission(); } catch (e) {} majBarreApp(); }, 'notif');
+    return barre('Recevez une notification à chaque nouvelle commande.', 'Activer', async () => { try { await Notification.requestPermission(); } catch (e) {} await abonnerPush(); majBarreApp(); }, 'notif');
   }
   b.hidden = true;
+}
+// notifications push (arrivent même quand l'application est fermée)
+const VAPID_PUBLIC = 'BNLJmVIzmcnzKSSWoFgvn7xGywZOQgHSA8iVwr555h5T6G4X0uVl-0_m4NxXDyU5veXD1ALGMGvSVNxH8TLxbsQ';
+function cleVapid() { const b = atob(VAPID_PUBLIC.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - VAPID_PUBLIC.length % 4) % 4)); return Uint8Array.from(b, c => c.charCodeAt(0)); }
+async function abonnerPush() {
+  try {
+    if (!st.pin || !('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window) || Notification.permission !== 'granted') return;
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: cleVapid() });
+    await api('abonner', { sub: sub.toJSON() });
+  } catch (e) { console.log('push', e && e.message); }
 }
 // nouvelles commandes : notification + pastille sur l'icône
 let dejaVues = null;
