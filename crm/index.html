@@ -339,7 +339,7 @@
       <div class="classement">
         <div class="cl-top"><h3>🏆 Classement des agentes</h3>
           <div class="periods" id="cl-periods" style="margin:0"><button class="tab" data-c="semaine" aria-pressed="true">Cette semaine</button><button class="tab" data-c="sem_prec">Semaine passée</button><button class="tab" data-c="30j">30 jours</button></div></div>
-        <div class="cl-sub" id="cl-sub">Selon le taux de livraison</div>
+        <div class="cl-sub" id="cl-sub">Selon les commandes livrées</div>
         <div id="cl-body"></div>
       </div>
       <div class="periods" id="periods">
@@ -360,7 +360,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611010403';
+const VERSION = '202611010405';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1042,23 +1042,24 @@ function rendreClassement() {
     const r = st.stats.find(x => x.agent === a && x.periode === per) || {};
     const l = Number(r.livres) || 0, rt = Number(r.retours) || 0, f = l + rt;
     return { agent: a, l, rt, f, taux: f ? l * 100 / f : -1, ca: Number(r.ca_livre) || 0 };
-  }).sort((a, b) => b.taux - a.taux || b.l - a.l);
+  }).sort((a, b) => b.l - a.l || b.taux - a.taux);
   const col = a => COULEURS[a] || 'var(--brand)';
   const ton = t => t < 0 ? 'var(--muted)' : t >= 50 ? 'var(--ok)' : t >= 35 ? 'var(--warn)' : 'var(--bad)';
   const tx = t => t < 0 ? '—' : t.toFixed(1).replace('.', ',') + ' %';
   const med = ['🥇', '🥈', '🥉'];
-  const pod = [1, 0, 2].filter(i => rows[i] && rows[i].f).map(i => el('div', { class: 'p' + (i === 0 ? ' p1' : '') },
+  const max = Math.max(1, ...rows.map(r => r.l));
+  const pod = [1, 0, 2].filter(i => rows[i] && rows[i].l).map(i => el('div', { class: 'p' + (i === 0 ? ' p1' : '') },
     el('div', { class: 'av', style: 'background:' + col(rows[i].agent), text: rows[i].agent.slice(0, 2) }, el('span', { class: 'md', text: med[i] })),
-    el('b', { text: nomPropre(rows[i].agent) }), el('small', { text: tx(rows[i].taux) }),
+    el('b', { text: nomPropre(rows[i].agent) }), el('small', { text: fmt(rows[i].l) + ' livrées' }),
     el('div', { class: 'bloc', style: 'height:' + [80, 58, 42][i] + 'px', text: String(i + 1) })));
   const liste = rows.map((r, i) => el('div', { class: 'cl-l' },
     el('span', { class: 'r', text: String(i + 1) }),
     el('div', { class: 'avatar', style: 'background:' + col(r.agent), text: r.agent.slice(0, 2) }),
     el('div', { class: 'x' },
-      el('b', {}, el('span', { text: nomPropre(r.agent) }), el('span', { style: 'color:' + ton(r.taux), text: tx(r.taux) })),
-      el('div', { class: 'cl-bar' }, el('i', { style: 'width:' + Math.max(0, r.taux) + '%;background:' + ton(r.taux) })),
-      el('span', { text: r.f ? '✅ ' + fmt(r.l) + ' livrées · ↩️ ' + fmt(r.rt) + ' retours · ' + fmt(r.ca) + ' DH' : 'Pas encore de colis livré ou retourné' }))));
-  $('#cl-sub').textContent = 'Selon le taux de livraison · ' + ({ semaine: 'du lundi à aujourd\'hui', sem_prec: 'lundi → dimanche dernier', '30j': '30 derniers jours' }[per] || '');
+      el('b', {}, el('span', { text: nomPropre(r.agent) }), el('span', { style: 'color:var(--ok)', text: fmt(r.l) + ' livrées' })),
+      el('div', { class: 'cl-bar' }, el('i', { style: 'width:' + (max ? r.l * 100 / max : 0) + '%;background:var(--ok)' })),
+      el('span', { text: r.f ? '↩️ ' + fmt(r.rt) + ' retours · taux ' + tx(r.taux) + ' · ' + fmt(r.ca) + ' DH' : 'Pas encore de colis livré' }))));
+  $('#cl-sub').textContent = 'Selon les commandes livrées · ' + ({ semaine: 'du lundi à aujourd\'hui', sem_prec: 'lundi → dimanche dernier', '30j': '30 derniers jours' }[per] || '');
   $('#cl-body').replaceChildren(...[pod.length ? el('div', { class: 'podium' }, ...pod) : null, el('div', { class: 'cl-list' }, ...liste)].filter(Boolean));
 }
 for (const b of document.querySelectorAll('#cl-periods .tab')) b.addEventListener('click', () => {
