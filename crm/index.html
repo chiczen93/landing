@@ -241,7 +241,7 @@
           <input class="search" id="q" type="search" placeholder="Rechercher un nom, un numéro, un colis…" aria-label="Rechercher">
           <select class="sel" id="f-agent" hidden aria-label="Agente"></select>
           <select class="sel" id="f-jours" hidden aria-label="Période">
-            <option value="1">Aujourd'hui</option><option value="3">3 jours</option><option value="7" selected>7 jours</option><option value="30">30 jours</option>
+            <option value="auj">Aujourd'hui</option><option value="hier">Hier</option><option value="3">3 jours</option><option value="7" selected>7 jours</option><option value="30">30 jours</option>
           </select>
         </div>
       </div>
@@ -273,7 +273,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202610312353';
+const VERSION = '202611010009';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -385,9 +385,13 @@ async function charger(silencieux) {
   if (st.busy) return; st.busy = true;
   $('#refresh').classList.add('spin');
   try {
-    const extra = st.role === 'admin' ? { filtre: $('#f-agent').value, jours: Number($('#f-jours').value) } : {};
+    const per = st.role === 'admin' ? $('#f-jours').value : '';
+    const jourVoulu = per === 'auj' ? 0 : per === 'hier' ? 1 : null;
+    const extra = st.role === 'admin' ? { filtre: $('#f-agent').value, jours: jourVoulu === null ? Number(per) : jourVoulu + 1 } : {};
     const d = await api('commandes', extra);
-    st.commandes = d.commandes; st.at = Date.now();
+    const jourDe = t => { const x = new Date(t); return isNaN(x) ? '' : x.toISOString().slice(0, 10); };
+    const cible = jourVoulu === null ? null : new Date(Date.now() - jourVoulu * 86400000).toISOString().slice(0, 10);
+    st.commandes = cible ? d.commandes.filter(o => jourDe(o.date) === cible) : d.commandes; st.at = Date.now();
     rendre();
     signalerNouvelles();
     if (!st.pushOk) { st.pushOk = true; abonnerPush(); }
