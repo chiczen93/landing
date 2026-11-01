@@ -295,7 +295,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611010056';
+const VERSION = '202611010242';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -490,7 +490,8 @@ async function signalerNouvelles() {
   if (dejaVues === null) { dejaVues = ids; return; }
   const neuves = nouvelles.filter(o => !dejaVues.has(o.id || String(o.row)));
   for (const i of ids) dejaVues.add(i);
-  if (!neuves.length || !('Notification' in window) || Notification.permission !== 'granted') return;
+  // les notifications viennent maintenant du serveur (push) : plus de notification locale, sinon elles arrivent en double
+  if (!neuves.length || !('Notification' in window) || Notification.permission !== 'granted' || ('PushManager' in window)) return;
   const reg = await navigator.serviceWorker?.getRegistration().catch(() => null);
   for (const o of neuves.slice(0, 3)) {
     const titre = (o.doublon ? '🔴 Doublon · ' : '🛒 Nouvelle commande · ') + (o.client || 'Client');
