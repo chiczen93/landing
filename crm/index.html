@@ -209,6 +209,17 @@
   .bulle { max-width: 80%; padding: 8px 11px; border-radius: 14px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; }
   .bulle small { display: block; font-size: 10px; color: var(--muted); margin-top: 3px; text-align: right; }
   .bulle .qui { display: block; font-size: 11px; font-weight: 800; margin-bottom: 2px; }
+  .bulle small .ck { margin-left: 4px; font-weight: 800; letter-spacing: -3px; color: var(--muted); }
+  .bulle small .ck.b { color: #53bdeb; }
+  .vu { align-self: flex-end; background: none; border: 0; padding: 0 4px; margin-top: -4px; font-size: 11.5px; color: #53bdeb; font-family: inherit; cursor: pointer; }
+  .vu.g { color: var(--muted); }
+  .lu-fond { position: absolute; inset: 0; background: rgba(0,0,0,.5); z-index: 5; display: flex; align-items: flex-end; }
+  .lu-sheet { width: 100%; background: var(--panel); border-radius: 20px 20px 0 0; padding: 14px 16px calc(22px + env(safe-area-inset-bottom)); max-height: 75%; overflow: auto; }
+  .lu-grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 12px; }
+  .lu-sheet h3 { font-size: 15px; margin: 6px 0 8px; }
+  .lu-p { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line-2); font-size: 14px; }
+  .lu-p span { flex: 1; } .lu-p em { font-style: normal; font-size: 12px; color: #53bdeb; } .lu-p em.g { color: var(--muted); }
+  .lu-vide { color: var(--muted); font-size: 13px; padding: 4px 0 8px; }
   .bulle .r.lien { cursor: pointer; }
   .bulle .r.lien b { display: block; margin-top: 4px; color: var(--brand); font-size: 12px; }
   .bulle .r { background: var(--bg); border-left: 3px solid var(--brand); border-radius: 6px; padding: 5px 8px; font-size: 12px; color: var(--ink-2); margin-bottom: 5px; }
@@ -377,7 +388,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611011733';
+const VERSION = '202611011745';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -528,7 +539,35 @@ const couleurChat = a => a === 'EQUIPE' ? '#475569' : a === 'ADMIN' ? '#11141c' 
 const initiales = a => a === 'EQUIPE' ? '👥' : a === 'ADMIN' ? 'Z' : a.slice(0, 2);
 const convDe = m => m.a === 'EQUIPE' ? 'EQUIPE' : m.de === st.agent ? m.a : m.de;
 function lireLus() { try { chat.lus = JSON.parse(store.get('chat_lus_' + st.agent) || '{}'); } catch (e) { chat.lus = {}; } }
-function marquerLu(c) { chat.lus[c] = new Date().toISOString(); store.set('chat_lus_' + st.agent, JSON.stringify(chat.lus)); majBadgeChat(); }
+function marquerLu(c) {
+  chat.lus[c] = new Date().toISOString(); store.set('chat_lus_' + st.agent, JSON.stringify(chat.lus)); majBadgeChat();
+  // prévenir le serveur (pour les ✓✓ chez l'autre) si un message des autres est plus récent que ma dernière lecture
+  const dernier = chat.msgs.filter(m => m.de !== st.agent && !m.envoi && convDe(m) === c).reduce((x, m) => m.quand > x ? m.quand : x, '');
+  const deja = (chat.luEnvoye || (chat.luEnvoye = {}))[c] || luDe(st.agent, c);
+  if (dernier && dernier > deja) { chat.luEnvoye[c] = dernier; api('lu', { conv: c }).catch(() => { chat.luEnvoye[c] = ''; }); }
+}
+// ---------- accusés de lecture ----------
+const CHAT_GROUPE = ['ADMIN', 'HAJIBA', 'BTISSAM', 'GHIZLANE', 'SAMIRA', 'ILHAM'];
+const luDe = (agent, conv) => ((chat.lusSrv || []).find(l => l.agent === agent && l.conv === conv) || {}).quand || '';
+function lecteurs(m) {
+  if (m.a === 'EQUIPE') {
+    const gens = CHAT_GROUPE.filter(x => x !== m.de);
+    const lu = gens.map(x => ({ x, q: luDe(x, 'EQUIPE') })).filter(o => o.q && o.q >= m.quand);
+    return { lu, non: gens.filter(x => !lu.some(o => o.x === x)), total: gens.length };
+  }
+  const q = luDe(m.a, m.de);
+  return q && q >= m.quand ? { lu: [{ x: m.a, q }], non: [], total: 1 } : { lu: [], non: [m.a], total: 1 };
+}
+const heureHM = q => new Date(q).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+function voirLecteurs(m) {
+  const r = lecteurs(m);
+  const ligne = (x, q) => el('div', { class: 'lu-p' }, el('div', { class: 'c-av', style: 'width:30px;height:30px;font-size:11px;background:' + couleurChat(x), text: initiales(x) }), el('span', { text: nomChat(x) }), el('em', { class: q ? '' : 'g', text: q ? heureHM(q) : '—' }));
+  const fond = el('div', { class: 'lu-fond', onclick: e => { if (e.target === fond) fond.remove(); } },
+    el('div', { class: 'lu-sheet' }, el('div', { class: 'lu-grab' }),
+      el('h3', { text: 'Lu par' }), ...(r.lu.length ? r.lu.sort((a, b) => a.q < b.q ? -1 : 1).map(o => ligne(o.x, o.q)) : [el('p', { class: 'lu-vide', text: 'Personne pour le moment.' })]),
+      r.non.length ? el('h3', { text: 'Pas encore lu' }) : null, ...r.non.map(x => ligne(x, ''))));
+  $('#chat').append(fond);
+}
 const nonLus = c => chat.msgs.filter(m => m.de !== st.agent && convDe(m) === c && m.quand > (chat.lus[c] || '')).length;
 function majBadgeChat() {
   const n = ['EQUIPE', ...CHAT_GENS].reduce((t, c) => t + nonLus(c), 0);
@@ -607,9 +646,10 @@ async function chargerChat() {
   if (!st.pin || chat.charge) return; chat.charge = true;
   try {
     const d = await api('chat');
-    const avant = chat.msgs.length;
+    const avant = chat.msgs.length, lusAvant = JSON.stringify(chat.lusSrv || []);
+    chat.lusSrv = d.lus || [];
     chat.msgs = [...(d.msgs || []), ...chat.msgs.filter(m => m.envoi)]; majBadgeChat(); signalerMessages();
-    if (chat.ouvert && chat.conv && $('#chat .chat-bar')) { if (chat.msgs.length !== avant) majMessages(); }
+    if (chat.ouvert && chat.conv && $('#chat .chat-bar')) { if (chat.msgs.length !== avant || JSON.stringify(chat.lusSrv) !== lusAvant) majMessages(); }
     else if (chat.ouvert) rendreChat();
   } catch (e) {} finally { chat.charge = false; }
 }
@@ -783,6 +823,7 @@ document.addEventListener('focusout', () => setTimeout(ajusterChat, 250)); docum
 function majMessages() {
   const c = chat.conv, corps = $('#chat-corps'); if (!c || !corps) return;
   const l = chat.msgs.filter(m => convDe(m) === c);
+  const dernierMoi = [...l].reverse().find(m => m.de === st.agent && !m.envoi && !m.echec);
   let jour = '';
   const bulles = [];
   for (const m of l) {
@@ -796,7 +837,13 @@ function majMessages() {
       m.local && m.ftype === 'audio' ? lecteurVocal(null, m.local) : null,
       m.fichier && m.ftype === 'image' ? el('img', { class: 'ph', src: FICHIER_URL(m.fichier), alt: 'Photo', loading: 'lazy', onclick: () => window.open(FICHIER_URL(m.fichier), '_blank') }) : null,
       m.fichier && m.ftype === 'audio' ? lecteurVocal(m.fichier) : null,
-      m.texte || null, el('small', { text: new Date(m.quand).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + (m.envoi ? ' 🕓' : m.echec ? ' ⚠️ non envoyé' : '') })));
+      m.texte || null, el('small', {}, new Date(m.quand).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + (m.envoi ? ' 🕓' : m.echec ? ' ⚠️ non envoyé' : ''),
+        moi && !m.envoi && !m.echec ? (() => { const r = lecteurs(m); const tout = r.lu.length === r.total; return el('span', { class: 'ck' + (tout ? ' b' : ''), text: r.lu.length || (c === 'EQUIPE' && false) ? '✓✓' : '✓' }); })() : null)));
+    if (moi && !m.envoi && !m.echec && (c === 'EQUIPE' || m === dernierMoi)) {
+      const r = lecteurs(m), tout = r.lu.length === r.total;
+      if (c === 'EQUIPE') bulles.push(el('button', { class: 'vu' + (tout ? '' : ' g'), onclick: () => voirLecteurs(m), text: tout ? 'Vu par tout le monde' : r.lu.length ? 'Vu par ' + r.lu.length + ' / ' + r.total + ' · appuyez pour voir' : 'Envoyé · pas encore lu' }));
+      else bulles.push(el('div', { class: 'vu' + (tout ? '' : ' g'), text: tout ? 'Vu à ' + heureHM(r.lu[0].q) : 'Envoyé · pas encore lu' }));
+    }
   }
   corps.replaceChildren(l.length ? el('div', { class: 'msgs' }, ...bulles) : el('div', { class: 'chat-vide', text: 'Pas encore de message. Écrivez le premier !' }));
   corps.scrollTop = corps.scrollHeight;
