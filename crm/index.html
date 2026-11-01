@@ -264,6 +264,9 @@
   .ann-urgent { background: #fbe1e1; color: #3b1a1a; } .ann-urgent .ann-tg { background: #ef5350; } .ann-urgent .ann-ok { background: #ef5350; color: #fff; }
   .ann-info { background: #fdf1d8; color: #3b2c0b; } .ann-info .ann-tg { background: #f5b622; color: #3b2c0b; }
   .ann-objectif { background: #dfeafc; color: #13284a; } .ann-objectif .ann-tg { background: #3b82f6; }
+  .ann-voc { margin-top: 6px; } .ann-voc .vocal .vit { background: rgba(255,255,255,.7); color: inherit; border-color: rgba(0,0,0,.15); }
+  .ann-vocbox .saisie.rec { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 26px; padding: 4px 6px; }
+  .ann-vocbox .p-ic { width: 40px; height: 40px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; flex: none; border-radius: 50%; color: #ef4444; }
   .ann-lab { font-size: 11.5px; font-weight: 800; color: var(--muted); margin: 12px 0 4px; letter-spacing: .04em; }
   .ann-lus { margin-top: 10px; background: rgba(255,255,255,.55); border-radius: 10px; padding: 8px 10px; font-size: 13px; }
   .ann-lus > div { display: flex; justify-content: space-between; padding: 3px 0; }
@@ -467,7 +470,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611012103';
+const VERSION = '202611012107';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -960,14 +963,52 @@ function rendreAnnonces() {
     return el('div', { class: 'ann ann-' + (ANN_TYPES[a.type] ? a.type : 'info') },
       el('div', { class: 'ann-ic', text: T.ic }), ferme,
       el('div', { class: 'ann-c' }, el('span', { class: 'ann-tg', text: T.t }), el('div', { class: 'ann-d', text: '📅 ' + dateCourte(a.quand) + ' · Admin' }),
-        el('div', { class: 'ann-tx', dir: 'auto', text: a.texte }),
+        a.texte ? el('div', { class: 'ann-tx', dir: 'auto', text: a.texte }) : null,
+        a.fichier ? el('div', { class: 'ann-voc' }, lecteurVocal(a.fichier)) : null,
         a.type === 'urgent' ? el('div', { style: 'text-align:right' }, el('button', { class: 'ann-ok', onclick: lire }, "✓ J'ai compris")) : null));
   }));
 }
 // écran admin : publier / modifier / supprimer, et qui a lu
 function ouvrirAnnonces(edit) {
-  const f = { id: edit ? edit.id : '', type: edit ? edit.type : 'info', cible: edit && edit.cible !== 'TOUS' ? edit.cible.split(',') : ['TOUS'], jours: 3, notif: true };
-  const fond = el('div', { class: 'lu-fond', style: 'position:fixed;z-index:95', onclick: e => { if (e.target === fond) fond.remove(); } });
+  const f = { id: edit ? edit.id : '', type: edit ? edit.type : 'info', cible: edit && edit.cible !== 'TOUS' ? edit.cible.split(',') : ['TOUS'], jours: 3, notif: true, fichier: edit ? edit.fichier || '' : '', local: '', envoi: false };
+  let rec = null;
+  const fermer = () => { if (rec && rec.state === 'recording') { rec.annule = true; rec.stop(); } fond.remove(); };
+  const fond = el('div', { class: 'lu-fond', style: 'position:fixed;z-index:95', onclick: e => { if (e.target === fond) fermer(); } });
+  // message vocal : enregistrer, écouter, supprimer (envoyé tout de suite, gardé avec l'annonce)
+  const voc = el('div', { class: 'ann-vocbox' });
+  const rendreVoc = () => {
+    if (rec && rec.state === 'recording') {
+      const info = el('span', { class: 'rec-info', text: '🔴 0:00' });
+      clearInterval(rec.tic); rec.tic = setInterval(() => { const s = Math.floor((Date.now() - rec.debut) / 1000); info.textContent = '🔴 ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); if (s >= 180) rec.stop(); }, 500);
+      return voc.replaceChildren(el('div', { class: 'saisie rec' }, el('button', { class: 'p-ic rouge', type: 'button', 'aria-label': 'Annuler', onclick: () => { rec.annule = true; rec.stop(); } }, svgIc('poubelle')), info,
+        el('button', { class: 'alr-b ok', type: 'button', style: 'width:auto;margin:0;padding:8px 14px', onclick: () => rec.stop() }, '✓ Terminer')));
+    }
+    if (f.envoi) return voc.replaceChildren(el('div', { class: 'ann-d', text: '⏳ Envoi du vocal…' }));
+    if (f.fichier || f.local) return voc.replaceChildren(el('div', { style: 'display:flex;align-items:center;gap:8px' }, el('div', { style: 'flex:1;min-width:0' }, f.local ? lecteurVocal(null, f.local) : lecteurVocal(f.fichier)),
+      el('button', { class: 'p-ic rouge', type: 'button', 'aria-label': 'Supprimer le vocal', onclick: () => { f.fichier = ''; f.local = ''; rendreVoc(); } }, svgIc('poubelle'))));
+    voc.replaceChildren(el('button', { class: 'alr-o', type: 'button', style: 'color:var(--ink);border-color:var(--line)', text: '🎤 Enregistrer un message vocal', onclick: enregistrer }));
+  };
+  const enregistrer = async () => {
+    if (!navigator.mediaDevices || !window.MediaRecorder) return toast("L'enregistrement vocal n'est pas disponible sur ce téléphone.", true);
+    let flux;
+    try { if (navigator.audioSession) navigator.audioSession.type = 'auto'; } catch (e) {}
+    try { flux = (MICRO && MICRO.getTracks().some(t => t.readyState === 'live')) ? MICRO : (MICRO = await navigator.mediaDevices.getUserMedia({ audio: true })); } catch (e) { return toast('Autorisez le micro pour enregistrer un vocal.', true); }
+    const mime = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'].find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
+    try { rec = new MediaRecorder(flux, mime ? { mimeType: mime, audioBitsPerSecond: 32000 } : { audioBitsPerSecond: 32000 }); } catch (e) { rec = new MediaRecorder(flux, mime ? { mimeType: mime } : undefined); }
+    const r = rec, morceaux = []; r.debut = Date.now();
+    r.ondataavailable = e => { if (e.data && e.data.size) morceaux.push(e.data); };
+    r.onstop = async () => {
+      clearInterval(r.tic);
+      if (r.annule || !morceaux.length) return rendreVoc();
+      const type = r.mimeType || mime || 'audio/mp4', blob = new Blob(morceaux, { type });
+      f.envoi = true; rendreVoc();
+      try { const ff = await envoyerFichier('audio', type, await enB64(blob)); f.local = URL.createObjectURL(blob); VOCAUX.set(ff, Promise.resolve(f.local)); f.fichier = ff; }
+      catch (e) { toast(e.message, true); }
+      f.envoi = false; rendreVoc();
+    };
+    r.start(); rendreVoc();
+  };
+  rendreVoc();
   const puce = (txt, on, clic, cls = '') => el('button', { class: 'alr-o ' + cls + (on ? ' on' : ''), style: 'color:var(--ink);border-color:var(--line)', text: txt, onclick: clic });
   const ta = el('textarea', { class: 'alr-ta', rows: 4, dir: 'auto', placeholder: 'Écrire le message pour les agentes…', style: 'background:var(--bg);color:var(--ink);border-color:var(--line)' });
   ta.value = edit ? edit.texte : '';
@@ -978,9 +1019,11 @@ function ouvrirAnnonces(edit) {
     const duree = el('div', { class: 'alr-opts', style: 'justify-content:flex-start' }, ...[[1, '1 jour'], [3, '3 jours'], [7, '7 jours'], [30, '30 jours']].map(([n, t]) => puce('📅 ' + t, f.jours === n, () => { f.jours = n; rendre(); })));
     const notif = puce((f.notif ? '✓ ' : '') + '🔔 Envoyer aussi une notification', f.notif, () => { f.notif = !f.notif; rendre(); });
     const go = el('button', { class: 'alr-b ok', onclick: async () => {
-      const texte = ta.value.trim(); if (!texte) return toast('Le message est vide.', true);
+      if (rec && rec.state === 'recording') return toast('Terminez d\'abord le vocal.', true);
+      if (f.envoi) return toast('Le vocal est en cours d\'envoi, patientez…', true);
+      const texte = ta.value.trim(); if (!texte && !f.fichier) return toast('Écrivez un message ou enregistrez un vocal.', true);
       go.disabled = true;
-      try { await api('annonces', { op: 'publier', id: f.id, type: f.type, cible: f.cible, texte, jours: f.jours, notif: f.notif }); toast(f.id ? 'Annonce modifiée' : 'Annonce publiée'); fond.remove(); chargerAnnonces().then(() => ouvrirAnnonces()); }
+      try { await api('annonces', { op: 'publier', id: f.id, type: f.type, cible: f.cible, texte, fichier: f.fichier, jours: f.jours, notif: f.notif }); toast(f.id ? 'Annonce modifiée' : 'Annonce publiée'); fond.remove(); chargerAnnonces().then(() => ouvrirAnnonces()); }
       catch (e) { toast(e.message, true); go.disabled = false; }
     } }, f.id ? '✏️ Enregistrer la modification' : "📢 Publier l'annonce");
     const liste = ANN.liste.filter(a => a.active).map(a => {
@@ -988,15 +1031,16 @@ function ouvrirAnnonces(edit) {
       const T = ANN_TYPES[a.type] || ANN_TYPES.info;
       return el('div', { class: 'ann ann-' + (ANN_TYPES[a.type] ? a.type : 'info'), style: 'display:block' },
         el('span', { class: 'ann-tg', text: T.t }), el('div', { class: 'ann-d', text: '📅 ' + dateCourte(a.quand) + ' · ' + (a.cible === 'TOUS' ? 'Toutes' : gens.map(nomPropre).join(', ')) }),
-        el('div', { class: 'ann-tx', dir: 'auto', text: a.texte }),
+        a.texte ? el('div', { class: 'ann-tx', dir: 'auto', text: a.texte }) : null,
+        a.fichier ? el('div', { class: 'ann-voc' }, lecteurVocal(a.fichier)) : null,
         el('div', { class: 'ann-lus' }, el('b', { text: 'Lu par ' + gens.filter(g => a.lues.some(l => l.agent === g)).length + ' / ' + gens.length }),
           ...gens.map(g => { const l = a.lues.find(x => x.agent === g); return el('div', {}, el('span', { text: nomPropre(g) }), el('span', { class: l ? 'v' : 'n', text: l ? '✓ ' + new Date(l.quand).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 'pas encore' })); })),
-        el('div', { class: 'alr-2' }, el('button', { class: 'alr-b gr', onclick: () => { fond.remove(); ouvrirAnnonces(a); } }, '✏️ Modifier'),
+        el('div', { class: 'alr-2' }, el('button', { class: 'alr-b gr', onclick: () => { fermer(); ouvrirAnnonces(a); } }, '✏️ Modifier'),
           el('button', { class: 'alr-b', style: 'background:#3a1418;color:#ff9a9a', onclick: async e => { if (e.currentTarget.dataset.ok !== '1') { e.currentTarget.dataset.ok = '1'; e.currentTarget.textContent = 'Confirmer ?'; return; } try { await api('annonces', { op: 'suppr', id: a.id }); toast('Annonce supprimée'); fond.remove(); chargerAnnonces().then(() => ouvrirAnnonces()); } catch (er) { toast(er.message, true); } } }, '🗑 Supprimer')));
     });
     sheet.replaceChildren(el('div', { class: 'lu-grab' }), el('h3', { text: f.id ? '✏️ Modifier l\'annonce' : '📢 Nouvelle annonce' }),
       el('div', { class: 'ann-lab', text: 'TYPE' }), types, el('div', { class: 'ann-lab', text: 'POUR QUI' }), qui,
-      el('div', { class: 'ann-lab', text: 'MESSAGE' }), ta, el('div', { class: 'ann-lab', text: 'AFFICHER PENDANT' }), duree, notif, go,
+      el('div', { class: 'ann-lab', text: 'MESSAGE' }), ta, el('div', { class: 'ann-lab', text: 'MESSAGE VOCAL (facultatif)' }), voc, el('div', { class: 'ann-lab', text: 'AFFICHER PENDANT' }), duree, notif, go,
       liste.length ? el('h3', { style: 'margin-top:18px', text: '📋 Annonces en cours' }) : null, ...liste);
   };
   const sheet = el('div', { class: 'lu-sheet', style: 'max-height:88%' });
