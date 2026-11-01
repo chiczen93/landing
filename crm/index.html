@@ -197,6 +197,8 @@
   .bulle { max-width: 80%; padding: 8px 11px; border-radius: 14px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; }
   .bulle small { display: block; font-size: 10px; color: var(--muted); margin-top: 3px; text-align: right; }
   .bulle .qui { display: block; font-size: 11px; font-weight: 800; margin-bottom: 2px; }
+  .bulle .r.lien { cursor: pointer; }
+  .bulle .r.lien b { display: block; margin-top: 4px; color: var(--brand); font-size: 12px; }
   .bulle .r { background: var(--bg); border-left: 3px solid var(--brand); border-radius: 6px; padding: 5px 8px; font-size: 12px; color: var(--ink-2); margin-bottom: 5px; }
   .bulle.in { background: var(--panel); border: 1px solid var(--line); align-self: flex-start; border-top-left-radius: 4px; }
   .bulle.out { background: #1f4d33; color: #eafff1; align-self: flex-end; border-top-right-radius: 4px; }
@@ -363,7 +365,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611011327';
+const VERSION = '202611011332';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -671,7 +673,7 @@ function majMessages() {
     const moi = m.de === st.agent;
     bulles.push(el('div', { class: 'bulle ' + (moi ? 'out' : 'in') },
       !moi && c === 'EQUIPE' ? el('span', { class: 'qui', style: 'color:' + (m.de === 'ADMIN' ? 'var(--brand)' : couleurChat(m.de)), text: nomChat(m.de) }) : null,
-      m.ref ? el('div', { class: 'r', text: '📦 ' + m.ref }) : null,
+      m.ref ? el('div', { class: 'r lien', onclick: () => voirCommande(m.ref) }, el('span', { text: '📦 ' + m.ref }), el('b', { text: 'Ouvrir la commande ›' })) : null,
       m.fichier && m.ftype === 'image' ? el('img', { class: 'ph', src: FICHIER_URL(m.fichier), alt: 'Photo', loading: 'lazy', onclick: () => window.open(FICHIER_URL(m.fichier), '_blank') }) : null,
       m.fichier && m.ftype === 'audio' ? lecteurVocal(m.fichier) : null,
       m.texte || null, el('small', { text: new Date(m.quand).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) })));
@@ -769,6 +771,22 @@ $('#q').addEventListener('input', e => {
   clearTimeout(rechercheT);
   if (st.q.length >= 3) rechercheT = setTimeout(rechercher, 450);
 });
+// Depuis la discussion : ouvre la commande citée en grand (carte complète, modifiable) via la recherche par téléphone
+function voirCommande(ref) {
+  const tel = (String(ref).match(/0\d{9}/g) || []).pop();
+  const colis = (String(ref).match(/CL-IRY-[A-Z0-9-]+|\b\d{6,}-[A-Z0-9]+\b/i) || [])[0];
+  const q = (tel || colis || String(ref).split(' · ')[0]).toLowerCase();
+  fermerChat();
+  if (st.view !== 'orders') { const b = document.querySelector('#views button[data-view="orders"]'); if (b) b.click(); }
+  const inp = $('#q'); inp.value = q;
+  st.q = q; st.page = 1; st.tabQ = null;
+  // ouvrir les cartes trouvées
+  const ouvrir = () => { for (const o of visibles()) st.ouvert.add((o.id || o.colis) + '|' + o.row); };
+  ouvrir(); rendre();
+  clearTimeout(rechercheT);
+  rechercher().then(() => { if (st.q === q) { ouvrir(); rendre(); } });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 async function rechercher() {
   const q = st.q; if (q.length < 3) return;
   st.cherche = q; rendreListe();
