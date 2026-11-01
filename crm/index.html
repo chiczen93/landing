@@ -377,7 +377,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611011727';
+const VERSION = '202611011729';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -566,16 +566,36 @@ function signalerMessages() {
   document.body.append(ban);
   setTimeout(() => ban.classList.add('sort'), 4500); setTimeout(() => ban.remove(), 5000);
 }
+// Son « double bip » joué par un élément <audio> (plus fiable sur iPhone que le son web) :
+// fichier WAV fabriqué ici, débloqué au premier toucher de l'écran puis rejoué à chaque message.
+const SON_MSG = (() => {
+  try {
+    const sr = 22050, dur = 0.34, n = Math.floor(sr * dur), buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+    const w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) {
+      const t = i / sr; let x = 0;
+      for (const d of [0, 0.2]) { const u = t - d; if (u >= 0 && u < 0.12) { const env = Math.min(1, u / 0.01) * Math.min(1, (0.12 - u) / 0.03); x += (Math.sin(2 * Math.PI * 880 * u) >= 0 ? 1 : -1) * 0.35 * env; } }
+      v.setInt16(44 + i * 2, x * 32767, true);
+    }
+    const a = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }))); a.preload = 'auto';
+    return a;
+  } catch (e) { return null; }
+})();
+let sonPret = false;
+function debloquerSonMsg() {
+  if (sonPret || !SON_MSG) return;
+  SON_MSG.muted = true;
+  const p = SON_MSG.play();
+  if (p && p.then) p.then(() => { SON_MSG.pause(); SON_MSG.currentTime = 0; SON_MSG.muted = false; sonPret = true; }).catch(() => { SON_MSG.muted = false; });
+  else { SON_MSG.muted = false; sonPret = true; }
+}
+document.addEventListener('touchend', debloquerSonMsg, { passive: true }); document.addEventListener('click', debloquerSonMsg);
 function sonMessage() {
   try {
-    debloquerSon(); const ctx = sonCtx; if (!ctx) return;
-    const t = ctx.currentTime + 0.02;
-    for (const d of [0, 0.2]) {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = 'square'; o.frequency.setValueAtTime(880, t + d);
-      g.gain.setValueAtTime(0.0001, t + d); g.gain.exponentialRampToValueAtTime(0.3, t + d + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.12);
-      o.connect(g); g.connect(ctx.destination); o.start(t + d); o.stop(t + d + 0.17);
-    }
+    if (SON_MSG) { SON_MSG.muted = false; SON_MSG.currentTime = 0; const p = SON_MSG.play(); if (p && p.catch) p.catch(() => {}); }
+    if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
   } catch (e) {}
 }
 async function chargerChat() {
@@ -600,7 +620,7 @@ function rendreChat() {
       return { c, der, n: nonLus(c) };
     });
     box.replaceChildren(...[
-      el('div', { class: 'chat-top' }, el('b', { text: chat.ref ? '💬 Envoyer à…' : '💬 Équipe' }), el('button', { 'aria-label': 'Fermer', text: '×', onclick: fermerChat })),
+      el('div', { class: 'chat-top' }, el('b', { text: chat.ref ? '💬 Envoyer à…' : '💬 Équipe' }), el('button', { 'aria-label': 'Tester le son', title: 'Tester le son', style: 'font-size:18px', text: '🔔', onclick: () => { sonMessage(); toast('Test du son'); } }), el('button', { 'aria-label': 'Fermer', text: '×', onclick: fermerChat })),
       refBox,
       el('div', { class: 'chat-body' }, ...convs.map(({ c, der, n }) => el('div', { class: 'c-item', onclick: () => { chat.conv = c; rendreChat(); } },
         el('div', { class: 'c-av', style: 'background:' + couleurChat(c), text: initiales(c) }),
