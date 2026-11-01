@@ -473,7 +473,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611012145';
+const VERSION = '202611012146';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1586,7 +1586,7 @@ function boiteSituation(o) {
     der ? el('div', { class: 'old', text: 'Dernière · ' + quand(tL(der[1])) + ' · ' + nomPropre(der[2]) + ' : ' + der[3] }) : null);
 }
 // ---------- Suivi Casa : la commande part dans le groupe WhatsApp « Suivi casa » (depuis le WhatsApp de l'agente) ----------
-const RE_CASA = /casa|dar\s*el\s*beida|البيضاء|كازا|mohamm?edia|المحمدية|bouskoura|بوسكورة|dar\s*bouazza|دار\s*بوعزة|tit\s*mellil|تيط\s*مليل|m[ée]diouna|مديونة|sidi\s*maarouf|lissasfa|deroua|الدروة/i;
+const RE_CASA = /casa|dar\s*el\s*beida|البيضاء|كازا|mohamm?edia|المحمدية|bouskoura|بوسكورة|tit\s*mellil|تيط\s*مليل|m[ée]diouna|مديونة|sidi\s*maarouf|lissasfa|deroua|الدروة/i;
 const estCasa = o => RE_CASA.test(o.ville || '') || (!o.ville && RE_CASA.test(o.adresse || ''));
 function msgSuiviCasa(o) {
   const t9 = String(o.tel || '').replace(/\D/g, '').slice(-9);
