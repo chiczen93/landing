@@ -333,7 +333,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611010329';
+const VERSION = '202611010332';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -412,6 +412,7 @@ async function api(action, extra = {}) {
   try { r = await fetch(API, { method: 'POST', body }); } catch (e) { throw new Error('Pas de connexion. Vérifiez internet et réessayez.'); }
   if (!r.ok) throw new Error('Le serveur ne répond pas (' + r.status + '). Réessayez dans un instant.');
   const d = await r.json();
+  if (!d.ok && d.erreur === 'Code incorrect.' && action !== 'login') { store.set('crm_pin', ''); location.reload(); }
   if (!d.ok) throw new Error(d.erreur || 'Une erreur est survenue.');
   return d;
 }
