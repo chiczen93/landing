@@ -270,6 +270,23 @@
   .ann-aide { margin-top: 6px; font-size: 12.5px; font-weight: 700; opacity: .8; }
   .ann [hidden] { display: none !important; }
   .btn-casa { display: block; margin-top: 8px; text-align: center; font-weight: 800; font-size: 15px; padding: 12px; border-radius: 12px; border: 1.5px solid #22c55e; background: rgba(34,197,94,.14); color: #22c55e; text-decoration: none; }
+  .pres { margin: 10px 0 2px; }
+  .pres-in { display: block; width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; color: var(--ink); font: inherit; cursor: pointer; }
+  .pres-h { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; font-weight: 800; color: var(--muted); letter-spacing: .04em; margin-bottom: 8px; }
+  .pres-h b { color: #22c55e; font-size: 12px; } .pres-h b.z { color: var(--muted); }
+  .pres-l { display: flex; justify-content: space-between; gap: 4px; }
+  .pres-a { flex: 1; min-width: 0; text-align: center; font-size: 11.5px; font-weight: 600; }
+  .pres-a span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pres-a small { display: block; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pres-a.off { opacity: .55; }
+  .p-av { width: 42px; height: 42px; margin: 0 auto 4px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 15px; color: #fff; position: relative; flex: none; }
+  .p-av::after { content: ""; position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid var(--panel); background: #6b7280; }
+  .p-av.g::after { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.25); } .p-av.o::after { background: #f59e0b; }
+  small.g, .pres-s.g { color: #22c55e; } small.o, .pres-s.o { color: #f59e0b; } small.n, .pres-s.n { color: var(--muted); }
+  .pres-r { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .pres-r .p-av { margin: 0; }
+  .pres-t { flex: 1; min-width: 0; } .pres-t b { display: block; font-size: 14px; } .pres-t small { font-size: 12px; color: var(--muted); }
+  .pres-s { font-size: 12px; font-weight: 800; white-space: nowrap; }
   .ann-lab { font-size: 11.5px; font-weight: 800; color: var(--muted); margin: 12px 0 4px; letter-spacing: .04em; }
   .ann-lus { margin-top: 10px; background: rgba(255,255,255,.55); border-radius: 10px; padding: 8px 10px; font-size: 13px; }
   .ann-lus > div { display: flex; justify-content: space-between; padding: 3px 0; }
@@ -424,6 +441,7 @@
         <button class="icon-btn" id="logout" aria-label="Déconnexion"><svg class="i"><use href="#i-out"/></svg><span>Quitter</span></button>
       </div>
       <div class="pwa-bar" id="pwa-bar" hidden></div>
+      <div class="pres" id="presence" hidden></div>
       <div class="seg" id="views" role="group" aria-label="Vue">
         <button data-view="orders" aria-pressed="true">Commandes</button>
         <button data-view="perf" aria-pressed="false">Performance</button>
@@ -473,7 +491,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611012146';
+const VERSION = '202611012154';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -554,6 +572,7 @@ async function api(action, extra = {}) {
   const d = await r.json();
   if (!d.ok && d.erreur === 'Code incorrect.' && action !== 'login') { store.set('crm_pin', ''); location.reload(); }
   if (!d.ok) throw new Error(d.erreur || 'Une erreur est survenue.');
+  if (action === 'maj' || action === 'envoyer') PRES.n++;
   return d;
 }
 let toastT;
@@ -571,7 +590,7 @@ async function login(pin) {
     $('#f-agent').hidden = false; $('#f-jours').hidden = false;
     $('#f-agent').replaceChildren(el('option', { value: 'TOUS', text: 'Toutes les agentes' }), el('option', { value: 'LIBRE', text: 'Non attribuées' }), ...AGENTES.map(a => el('option', { value: a, text: nomPropre(a) })), el('option', { value: 'NO APPEL', text: 'No appel' }));
   }
-  $('#fab-chat').hidden = false; lireLus(); chargerChat(); chargerAlertes(); chargerAnnonces();
+  $('#fab-chat').hidden = false; lireLus(); chargerChat(); chargerAlertes(); chargerAnnonces(); signalPresence(); chargerPresence();
   charger();
   api('villes').then(d => { st.villes = d.villes; $('#villes').replaceChildren(...d.villes.map(v => el('option', { value: v }))); }).catch(() => {});
   chargerStats();
@@ -1072,6 +1091,58 @@ setInterval(() => { if (st.pin && document.visibilityState === 'visible') charge
 let annCacheeA = 0;
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') annCacheeA = Date.now(); else if (st.pin) { if (annCacheeA && Date.now() - annCacheeA > 60000) { ANN.caches.clear(); ANN.ecoutes.clear(); } chargerAnnonces(); } });
 $('#btn-annonces').addEventListener('click', () => ouvrirAnnonces());
+// ---------- Présence des agentes : en ligne / sortie il y a peu / absente (visible seulement par l'admin) ----------
+const PRES = { n: 0, liste: [], decal: 0 };
+async function signalPresence() {
+  if (!st.pin || !st.agent || st.agent === 'ADMIN' || document.visibilityState !== 'visible') return;
+  const n = PRES.n;
+  try { await api('presence', { n }); PRES.n -= n; } catch (e) {}
+}
+function finPresence() {
+  if (!st.pin || !st.agent || st.agent === 'ADMIN') return;
+  try { navigator.sendBeacon(API, new URLSearchParams({ payload: JSON.stringify({ pin: st.pin, action: 'presence', n: PRES.n, fin: true }) })); PRES.n = 0; } catch (e) {}
+}
+setInterval(signalPresence, 60000);
+document.addEventListener('visibilitychange', () => { document.visibilityState === 'visible' ? (signalPresence(), chargerPresence()) : finPresence(); });
+window.addEventListener('pagehide', finPresence);
+async function chargerPresence() {
+  if (!st.pin || st.agent !== 'ADMIN') return;
+  try { const d = await api('presence', { op: 'liste' }); PRES.liste = d.agentes || []; PRES.decal = Date.now() - Date.parse(d.maintenant); rendrePresence(); } catch (e) {}
+}
+setInterval(() => { if (document.visibilityState === 'visible') chargerPresence(); }, 30000);
+function etatPresence(a) {
+  if (!a.vu) return { c: 'n', t: 'jamais' };
+  const ms = Date.now() - PRES.decal - Date.parse(a.vu), min = Math.floor(ms / 60000);
+  if (!a.sortie && ms < 150000) return { c: 'g', t: 'En ligne' };
+  if (ms < 30 * 60000) return { c: 'o', t: min < 1 ? "à l'instant" : 'il y a ' + min + ' min' };
+  const d = new Date(a.vu), auj = new Date(), hier = new Date(Date.now() - 86400000), h = heureHM(a.vu);
+  return { c: 'n', t: d.toDateString() === auj.toDateString() ? h : d.toDateString() === hier.toDateString() ? 'hier ' + h : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + h };
+}
+const duree = s => { const m = Math.round(s / 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); };
+function avatarPres(a, e, taille) {
+  return el('div', { class: 'p-av ' + e.c, style: 'background:' + couleurChat(a.agent) + (taille ? ';width:' + taille + 'px;height:' + taille + 'px;font-size:' + Math.round(taille / 2.8) + 'px' : ''), text: initiales(a.agent) });
+}
+function rendrePresence() {
+  const box = $('#presence'); if (!box) return;
+  box.hidden = st.agent !== 'ADMIN' || !PRES.liste.length; if (box.hidden) return;
+  const etats = PRES.liste.map(a => [a, etatPresence(a)]);
+  const nOn = etats.filter(([, e]) => e.c === 'g').length;
+  box.replaceChildren(el('button', { class: 'pres-in', type: 'button', onclick: voirPresence },
+    el('div', { class: 'pres-h' }, el('span', { text: 'AGENTES' }), el('b', { class: nOn ? '' : 'z', text: '● ' + nOn + ' en ligne / ' + PRES.liste.length })),
+    el('div', { class: 'pres-l' }, ...etats.map(([a, e]) => el('div', { class: 'pres-a' + (e.c === 'n' ? ' off' : '') }, avatarPres(a, e), el('span', { text: nomPropre(a.agent) }), el('small', { class: e.c, text: e.t }))))));
+}
+function voirPresence() {
+  const fond = el('div', { class: 'lu-fond', style: 'position:fixed;z-index:95', onclick: e => { if (e.target === fond) fond.remove(); } });
+  const ordre = { g: 0, o: 1, n: 2 };
+  const lignes = PRES.liste.map(a => [a, etatPresence(a)]).sort((x, y) => ordre[x[1].c] - ordre[y[1].c]).map(([a, e]) => {
+    const det = !a.debut ? "Pas connectée aujourd'hui"
+      : (e.c === 'g' ? 'Connectée depuis ' + heureHM(a.debut) : 'Dernière activité ' + heureHM(a.vu)) + ' · ' + duree(a.actif) + ' · ' + a.actions + ' action' + (a.actions > 1 ? 's' : '');
+    return el('div', { class: 'pres-r' }, avatarPres(a, e, 38), el('div', { class: 'pres-t' }, el('b', { text: nomPropre(a.agent) }), el('small', { text: det })), el('span', { class: 'pres-s ' + e.c, text: (e.c === 'g' ? '● ' : '') + e.t }));
+  });
+  fond.append(el('div', { class: 'lu-sheet' }, el('div', { class: 'lu-grab' }), el('h3', { text: "👥 Agentes · aujourd'hui" }), ...lignes,
+    el('div', { class: 'ann-d', style: 'margin-top:10px;opacity:.7', text: 'Temps = application ouverte · actions = statuts, notes et messages' })));
+  document.body.append(fond);
+}
 // ---------- Tests des alertes (bouton 🔔 dans la discussion) ----------
 function menuTest() {
   const ex = { row: null, id: '', client: 'Test Salma', tel: '0600000000', produit: 'Legging hiver polaire — M — 1 pièce', total: '169 درهم', ville: 'Casablanca', agent: st.agent, colis: 'TEST-' + Date.now(), livraison: '', g: '', dliv: new Date().toISOString().slice(0, 19).replace('T', ' '), notes: '' };
