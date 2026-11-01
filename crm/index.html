@@ -447,7 +447,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611012025';
+const VERSION = '202611012026';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -666,21 +666,8 @@ function signalerMessages() {
 }
 // Son « double bip » joué par un élément <audio> (plus fiable sur iPhone que le son web) :
 // fichier WAV fabriqué ici, débloqué au premier toucher de l'écran puis rejoué à chaque message.
-const SON_MSG = (() => {
-  try {
-    const sr = 22050, dur = 0.64, SIL = 0.3, n = Math.floor(sr * dur), buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
-    const w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
-    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
-    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
-    for (let i = 0; i < n; i++) {
-      const t = i / sr - SIL; let x = 0;
-      for (const d of [0, 0.2]) { const u = t - d; if (u >= 0 && u < 0.12) { const env = Math.min(1, u / 0.01) * Math.min(1, (0.12 - u) / 0.03); x += (Math.sin(2 * Math.PI * 880 * u) >= 0 ? 1 : -1) * 0.35 * env; } }
-      v.setInt16(44 + i * 2, x * 32767, true);
-    }
-    const a = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }))); a.preload = 'auto';
-    return a;
-  } catch (e) { return null; }
-})();
+// son des messages : fichier fourni par l'admin (0,3 s de silence au début pour le déblocage iPhone)
+const SON_MSG = (() => { try { const a = new Audio('sons/message.mp3'); a.preload = 'auto'; return a; } catch (e) { return null; } })();
 let sonPret = false;
 // Le fichier commence par 0,3 s de silence : au premier toucher on joue ce silence (son activé, rien d'audible)
 // -> l'iPhone autorise ensuite ce lecteur à sonner tout seul quand un message arrive.
