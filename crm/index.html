@@ -250,6 +250,24 @@
   .c-nb { background: #22c55e; color: #04210f; font-size: 11px; font-weight: 800; border-radius: 10px; padding: 1px 7px; }
   .msgs { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
   .bulle { max-width: 80%; padding: 8px 11px; border-radius: 14px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; }
+  #annonces { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+  #annonces:empty { display: none; }
+  .ann { position: relative; display: flex; gap: 10px; border-radius: 16px; padding: 12px; margin-bottom: 10px; }
+  #annonces .ann { margin-bottom: 0; }
+  .ann-ic { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,.9); display: grid; place-items: center; font-size: 18px; flex: none; }
+  .ann-c { flex: 1; min-width: 0; padding-right: 18px; }
+  .ann-x { position: absolute; top: 6px; right: 8px; border: 0; background: none; font-size: 22px; line-height: 1; opacity: .6; cursor: pointer; color: inherit; }
+  .ann-tg { display: inline-block; font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 6px; color: #fff; margin-bottom: 4px; }
+  .ann-d { font-size: 11px; opacity: .75; margin-bottom: 4px; }
+  .ann-tx { font-size: 14px; line-height: 1.55; white-space: pre-wrap; word-wrap: break-word; }
+  .ann-ok { margin-top: 8px; border: 0; font-weight: 800; font-size: 13px; padding: 9px 14px; border-radius: 10px; cursor: pointer; font-family: inherit; }
+  .ann-urgent { background: #fbe1e1; color: #3b1a1a; } .ann-urgent .ann-tg { background: #ef5350; } .ann-urgent .ann-ok { background: #ef5350; color: #fff; }
+  .ann-info { background: #fdf1d8; color: #3b2c0b; } .ann-info .ann-tg { background: #f5b622; color: #3b2c0b; }
+  .ann-objectif { background: #dfeafc; color: #13284a; } .ann-objectif .ann-tg { background: #3b82f6; }
+  .ann-lab { font-size: 11.5px; font-weight: 800; color: var(--muted); margin: 12px 0 4px; letter-spacing: .04em; }
+  .ann-lus { margin-top: 10px; background: rgba(255,255,255,.55); border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+  .ann-lus > div { display: flex; justify-content: space-between; padding: 3px 0; }
+  .ann-lus .v { color: #15803d; font-weight: 700; } .ann-lus .n { opacity: .6; }
   .sit { margin-top: 10px; background: #3a2f0b; border: 1px solid #7a5d12; border-radius: 12px; padding: 10px 12px; }
   .sit .h { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; font-weight: 800; color: #fbbf24; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .02em; }
   .sit .h small { font-weight: 600; color: #d6b25a; text-transform: none; letter-spacing: 0; white-space: nowrap; }
@@ -395,6 +413,7 @@
           <div class="mark"><img src="icons/icon-192.png" alt=""></div>
           <div class="who"><b id="me">—</b><small id="sync">—</small></div>
         </div>
+        <button class="icon-btn" id="btn-annonces" aria-label="Annonces" hidden>📢</button>
         <button class="icon-btn" id="refresh" aria-label="Actualiser"><svg class="i"><use href="#i-refresh"/></svg></button>
         <button class="icon-btn" id="logout" aria-label="Déconnexion"><svg class="i"><use href="#i-out"/></svg><span>Quitter</span></button>
       </div>
@@ -417,6 +436,7 @@
   </header>
 
   <main class="wrap">
+    <div id="annonces"></div>
     <section id="orders">
       <div class="tabs-wrap"><div class="tabs" id="tabs"></div></div>
       <div class="list" id="list"></div>
@@ -447,7 +467,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611012026';
+const VERSION = '202611012102';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -545,7 +565,7 @@ async function login(pin) {
     $('#f-agent').hidden = false; $('#f-jours').hidden = false;
     $('#f-agent').replaceChildren(el('option', { value: 'TOUS', text: 'Toutes les agentes' }), el('option', { value: 'LIBRE', text: 'Non attribuées' }), ...AGENTES.map(a => el('option', { value: a, text: nomPropre(a) })), el('option', { value: 'NO APPEL', text: 'No appel' }));
   }
-  $('#fab-chat').hidden = false; lireLus(); chargerChat(); chargerAlertes();
+  $('#fab-chat').hidden = false; lireLus(); chargerChat(); chargerAlertes(); chargerAnnonces();
   charger();
   api('villes').then(d => { st.villes = d.villes; $('#villes').replaceChildren(...d.villes.map(v => el('option', { value: v }))); }).catch(() => {});
   chargerStats();
@@ -918,6 +938,72 @@ document.body.append(
   el('div', { class: 'chat', id: 'chat', hidden: true }),
 );
 setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerChat(); }, 12000);
+// ---------- Annonces de l'admin (sans titre) : Urgent (à confirmer « J'ai compris »), Info, Objectif ----------
+const ANN = { liste: [] };
+const ANN_TYPES = { urgent: { t: '🔥 URGENT', ic: '⚠️' }, info: { t: '📢 INFO', ic: '📢' }, objectif: { t: '🎯 OBJECTIF', ic: '🎯' } };
+const ANN_GENS = ['HAJIBA', 'BTISSAM', 'GHIZLANE', 'SAMIRA', 'ILHAM'];
+const dateCourte = q => { const d = new Date(q); return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); };
+async function chargerAnnonces() {
+  if (!st.pin) return;
+  try { const d = await api('annonces', {}); ANN.liste = d.annonces || []; rendreAnnonces(); } catch (e) {}
+}
+function rendreAnnonces() {
+  const box = $('#annonces'); if (!box) return;
+  $('#btn-annonces').hidden = st.agent !== 'ADMIN';
+  if (st.agent === 'ADMIN') { box.replaceChildren(); return; }
+  const aLire = ANN.liste.filter(a => a.active && !a.lues.some(l => l.agent === st.agent));
+  box.replaceChildren(...aLire.map(a => {
+    const T = ANN_TYPES[a.type] || ANN_TYPES.info;
+    const lire = async b => { b.disabled = true; try { await api('annonces', { op: 'lue', id: a.id }); a.lues.push({ agent: st.agent, quand: new Date().toISOString() }); rendreAnnonces(); } catch (e) { toast(e.message, true); b.disabled = false; } };
+    const ferme = a.type === 'urgent' ? null : el('button', { class: 'ann-x', 'aria-label': 'Fermer', text: '×', onclick: e => lire(e.currentTarget) });
+    return el('div', { class: 'ann ann-' + (ANN_TYPES[a.type] ? a.type : 'info') },
+      el('div', { class: 'ann-ic', text: T.ic }), ferme,
+      el('div', { class: 'ann-c' }, el('span', { class: 'ann-tg', text: T.t }), el('div', { class: 'ann-d', text: '📅 ' + dateCourte(a.quand) + ' · Admin' }),
+        el('div', { class: 'ann-tx', dir: 'auto', text: a.texte }),
+        a.type === 'urgent' ? el('div', { style: 'text-align:right' }, el('button', { class: 'ann-ok', onclick: e => lire(e.currentTarget) }, "✓ J'ai compris")) : null));
+  }));
+}
+// écran admin : publier / modifier / supprimer, et qui a lu
+function ouvrirAnnonces(edit) {
+  const f = { id: edit ? edit.id : '', type: edit ? edit.type : 'info', cible: edit && edit.cible !== 'TOUS' ? edit.cible.split(',') : ['TOUS'], jours: 3, notif: true };
+  const fond = el('div', { class: 'lu-fond', style: 'position:fixed;z-index:95', onclick: e => { if (e.target === fond) fond.remove(); } });
+  const puce = (txt, on, clic, cls = '') => el('button', { class: 'alr-o ' + cls + (on ? ' on' : ''), style: 'color:var(--ink);border-color:var(--line)', text: txt, onclick: clic });
+  const ta = el('textarea', { class: 'alr-ta', rows: 4, dir: 'auto', placeholder: 'Écrire le message pour les agentes…', style: 'background:var(--bg);color:var(--ink);border-color:var(--line)' });
+  ta.value = edit ? edit.texte : '';
+  const rendre = () => {
+    const types = el('div', { class: 'alr-opts', style: 'justify-content:flex-start' }, ...Object.entries(ANN_TYPES).map(([k, v]) => puce(v.t, f.type === k, () => { f.type = k; rendre(); })));
+    const qui = el('div', { class: 'alr-opts', style: 'justify-content:flex-start' }, puce('👥 Toutes', f.cible.includes('TOUS'), () => { f.cible = ['TOUS']; rendre(); }),
+      ...ANN_GENS.map(g => puce(nomPropre(g), f.cible.includes(g), () => { f.cible = f.cible.filter(x => x !== 'TOUS'); f.cible.includes(g) ? f.cible = f.cible.filter(x => x !== g) : f.cible.push(g); if (!f.cible.length) f.cible = ['TOUS']; rendre(); })));
+    const duree = el('div', { class: 'alr-opts', style: 'justify-content:flex-start' }, ...[[1, '1 jour'], [3, '3 jours'], [7, '7 jours'], [30, '30 jours']].map(([n, t]) => puce('📅 ' + t, f.jours === n, () => { f.jours = n; rendre(); })));
+    const notif = puce((f.notif ? '✓ ' : '') + '🔔 Envoyer aussi une notification', f.notif, () => { f.notif = !f.notif; rendre(); });
+    const go = el('button', { class: 'alr-b ok', onclick: async () => {
+      const texte = ta.value.trim(); if (!texte) return toast('Le message est vide.', true);
+      go.disabled = true;
+      try { await api('annonces', { op: 'publier', id: f.id, type: f.type, cible: f.cible, texte, jours: f.jours, notif: f.notif }); toast(f.id ? 'Annonce modifiée' : 'Annonce publiée'); fond.remove(); chargerAnnonces().then(() => ouvrirAnnonces()); }
+      catch (e) { toast(e.message, true); go.disabled = false; }
+    } }, f.id ? '✏️ Enregistrer la modification' : "📢 Publier l'annonce");
+    const liste = ANN.liste.filter(a => a.active).map(a => {
+      const gens = a.cible === 'TOUS' ? ANN_GENS : a.cible.split(',');
+      const T = ANN_TYPES[a.type] || ANN_TYPES.info;
+      return el('div', { class: 'ann ann-' + (ANN_TYPES[a.type] ? a.type : 'info'), style: 'display:block' },
+        el('span', { class: 'ann-tg', text: T.t }), el('div', { class: 'ann-d', text: '📅 ' + dateCourte(a.quand) + ' · ' + (a.cible === 'TOUS' ? 'Toutes' : gens.map(nomPropre).join(', ')) }),
+        el('div', { class: 'ann-tx', dir: 'auto', text: a.texte }),
+        el('div', { class: 'ann-lus' }, el('b', { text: 'Lu par ' + gens.filter(g => a.lues.some(l => l.agent === g)).length + ' / ' + gens.length }),
+          ...gens.map(g => { const l = a.lues.find(x => x.agent === g); return el('div', {}, el('span', { text: nomPropre(g) }), el('span', { class: l ? 'v' : 'n', text: l ? '✓ ' + new Date(l.quand).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 'pas encore' })); })),
+        el('div', { class: 'alr-2' }, el('button', { class: 'alr-b gr', onclick: () => { fond.remove(); ouvrirAnnonces(a); } }, '✏️ Modifier'),
+          el('button', { class: 'alr-b', style: 'background:#3a1418;color:#ff9a9a', onclick: async e => { if (e.currentTarget.dataset.ok !== '1') { e.currentTarget.dataset.ok = '1'; e.currentTarget.textContent = 'Confirmer ?'; return; } try { await api('annonces', { op: 'suppr', id: a.id }); toast('Annonce supprimée'); fond.remove(); chargerAnnonces().then(() => ouvrirAnnonces()); } catch (er) { toast(er.message, true); } } }, '🗑 Supprimer')));
+    });
+    sheet.replaceChildren(el('div', { class: 'lu-grab' }), el('h3', { text: f.id ? '✏️ Modifier l\'annonce' : '📢 Nouvelle annonce' }),
+      el('div', { class: 'ann-lab', text: 'TYPE' }), types, el('div', { class: 'ann-lab', text: 'POUR QUI' }), qui,
+      el('div', { class: 'ann-lab', text: 'MESSAGE' }), ta, el('div', { class: 'ann-lab', text: 'AFFICHER PENDANT' }), duree, notif, go,
+      liste.length ? el('h3', { style: 'margin-top:18px', text: '📋 Annonces en cours' }) : null, ...liste);
+  };
+  const sheet = el('div', { class: 'lu-sheet', style: 'max-height:88%' });
+  rendre(); fond.append(sheet); document.body.append(fond);
+}
+setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerAnnonces(); }, 60000);
+document.addEventListener('visibilitychange', () => { if (st.pin && document.visibilityState === 'visible') chargerAnnonces(); });
+$('#btn-annonces').addEventListener('click', () => ouvrirAnnonces());
 // ---------- Tests des alertes (bouton 🔔 dans la discussion) ----------
 function menuTest() {
   const ex = { row: null, id: '', client: 'Test Salma', tel: '0600000000', produit: 'Legging hiver polaire — M — 1 pièce', total: '169 درهم', ville: 'Casablanca', agent: st.agent, colis: 'TEST-' + Date.now(), livraison: '', g: '', dliv: new Date().toISOString().slice(0, 19).replace('T', ' '), notes: '' };
