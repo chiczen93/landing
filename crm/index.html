@@ -178,6 +178,18 @@
   .pwa-bar .x { background: none; border: 0; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0 4px; }
   .fab-chat { position: fixed; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom)); width: 58px; height: 58px; border-radius: 50%; border: 0; background: #22c55e; color: #fff; display: grid; place-items: center; box-shadow: 0 10px 24px rgba(34,197,94,.4); z-index: 40; cursor: pointer; }
   .fab-chat[hidden] { display: none; }
+  .fab-chat.alerte { animation: fab-secoue 1.6s ease-in-out infinite; }
+  .fab-chat.alerte::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: #22c55e; animation: fab-onde 1.6s ease-out infinite; z-index: -1; }
+  .fab-chat.alerte .b { animation: fab-pop 1.6s ease-in-out infinite; }
+  @keyframes fab-secoue { 0%, 60%, 100% { transform: rotate(0); } 64% { transform: rotate(-14deg); } 70% { transform: rotate(12deg); } 76% { transform: rotate(-8deg); } 82% { transform: rotate(5deg); } 88% { transform: rotate(0); } }
+  @keyframes fab-onde { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(1.9); opacity: 0; } }
+  @keyframes fab-pop { 0%, 60%, 100% { transform: scale(1); } 66% { transform: scale(1.25); } }
+  .ban-msg { position: fixed; left: 12px; right: 12px; top: calc(10px + env(safe-area-inset-top)); z-index: 60; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid #22c55e; border-radius: 14px; padding: 10px 14px; box-shadow: var(--shadow); cursor: pointer; animation: ban-in .25s ease-out; transition: transform .4s, opacity .4s; max-width: 520px; margin: 0 auto; }
+  .ban-msg b { display: block; font-size: 14px; margin-bottom: 2px; }
+  .ban-msg span { display: block; font-size: 13px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ban-msg.sort { transform: translateY(-140%); opacity: 0; }
+  @keyframes ban-in { from { transform: translateY(-140%); } to { transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce) { .fab-chat.alerte, .fab-chat.alerte::before, .fab-chat.alerte .b { animation: none; } }
   .fab-chat .b { position: absolute; top: -3px; right: -3px; min-width: 22px; height: 22px; border-radius: 11px; background: #ef4444; color: #fff; font-size: 12px; font-weight: 800; display: grid; place-items: center; padding: 0 6px; border: 2px solid var(--bg); }
   .chat { position: fixed; inset: 0; z-index: 70; background: var(--bg); display: flex; flex-direction: column; width: 100%; max-width: 100vw; overflow: hidden; }
   .chat[hidden] { display: none; }
@@ -365,7 +377,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611011339';
+const VERSION = '202611011723';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -521,13 +533,48 @@ const nonLus = c => chat.msgs.filter(m => m.de !== st.agent && convDe(m) === c &
 function majBadgeChat() {
   const n = ['EQUIPE', ...CHAT_GENS].reduce((t, c) => t + nonLus(c), 0);
   const b = $('#fab-chat .b'); b.hidden = !n; b.textContent = n > 99 ? '99+' : n;
+  $('#fab-chat').classList.toggle('alerte', n > 0);
+}
+// nouveaux messages reçus : son « double bip » + bandeau en haut (sauf si la conversation est déjà ouverte)
+let chatVus = null;
+function signalerMessages() {
+  const recus = chat.msgs.filter(m => m.id && !m.envoi && m.de !== st.agent);
+  if (chatVus === null) { chatVus = new Set(recus.map(m => m.id)); return; }
+  const neufs = recus.filter(m => !chatVus.has(m.id));
+  for (const m of neufs) chatVus.add(m.id);
+  if (!neufs.length) return;
+  sonMessage();
+  const autres = neufs.filter(m => !(chat.ouvert && chat.conv === convDe(m)));
+  if (!autres.length) return;
+  const m = autres[autres.length - 1];
+  const piece = m.ftype === 'image' ? '📷 Photo' : m.ftype === 'audio' ? '🎤 Message vocal' : '';
+  const txt = [m.ref ? '📦 ' + m.ref : '', piece, m.texte].filter(Boolean).join(' — ');
+  const c = convDe(m);
+  const ban = el('div', { class: 'ban-msg', onclick: () => { ban.remove(); ouvrirChat(c); } },
+    el('b', { text: '💬 ' + nomChat(m.de) + (c === 'EQUIPE' ? ' · Équipe' : '') + (autres.length > 1 ? '  (+' + (autres.length - 1) + ')' : '') }),
+    el('span', { text: txt || 'Nouveau message' }));
+  document.querySelectorAll('.ban-msg').forEach(x => x.remove());
+  document.body.append(ban);
+  setTimeout(() => ban.classList.add('sort'), 4500); setTimeout(() => ban.remove(), 5000);
+}
+function sonMessage() {
+  try {
+    debloquerSon(); const ctx = sonCtx; if (!ctx) return;
+    const t = ctx.currentTime + 0.02;
+    for (const d of [0, 0.2]) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'square'; o.frequency.setValueAtTime(880, t + d);
+      g.gain.setValueAtTime(0.0001, t + d); g.gain.exponentialRampToValueAtTime(0.3, t + d + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.12);
+      o.connect(g); g.connect(ctx.destination); o.start(t + d); o.stop(t + d + 0.17);
+    }
+  } catch (e) {}
 }
 async function chargerChat() {
   if (!st.pin || chat.charge) return; chat.charge = true;
   try {
     const d = await api('chat');
     const avant = chat.msgs.length;
-    chat.msgs = [...(d.msgs || []), ...chat.msgs.filter(m => m.envoi)]; majBadgeChat();
+    chat.msgs = [...(d.msgs || []), ...chat.msgs.filter(m => m.envoi)]; majBadgeChat(); signalerMessages();
     if (chat.ouvert && chat.conv && $('#chat .chat-bar')) { if (chat.msgs.length !== avant) majMessages(); }
     else if (chat.ouvert) rendreChat();
   } catch (e) {} finally { chat.charge = false; }
@@ -710,7 +757,8 @@ document.body.append(
     el('span', { class: 'b', hidden: true })),
   el('div', { class: 'chat', id: 'chat', hidden: true }),
 );
-setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerChat(); }, 30000);
+setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerChat(); }, 12000);
+document.addEventListener('visibilitychange', () => { if (st.pin && document.visibilityState === 'visible') chargerChat(); });
 setInterval(() => { if (st.pin && chat.ouvert && chat.conv && document.visibilityState === 'visible') chargerChat(); }, 8000);
 
 // ---------- application (PWA) : installation, notifications, pastille ----------
