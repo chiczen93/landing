@@ -76,6 +76,9 @@
   .icon-btn { height: 36px; min-width: 36px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel); display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; font-weight: 600; font-size: 13px; color: var(--ink-2); flex: none; }
   .icon-btn.spin svg { animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  .vocal { display: flex; align-items: center; gap: 6px; max-width: 100%; }
+  .vocal audio { flex: 1; min-width: 0; }
+  .vocal .vit { flex: none; min-width: 44px; height: 32px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-weight: 800; font-size: 13px; cursor: pointer; }
   .classement { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; margin-bottom: 14px; }
   .cl-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
   .cl-top h3 { margin: 0; font-size: 16px; }
@@ -360,7 +363,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611011323';
+const VERSION = '202611011325';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -589,8 +592,13 @@ function lecteurVocal(f) {
   const a = el('audio', { controls: true, preload: 'auto' });
   let p = VOCAUX.get(f);
   if (!p) { p = fetch(FICHIER_URL(f)).then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); }).then(b => URL.createObjectURL(b.type ? b : new Blob([b], { type: 'audio/mp4' }))); VOCAUX.set(f, p); p.catch(() => VOCAUX.delete(f)); }
-  p.then(u => { a.src = u; }).catch(() => { a.replaceWith(el('span', { class: 'note', text: '🎤 Vocal indisponible' })); });
-  return a;
+  const VIT = [1, 2, 0.5];
+  const v = el('button', { class: 'vit', type: 'button', text: '1x' });
+  v.addEventListener('click', () => { const n = VIT[(VIT.indexOf(a.playbackRate) + 1) % VIT.length] || 1; a.defaultPlaybackRate = n; a.playbackRate = n; v.textContent = (n === 0.5 ? '0,5' : n) + 'x'; });
+  a.addEventListener('play', () => { a.playbackRate = a.defaultPlaybackRate; });
+  const boite = el('div', { class: 'vocal' }, a, v);
+  p.then(u => { const r = a.playbackRate; a.src = u; a.playbackRate = r; }).catch(() => { boite.replaceWith(el('span', { class: 'note', text: '🎤 Vocal indisponible' })); });
+  return boite;
 }
 const FICHIER_URL = f => 'https://n8n.srv2034083.hstgr.cloud/webhook/crm-fichier?f=' + encodeURIComponent(f);
 async function envoyerFichier(type, mime, b64) {
