@@ -377,7 +377,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611011723';
+const VERSION = '202611011727';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -539,10 +539,19 @@ function majBadgeChat() {
 let chatVus = null;
 function signalerMessages() {
   const recus = chat.msgs.filter(m => m.id && !m.envoi && m.de !== st.agent);
-  if (chatVus === null) { chatVus = new Set(recus.map(m => m.id)); return; }
+  if (chatVus === null) {
+    chatVus = new Set(recus.map(m => m.id));
+    // à l'ouverture de l'application : son si des messages non lus sont arrivés depuis la dernière fois
+    const dernier = store.get('chat_vu_' + st.agent) || '';
+    const plusRecent = recus.reduce((x, m) => m.quand > x ? m.quand : x, '');
+    if (plusRecent) store.set('chat_vu_' + st.agent, plusRecent);
+    if (dernier && recus.some(m => m.quand > dernier && m.quand > (chat.lus[convDe(m)] || ''))) sonMessage();
+    return;
+  }
   const neufs = recus.filter(m => !chatVus.has(m.id));
   for (const m of neufs) chatVus.add(m.id);
   if (!neufs.length) return;
+  store.set('chat_vu_' + st.agent, neufs.reduce((x, m) => m.quand > x ? m.quand : x, store.get('chat_vu_' + st.agent) || ''));
   sonMessage();
   const autres = neufs.filter(m => !(chat.ouvert && chat.conv === convDe(m)));
   if (!autres.length) return;
@@ -691,7 +700,20 @@ async function envoyerPiece(c, ftype, mime, blob) {
 }
 // petit son d'envoi (comme WhatsApp)
 let sonCtx = null;
-function debloquerSon() { try { sonCtx = sonCtx || new (window.AudioContext || window.webkitAudioContext)(); if (sonCtx.state === 'suspended') sonCtx.resume(); } catch (e) {} }
+// iPhone : le son web est coupé tant qu'on n'a pas touché l'écran, et suit le bouton silencieux.
+// On passe la session audio en « lecture » et on joue un son vide au premier toucher pour débloquer.
+function debloquerSon() {
+  try {
+    if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
+    if (!sonCtx) {
+      sonCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const b = sonCtx.createBuffer(1, 1, 22050), src = sonCtx.createBufferSource(); src.buffer = b; src.connect(sonCtx.destination); src.start(0);
+    }
+    if (sonCtx.state !== 'running') sonCtx.resume();
+  } catch (e) {}
+}
+document.addEventListener('touchstart', debloquerSon, { passive: true });
+document.addEventListener('visibilitychange', () => { if (sonCtx && document.visibilityState === 'visible' && sonCtx.state !== 'running') try { sonCtx.resume(); } catch (e) {} });
 document.addEventListener('touchend', debloquerSon, { passive: true }); document.addEventListener('click', debloquerSon);
 function sonEnvoi() {
   try {
