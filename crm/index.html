@@ -204,6 +204,7 @@
   .feuille .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 12px; }
   .feuille h3 { font-size: 17px; font-weight: 800; }
   .feuille p { font-size: 12.5px; color: var(--muted); margin: 2px 0 12px; }
+  .wa-liste { flex-direction: column; } .wa-liste .motif { text-decoration: none; text-align: start; padding: 12px 14px; border-radius: 12px; }
   .motifs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
   .motif { border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); border-radius: 20px; padding: 8px 12px; font-weight: 700; font-size: 13px; cursor: pointer; }
   .motif[aria-pressed="true"] { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
@@ -297,7 +298,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611010246';
+const VERSION = '202611010258';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -630,6 +631,24 @@ async function noter(o, key, type, statut) {
   } catch (e) { toast(e.message, true); }
 }
 
+// ---------- messages WhatsApp prêts (darija) ----------
+const MSGS_WA = [
+  { t: '📵 Ma jawbtich', m: 'السلام عليكم {c}، معاك Zena Shop. عيطنا ليك باش نأكدو الطلب ديالك ({p}) وما جاوبتيش. إلا مازال بغيتيه جاوبنا هنا ولا عيط لينا عافاك 🌸' },
+  { t: '✅ Confirmation', m: 'السلام عليكم {c}، معاك Zena Shop. الطلب ديالك ({p}) تأكد ✅ بثمن {t}. غادي يوصلك قريب إن شاء الله، والليفرور غادي يعيط ليك قبل ما يوصل. الخلاص عند الاستلام.' },
+  { t: '📍 Demander l’adresse', m: 'السلام عليكم {c}، معاك Zena Shop بخصوص الطلب ديالك ({p}). عافاك صيفط لينا العنوان الكامل والمدينة باش نصيفطوه ليك.' },
+  { t: '📅 Reporté', m: 'السلام عليكم {c}، معاك Zena Shop. بحال ما تفاهمنا، غادي نعاودو نتاصلو بيك فالنهار اللي بغيتي باش نصيفطو ليك الطلب ديالك ({p}). شكرا 🌸' },
+  { t: '🚚 Le livreur arrive', m: 'السلام عليكم {c}، معاك Zena Shop. الطلب ديالك ({p}) خرج مع الليفرور وغادي يوصلك قريب. خلي التيليفون ديالك مشعول عافاك 🙏' },
+];
+function choisirWA(o, t9) {
+  const remplir = m => m.replace('{c}', o.client || '').replace('{p}', o.produit || '').replace('{t}', (o.total || '').replace('درهم', 'DH'));
+  const liens = MSGS_WA.map(x => el('a', { class: 'motif', href: 'https://wa.me/212' + t9 + '?text=' + encodeURIComponent(remplir(x.m)), target: '_blank', rel: 'noopener', text: x.t }));
+  const vide = el('a', { class: 'motif', href: 'https://wa.me/212' + t9, target: '_blank', rel: 'noopener', text: '💬 Sans message' });
+  const box = el('div', { class: 'feuille info' }, el('div', { class: 'grab' }), el('h3', { text: 'WhatsApp · ' + (o.client || '') }), el('p', { text: 'Choisissez le message (il s’ouvre déjà écrit dans WhatsApp)' }), el('div', { class: 'motifs wa-liste' }, ...liens, vide));
+  const voile = el('div', { class: 'voile' }, box);
+  voile.addEventListener('click', e => { if (e.target === voile || e.target.closest('a')) setTimeout(() => voile.remove(), 50); });
+  document.body.append(voile);
+}
+
 function carte(o) {
   const key = (o.id || o.colis) + '|' + o.row;
   const gl = o.colis ? GROUPES.find(g => g.f(o.livraison || '')) : null;
@@ -668,7 +687,8 @@ function carte(o) {
   const msg = encodeURIComponent(((gl ? gl.msg : MSG_DEFAUT) || MSG_DEFAUT).replace('{c}', o.client || '').replace('{p}', o.produit || ''));
   const contact = t9.length === 9 ? el('div', { class: 'contact' },
     el('a', { href: 'tel:0' + t9 }, icone('phone'), '0' + t9),
-    el('a', { class: 'wa', href: 'https://wa.me/212' + t9 + '?text=' + msg, target: '_blank', rel: 'noopener' }, icone('chat'), 'WhatsApp'),
+    gl ? el('a', { class: 'wa', href: 'https://wa.me/212' + t9 + '?text=' + msg, target: '_blank', rel: 'noopener' }, icone('chat'), 'WhatsApp')
+       : el('a', { class: 'wa', href: '#', onclick: e => { e.preventDefault(); choisirWA(o, t9); } }, icone('chat'), 'WhatsApp'),
   ) : null;
 
   const acts = el('div', { class: 'acts' }, ...STATUTS.map(s => el('button', {
@@ -795,13 +815,14 @@ function rendrePerf() {
         cell(fmt(r.annules), 'Annulées', Number(r.annules) ? 'bad' : ''), cell(fmt(r.pas_repond), 'Pas répondu', Number(r.pas_repond) ? 'warn' : ''), cell(fmt(r.en_attente), 'En attente'),
         cell(fmt(r.livres), 'Livrées', 'ok'), cell(fmt(r.retours) + (r.retours_recus != null ? ' · ' + fmt(r.retours_recus) + ' reçus' : ''), 'Retours', Number(r.retours) ? 'bad' : ''), cell(fermes ? pct(tl) : '—', 'Taux livraison', !fermes ? '' : tl >= 50 ? 'ok' : tl >= 35 ? 'warn' : 'bad'),
         cell(fmt(r.en_cours), 'En cours'), cell(fmt(r.colis), 'Colis'), cell(fmt(r.ca_livre) + ' DH', 'CA livré'),
+        cell(r.delai_min ? fmt(r.delai_min) + ' min' : '—', '1er appel (moy.)', !r.delai_min ? '' : r.delai_min <= 15 ? 'ok' : r.delai_min <= 60 ? 'warn' : 'bad'),
       ),
     );
   });
   if (tot && st.role === 'admin') cartes.unshift(el('div', { class: 'pcard' },
     el('div', { class: 'phead' }, el('div', { class: 'avatar', style: 'background:var(--ink);color:var(--panel)', text: 'Σ' }), el('b', { text: 'Total équipe' })),
     el('div', { class: 'ring-row' }, anneau(Number(tot.taux_conf) || 0, 'var(--brand)'), el('div', {}, el('div', { class: 'big', text: fmt(tot.confirmes) }), el('div', { class: 'sub', text: 'confirmées sur ' + fmt(tot.assignes) + ' commandes' }))),
-    el('div', { class: 'cells' }, cell(fmt(tot.livres), 'Livrées', 'ok'), cell(fmt(tot.retours), 'Retours', 'bad'), cell(pct(tot.taux_livr), 'Taux livraison'), cell(fmt(tot.en_cours), 'En cours'), cell(fmt(tot.en_attente), 'En attente'), cell(fmt(tot.ca_livre) + ' DH', 'CA livré')),
+    el('div', { class: 'cells' }, cell(fmt(tot.livres), 'Livrées', 'ok'), cell(fmt(tot.retours), 'Retours', 'bad'), cell(pct(tot.taux_livr), 'Taux livraison'), cell(fmt(tot.en_cours), 'En cours'), cell(fmt(tot.en_attente), 'En attente'), cell(fmt(tot.ca_livre) + ' DH', 'CA livré'), cell(tot.delai_min ? fmt(tot.delai_min) + ' min' : '—', '1er appel (moy.)')),
     el('div', { class: 'soc-titre', text: 'Par société de livraison' }),
     el('div', { class: 'cells' },
       cell('Irsaliyat', 'Société'), cell(fmt(tot.livres_iry), 'Livrées', 'ok'), cell(fmt(tot.ca_iry) + ' DH', 'CA livré'),
