@@ -338,7 +338,7 @@
     <section id="perf" hidden>
       <div class="classement">
         <div class="cl-top"><h3>🏆 Classement des agentes</h3>
-          <div class="periods" id="cl-periods" style="margin:0"><button class="tab" data-c="7j" aria-pressed="true">Cette semaine</button><button class="tab" data-c="30j">Ce mois</button></div></div>
+          <div class="periods" id="cl-periods" style="margin:0"><button class="tab" data-c="semaine" aria-pressed="true">Cette semaine</button><button class="tab" data-c="sem_prec">Semaine passée</button><button class="tab" data-c="30j">30 jours</button></div></div>
         <div class="cl-sub" id="cl-sub">Selon le taux de livraison</div>
         <div id="cl-body"></div>
       </div>
@@ -360,7 +360,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611010356';
+const VERSION = '202611010403';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -418,7 +418,7 @@ const TABS = [
 ];
 const TONCOL = { ok: 'var(--ok)', bad: 'var(--bad)', warn: 'var(--warn)', info: 'var(--info)', '': 'var(--muted)' };
 
-const st = { res: null, resQ: '', tabQ: null, cherche: null, pin: '', agent: '', role: '', commandes: [], tab: 'new', q: '', page: 1, ouvert: new Set(), brouillon: {}, villes: [], stats: [], periode: '7j', clPer: '7j', view: 'orders', at: 0, busy: false };
+const st = { res: null, resQ: '', tabQ: null, cherche: null, pin: '', agent: '', role: '', commandes: [], tab: 'new', q: '', page: 1, ouvert: new Set(), brouillon: {}, villes: [], stats: [], periode: '7j', clPer: 'semaine', view: 'orders', at: 0, busy: false };
 const $ = s => document.querySelector(s);
 const el = (tag, attrs = {}, ...kids) => {
   const e = document.createElement(tag);
@@ -1058,7 +1058,7 @@ function rendreClassement() {
       el('b', {}, el('span', { text: nomPropre(r.agent) }), el('span', { style: 'color:' + ton(r.taux), text: tx(r.taux) })),
       el('div', { class: 'cl-bar' }, el('i', { style: 'width:' + Math.max(0, r.taux) + '%;background:' + ton(r.taux) })),
       el('span', { text: r.f ? '✅ ' + fmt(r.l) + ' livrées · ↩️ ' + fmt(r.rt) + ' retours · ' + fmt(r.ca) + ' DH' : 'Pas encore de colis livré ou retourné' }))));
-  $('#cl-sub').textContent = 'Selon le taux de livraison · ' + (per === '7j' ? '7 derniers jours' : '30 derniers jours');
+  $('#cl-sub').textContent = 'Selon le taux de livraison · ' + ({ semaine: 'du lundi à aujourd\'hui', sem_prec: 'lundi → dimanche dernier', '30j': '30 derniers jours' }[per] || '');
   $('#cl-body').replaceChildren(...[pod.length ? el('div', { class: 'podium' }, ...pod) : null, el('div', { class: 'cl-list' }, ...liste)].filter(Boolean));
 }
 for (const b of document.querySelectorAll('#cl-periods .tab')) b.addEventListener('click', () => {
