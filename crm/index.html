@@ -397,7 +397,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611011825';
+const VERSION = '202611011827';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -813,17 +813,19 @@ function sonEnvoi() {
   } catch (e) {}
 }
 let enreg = null;
+let MICRO = null;
 async function demarrerVocal(c, bar, normal) {
   if (!navigator.mediaDevices || !window.MediaRecorder) return toast("L'enregistrement vocal n'est pas disponible sur ce téléphone.", true);
   let flux;
+  // le micro reste ouvert tant que l'application est ouverte : l'iPhone ne redemande pas l'autorisation à chaque vocal
   try { if (navigator.audioSession) navigator.audioSession.type = 'auto'; } catch (e) {}
-  try { flux = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { return toast('Autorisez le micro pour envoyer un vocal.', true); }
+  try { flux = (MICRO && MICRO.getTracks().some(t => t.readyState === 'live')) ? MICRO : (MICRO = await navigator.mediaDevices.getUserMedia({ audio: true })); } catch (e) { return toast('Autorisez le micro pour envoyer un vocal.', true); }
   const mime = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'].find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
   let rec; try { rec = new MediaRecorder(flux, mime ? { mimeType: mime, audioBitsPerSecond: 32000 } : { audioBitsPerSecond: 32000 }); } catch (e) { rec = new MediaRecorder(flux, mime ? { mimeType: mime } : undefined); }
   const morceaux = []; let annule = false; const debut = Date.now();
   rec.ondataavailable = e => { if (e.data && e.data.size) morceaux.push(e.data); };
   rec.onstop = () => {
-    flux.getTracks().forEach(t => t.stop()); clearInterval(tic); enreg = null; bar.replaceChildren(...normal);
+    clearInterval(tic); enreg = null; bar.replaceChildren(...normal);
     if (annule || !morceaux.length) return;
     const type = rec.mimeType || mime || 'audio/mp4';
     envoyerPiece(c, 'audio', type, new Blob(morceaux, { type }));
