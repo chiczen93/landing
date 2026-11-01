@@ -467,7 +467,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611012102';
+const VERSION = '202611012103';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -939,7 +939,8 @@ document.body.append(
 );
 setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerChat(); }, 12000);
 // ---------- Annonces de l'admin (sans titre) : Urgent (à confirmer « J'ai compris »), Info, Objectif ----------
-const ANN = { liste: [] };
+// l'agente peut fermer une annonce, mais elle revient à chaque ouverture de l'application (tant qu'elle est active)
+const ANN = { liste: [], caches: new Set() };
 const ANN_TYPES = { urgent: { t: '🔥 URGENT', ic: '⚠️' }, info: { t: '📢 INFO', ic: '📢' }, objectif: { t: '🎯 OBJECTIF', ic: '🎯' } };
 const ANN_GENS = ['HAJIBA', 'BTISSAM', 'GHIZLANE', 'SAMIRA', 'ILHAM'];
 const dateCourte = q => { const d = new Date(q); return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); };
@@ -951,16 +952,16 @@ function rendreAnnonces() {
   const box = $('#annonces'); if (!box) return;
   $('#btn-annonces').hidden = st.agent !== 'ADMIN';
   if (st.agent === 'ADMIN') { box.replaceChildren(); return; }
-  const aLire = ANN.liste.filter(a => a.active && !a.lues.some(l => l.agent === st.agent));
+  const aLire = ANN.liste.filter(a => a.active && !ANN.caches.has(a.id));
   box.replaceChildren(...aLire.map(a => {
     const T = ANN_TYPES[a.type] || ANN_TYPES.info;
-    const lire = async b => { b.disabled = true; try { await api('annonces', { op: 'lue', id: a.id }); a.lues.push({ agent: st.agent, quand: new Date().toISOString() }); rendreAnnonces(); } catch (e) { toast(e.message, true); b.disabled = false; } };
-    const ferme = a.type === 'urgent' ? null : el('button', { class: 'ann-x', 'aria-label': 'Fermer', text: '×', onclick: e => lire(e.currentTarget) });
+    const lire = () => { ANN.caches.add(a.id); rendreAnnonces(); if (!a.lues.some(l => l.agent === st.agent)) api('annonces', { op: 'lue', id: a.id }).then(() => a.lues.push({ agent: st.agent, quand: new Date().toISOString() })).catch(() => {}); };
+    const ferme = el('button', { class: 'ann-x', 'aria-label': 'Fermer', text: '×', onclick: lire });
     return el('div', { class: 'ann ann-' + (ANN_TYPES[a.type] ? a.type : 'info') },
       el('div', { class: 'ann-ic', text: T.ic }), ferme,
       el('div', { class: 'ann-c' }, el('span', { class: 'ann-tg', text: T.t }), el('div', { class: 'ann-d', text: '📅 ' + dateCourte(a.quand) + ' · Admin' }),
         el('div', { class: 'ann-tx', dir: 'auto', text: a.texte }),
-        a.type === 'urgent' ? el('div', { style: 'text-align:right' }, el('button', { class: 'ann-ok', onclick: e => lire(e.currentTarget) }, "✓ J'ai compris")) : null));
+        a.type === 'urgent' ? el('div', { style: 'text-align:right' }, el('button', { class: 'ann-ok', onclick: lire }, "✓ J'ai compris")) : null));
   }));
 }
 // écran admin : publier / modifier / supprimer, et qui a lu
@@ -1002,7 +1003,9 @@ function ouvrirAnnonces(edit) {
   rendre(); fond.append(sheet); document.body.append(fond);
 }
 setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerAnnonces(); }, 60000);
-document.addEventListener('visibilitychange', () => { if (st.pin && document.visibilityState === 'visible') chargerAnnonces(); });
+// en revenant dans l'application, les annonces fermées réapparaissent
+let annCacheeA = 0;
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') annCacheeA = Date.now(); else if (st.pin) { if (annCacheeA && Date.now() - annCacheeA > 60000) ANN.caches.clear(); chargerAnnonces(); } });
 $('#btn-annonces').addEventListener('click', () => ouvrirAnnonces());
 // ---------- Tests des alertes (bouton 🔔 dans la discussion) ----------
 function menuTest() {
