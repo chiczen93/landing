@@ -273,7 +273,7 @@
     <div class="brandline"><div class="mark"><img src="icons/icon-192.png" alt=""></div><div class="brandname">Zena <span>CRM</span></div></div>
     <h1>Connexion</h1>
     <p>Entrez votre code personnel.</p>
-    <input class="pin" id="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" aria-label="Code">
+    <input class="pin" id="pin" type="password" autocomplete="current-password" maxlength="30" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Code">
     <button class="btn" id="go">Se connecter</button>
     <div class="err" id="login-err"></div>
   </div>
@@ -333,7 +333,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611010332';
+const VERSION = '202611010335';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
