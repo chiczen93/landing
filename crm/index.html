@@ -250,6 +250,12 @@
   .c-nb { background: #22c55e; color: #04210f; font-size: 11px; font-weight: 800; border-radius: 10px; padding: 1px 7px; }
   .msgs { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
   .bulle { max-width: 80%; padding: 8px 11px; border-radius: 14px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; }
+  .sit { margin-top: 10px; background: #3a2f0b; border: 1px solid #7a5d12; border-radius: 12px; padding: 10px 12px; }
+  .sit .h { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; font-weight: 800; color: #fbbf24; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .02em; }
+  .sit .h small { font-weight: 600; color: #d6b25a; text-transform: none; letter-spacing: 0; white-space: nowrap; }
+  .sit .x { font-size: 14px; color: #fff3cf; line-height: 1.4; white-space: pre-wrap; }
+  .sit .old { font-size: 11.5px; color: #c9a95a; margin-top: 6px; border-top: 1px dashed #7a5d12; padding-top: 6px; }
+  .sit.vide { background: #3a1418; border-color: #7a2630; } .sit.vide .h { color: #ff9a9a; } .sit.vide .x { color: #ffc9c9; font-size: 13px; } .sit.vide .old { color: #e8a0a0; border-color: #7a2630; }
   .bulle .ph { display: block; width: 240px; max-width: 100%; height: auto; max-height: 320px; object-fit: cover; border-radius: 10px; margin: 2px 0 4px; cursor: zoom-in; background: var(--line-2); min-height: 120px; }
   .bulle small { display: block; font-size: 10px; color: var(--muted); margin-top: 3px; text-align: right; }
   .bulle .qui { display: block; font-size: 11px; font-weight: 800; margin-bottom: 2px; }
@@ -441,7 +447,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611011951';
+const VERSION = '202611011954';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1419,6 +1425,23 @@ function choisirWA(o, t9) {
   document.body.append(voile);
 }
 
+// Clients injoignables : la dernière situation écrite par l'agente (case jaune), ou rien aujourd'hui (case rouge)
+function boiteSituation(o) {
+  const tL = s => { s = String(s || '').trim(); return s ? Date.parse(s.replace(' ', 'T') + (/[zZ]$|[+-]\d\d:?\d\d$/.test(s) ? '' : 'Z')) || 0 : 0; };
+  const l = String(o.notes || '').split('\n').map(x => x.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}) · ([A-Z]+) · Note · Livreur\s*-?\s*(.*)$/)).filter(Boolean);
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  const seuil = Math.max(d.getTime(), tL(o.dliv));
+  const quand = t => { const x = new Date(t), j = new Date(x); j.setHours(0, 0, 0, 0); const n = Math.round((d.getTime() - j.getTime()) / 86400000); return (n === 0 ? "aujourd'hui" : n === 1 ? 'hier' : x.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })) + ' ' + x.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); };
+  const der = l[l.length - 1];
+  if (der && tL(der[1]) >= seuil) {
+    const avant = l.length > 1 ? l[l.length - 2] : null;
+    return el('div', { class: 'sit' }, el('div', { class: 'h' }, el('span', { text: '📝 Situation · ' + nomPropre(der[2]) }), el('small', { text: quand(tL(der[1])) })),
+      el('div', { class: 'x', text: der[3] || '—' }), avant ? el('div', { class: 'old', text: quand(tL(avant[1])) + ' · ' + nomPropre(avant[2]) + ' : ' + avant[3] }) : null);
+  }
+  return el('div', { class: 'sit vide' }, el('div', { class: 'h' }, el('span', { text: "⚠️ Pas encore de situation aujourd'hui" })),
+    el('div', { class: 'x', text: (o.agent ? nomPropre(o.agent) : "L'agente") + " n'a pas encore rappelé ce client" }),
+    der ? el('div', { class: 'old', text: 'Dernière · ' + quand(tL(der[1])) + ' · ' + nomPropre(der[2]) + ' : ' + der[3] }) : null);
+}
 function carte(o) {
   const key = (o.id || o.colis) + '|' + o.row;
   const gl = o.colis ? GROUPES.find(g => g.f(o.livraison || '')) : null;
@@ -1510,7 +1533,7 @@ function carte(o) {
     el('div', { class: 'row1' }, el('div', { class: 'name', text: o.client || '—' }), el('div', { class: 'date' + (enRetard ? ' late' : ''), text: quand.t })),
     chips, boiteDbl, gl ? null : boiteRisque, ligneHist,
     el('div', { class: 'prod' }, o.produit || '—', o.total ? el('b', { text: '  ·  ' + o.total.replace('درهم', 'DH') }) : null),
-    meta, blocNotes,
+    meta, gl && gl.id === 'pr' ? boiteSituation(o) : null, blocNotes,
     contact, gl ? el('div', { class: 'acts' }, el('button', { class: 'act', onclick: () => ouvrirChat(null, [o.client, o.produit, o.colis, o.livraison, o.tel].filter(Boolean).join(' · ')) }, '💬 Équipe')) : acts,
     gl ? null : el('button', { class: 'more', onclick: () => { ouvert ? st.ouvert.delete(key) : st.ouvert.add(key); rerender(); } }, icone('edit'), ouvert ? 'Fermer' : 'Modifier ville, adresse, produit'),
     edit, save,
