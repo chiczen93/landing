@@ -298,7 +298,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611010258';
+const VERSION = '202611010305';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -390,7 +390,7 @@ async function login(pin) {
   st.agent = d.agent; st.role = d.role;
   store.set('crm_pin', pin);
   $('#v-login').hidden = true; $('#v-app').hidden = false;
-  $('#me').textContent = st.role === 'admin' ? 'Administration' : nomPropre(st.agent);
+  $('#me').textContent = st.agent && st.agent !== 'ADMIN' ? nomPropre(st.agent) : st.role === 'admin' ? 'Administration' : nomPropre(st.agent);
   if (st.role === 'admin') {
     $('#f-agent').hidden = false; $('#f-jours').hidden = false;
     $('#f-agent').replaceChildren(el('option', { value: 'TOUS', text: 'Toutes les agentes' }), el('option', { value: 'LIBRE', text: 'Non attribuées' }), ...AGENTES.map(a => el('option', { value: a, text: nomPropre(a) })), el('option', { value: 'NO APPEL', text: 'No appel' }));
@@ -706,7 +706,7 @@ function carte(o) {
   const blocNotes = lesNotes.length ? el('div', { class: 'notes' },
     el('b', { text: 'NOTES' }),
     nbAppels ? el('div', { class: 'appels' }, ...Array.from({ length: Math.max(5, nbAppels) }, (_, i) => el('i', { class: i < nbAppels ? 'on' : '' }))) : null,
-    ...lesNotes.slice().reverse().slice(0, 6).map(x => el('div', { class: 'n' + (x.annule ? ' annule' : '') }, el('span', { class: 'd', text: quandNote(x.quand) }), el('span', {}, el('b', { text: x.texte.split(' · ')[0] }), x.texte.includes(' · ') ? ' · ' + x.texte.split(' · ').slice(1).join(' · ') : '', st.role === 'admin' || x.qui !== st.agent ? ' — ' + nomPropre(x.qui) : ''))),
+    ...lesNotes.slice().reverse().slice(0, 6).map(x => el('div', { class: 'n' + (x.annule ? ' annule' : '') }, el('span', { class: 'd', text: quandNote(x.quand) }), el('span', {}, el('b', { text: x.texte.split(' · ')[0] }), x.texte.includes(' · ') ? ' · ' + x.texte.split(' · ').slice(1).join(' · ') : '', ' — ' + (x.qui === st.agent ? 'moi' : x.qui === 'ADMIN' ? 'Admin' : nomPropre(x.qui))))),
   ) : null;
 
   const val = k => (k in b ? b[k] : (o[k] || ''));
