@@ -365,7 +365,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611011332';
+const VERSION = '202611011339';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -527,7 +527,7 @@ async function chargerChat() {
   try {
     const d = await api('chat');
     const avant = chat.msgs.length;
-    chat.msgs = d.msgs || []; majBadgeChat();
+    chat.msgs = [...(d.msgs || []), ...chat.msgs.filter(m => m.envoi)]; majBadgeChat();
     if (chat.ouvert && chat.conv && $('#chat .chat-bar')) { if (chat.msgs.length !== avant) majMessages(); }
     else if (chat.ouvert) rendreChat();
   } catch (e) {} finally { chat.charge = false; }
@@ -559,7 +559,7 @@ function rendreChat() {
   const go = el('button', { 'aria-label': 'Envoyer', text: '➤' });
   const envoyer = async () => {
     const texte = ta.value.trim(); if (!texte && !chat.ref) return;
-    go.disabled = true;
+    go.disabled = true; sonEnvoi();
     try {
       const d = await api('envoyer', { a: c, texte, ref: chat.ref });
       chat.msgs.push({ ...d.msg }); ta.value = ''; ta.style.height = 'auto';
@@ -590,9 +590,9 @@ const FICHIER_API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm-fichier-envo
 // iPhone (Safari) demande l'audio par morceaux (Range) et n8n renvoie le fichier entier -> « Error ».
 // On télécharge donc le vocal en entier puis on le lit depuis la mémoire (blob).
 const VOCAUX = new Map();
-function lecteurVocal(f) {
+function lecteurVocal(f, local) {
   const a = el('audio', { controls: true, preload: 'auto' });
-  let p = VOCAUX.get(f);
+  let p = local ? Promise.resolve(local) : VOCAUX.get(f);
   if (!p) { p = fetch(FICHIER_URL(f)).then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); }).then(b => URL.createObjectURL(b.type ? b : new Blob([b], { type: 'audio/mp4' }))); VOCAUX.set(f, p); p.catch(() => VOCAUX.delete(f)); }
   const VIT = [1, 1.5, 2];
   const v = el('button', { class: 'vit', type: 'button', text: '1x' });
@@ -626,14 +626,34 @@ function compresserImage(file) {
   });
 }
 async function envoyerPiece(c, ftype, mime, blob) {
-  toast(ftype === 'image' ? 'Envoi de la photo…' : 'Envoi du vocal…');
+  // le message apparaît tout de suite (comme WhatsApp), l'envoi continue en arrière-plan
+  sonEnvoi();
+  const local = URL.createObjectURL(blob);
+  const ref = chat.ref;
+  const tmp = { id: 'tmp' + Date.now(), de: st.agent, a: c, texte: '', ref, fichier: '', local, ftype, quand: new Date().toISOString(), envoi: true };
+  chat.msgs.push(tmp);
+  if (chat.ref) { chat.ref = ''; const r = $('#chat .chat-ref'); if (r) r.remove(); }
+  majMessages();
   try {
     const f = await envoyerFichier(ftype, mime, await enB64(blob));
-    const d = await api('envoyer', { a: c, texte: '', ref: chat.ref, fichier: f, ftype });
-    chat.msgs.push({ ...d.msg });
-    if (chat.ref) { chat.ref = ''; const r = $('#chat .chat-ref'); if (r) r.remove(); }
-    majMessages(); toast('Envoyé');
-  } catch (e) { toast(e.message, true); }
+    const d = await api('envoyer', { a: c, texte: '', ref, fichier: f, ftype });
+    if (ftype === 'audio') VOCAUX.set(f, Promise.resolve(local));
+    const i = chat.msgs.indexOf(tmp); if (i >= 0) chat.msgs[i] = { ...d.msg }; else chat.msgs.push({ ...d.msg });
+    majMessages();
+  } catch (e) { tmp.envoi = false; tmp.echec = true; majMessages(); toast(e.message, true); }
+}
+// petit son d'envoi (comme WhatsApp)
+let sonCtx = null;
+function debloquerSon() { try { sonCtx = sonCtx || new (window.AudioContext || window.webkitAudioContext)(); if (sonCtx.state === 'suspended') sonCtx.resume(); } catch (e) {} }
+document.addEventListener('touchend', debloquerSon, { passive: true }); document.addEventListener('click', debloquerSon);
+function sonEnvoi() {
+  try {
+    debloquerSon(); const ctx = sonCtx; if (!ctx) return;
+    const t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(520, t); o.frequency.exponentialRampToValueAtTime(1150, t + 0.12);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+    o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.2);
+  } catch (e) {}
 }
 let enreg = null;
 async function demarrerVocal(c, bar, normal) {
@@ -641,7 +661,7 @@ async function demarrerVocal(c, bar, normal) {
   let flux;
   try { flux = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { return toast('Autorisez le micro pour envoyer un vocal.', true); }
   const mime = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'].find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
-  const rec = new MediaRecorder(flux, mime ? { mimeType: mime } : undefined);
+  let rec; try { rec = new MediaRecorder(flux, mime ? { mimeType: mime, audioBitsPerSecond: 32000 } : { audioBitsPerSecond: 32000 }); } catch (e) { rec = new MediaRecorder(flux, mime ? { mimeType: mime } : undefined); }
   const morceaux = []; let annule = false; const debut = Date.now();
   rec.ondataavailable = e => { if (e.data && e.data.size) morceaux.push(e.data); };
   rec.onstop = () => {
@@ -674,9 +694,11 @@ function majMessages() {
     bulles.push(el('div', { class: 'bulle ' + (moi ? 'out' : 'in') },
       !moi && c === 'EQUIPE' ? el('span', { class: 'qui', style: 'color:' + (m.de === 'ADMIN' ? 'var(--brand)' : couleurChat(m.de)), text: nomChat(m.de) }) : null,
       m.ref ? el('div', { class: 'r lien', onclick: () => voirCommande(m.ref) }, el('span', { text: '📦 ' + m.ref }), el('b', { text: 'Ouvrir la commande ›' })) : null,
+      m.local && m.ftype === 'image' ? el('img', { class: 'ph', src: m.local, alt: 'Photo' }) : null,
+      m.local && m.ftype === 'audio' ? lecteurVocal(null, m.local) : null,
       m.fichier && m.ftype === 'image' ? el('img', { class: 'ph', src: FICHIER_URL(m.fichier), alt: 'Photo', loading: 'lazy', onclick: () => window.open(FICHIER_URL(m.fichier), '_blank') }) : null,
       m.fichier && m.ftype === 'audio' ? lecteurVocal(m.fichier) : null,
-      m.texte || null, el('small', { text: new Date(m.quand).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) })));
+      m.texte || null, el('small', { text: new Date(m.quand).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + (m.envoi ? ' 🕓' : m.echec ? ' ⚠️ non envoyé' : '') })));
   }
   corps.replaceChildren(l.length ? el('div', { class: 'msgs' }, ...bulles) : el('div', { class: 'chat-vide', text: 'Pas encore de message. Écrivez le premier !' }));
   corps.scrollTop = corps.scrollHeight;
