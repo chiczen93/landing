@@ -360,7 +360,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611010405';
+const VERSION = '202611011323';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -582,6 +582,16 @@ function rendreChat() {
   majMessages(); ajusterChat();
 }
 const FICHIER_API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm-fichier-envoi';
+// iPhone (Safari) demande l'audio par morceaux (Range) et n8n renvoie le fichier entier -> « Error ».
+// On télécharge donc le vocal en entier puis on le lit depuis la mémoire (blob).
+const VOCAUX = new Map();
+function lecteurVocal(f) {
+  const a = el('audio', { controls: true, preload: 'auto' });
+  let p = VOCAUX.get(f);
+  if (!p) { p = fetch(FICHIER_URL(f)).then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); }).then(b => URL.createObjectURL(b.type ? b : new Blob([b], { type: 'audio/mp4' }))); VOCAUX.set(f, p); p.catch(() => VOCAUX.delete(f)); }
+  p.then(u => { a.src = u; }).catch(() => { a.replaceWith(el('span', { class: 'note', text: '🎤 Vocal indisponible' })); });
+  return a;
+}
 const FICHIER_URL = f => 'https://n8n.srv2034083.hstgr.cloud/webhook/crm-fichier?f=' + encodeURIComponent(f);
 async function envoyerFichier(type, mime, b64) {
   const body = new URLSearchParams({ payload: JSON.stringify({ pin: st.pin, type, mime, data: b64 }) });
@@ -655,7 +665,7 @@ function majMessages() {
       !moi && c === 'EQUIPE' ? el('span', { class: 'qui', style: 'color:' + (m.de === 'ADMIN' ? 'var(--brand)' : couleurChat(m.de)), text: nomChat(m.de) }) : null,
       m.ref ? el('div', { class: 'r', text: '📦 ' + m.ref }) : null,
       m.fichier && m.ftype === 'image' ? el('img', { class: 'ph', src: FICHIER_URL(m.fichier), alt: 'Photo', loading: 'lazy', onclick: () => window.open(FICHIER_URL(m.fichier), '_blank') }) : null,
-      m.fichier && m.ftype === 'audio' ? el('audio', { controls: true, preload: 'none', src: FICHIER_URL(m.fichier) }) : null,
+      m.fichier && m.ftype === 'audio' ? lecteurVocal(m.fichier) : null,
       m.texte || null, el('small', { text: new Date(m.quand).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) })));
   }
   corps.replaceChildren(l.length ? el('div', { class: 'msgs' }, ...bulles) : el('div', { class: 'chat-vide', text: 'Pas encore de message. Écrivez le premier !' }));
