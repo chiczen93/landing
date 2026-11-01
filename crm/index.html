@@ -273,7 +273,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611010009';
+const VERSION = '202611010011';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -392,7 +392,7 @@ async function charger(silencieux) {
     const jourDe = t => { const x = new Date(t); return isNaN(x) ? '' : x.toISOString().slice(0, 10); };
     const cible = jourVoulu === null ? null : new Date(Date.now() - jourVoulu * 86400000).toISOString().slice(0, 10);
     st.commandes = cible ? d.commandes.filter(o => jourDe(o.date) === cible) : d.commandes; st.at = Date.now();
-    rendre();
+    rendre(); rendreKpis();
     signalerNouvelles();
     if (!st.pushOk) { st.pushOk = true; abonnerPush(); }
   } catch (e) { if (!silencieux) toast(e.message, true); }
@@ -650,6 +650,21 @@ function rendreKpis() {
   const moi = st.role === 'admin' ? 'TOTAL' : st.agent;
   const auj = st.stats.find(r => r.agent === moi && r.periode === 'aujourdhui') || {};
   const s7 = st.stats.find(r => r.agent === moi && r.periode === '7j') || {};
+  const per = st.role === 'admin' ? $('#f-jours').value : '';
+  if (per === 'auj' || per === 'hier') {
+    // la période choisie (aujourd'hui / hier) : calculé sur les commandes affichées
+    const lab = per === 'hier' ? 'hier' : 'auj.';
+    const cmds = st.commandes.filter(o => o.row);
+    const conf = cmds.filter(o => o.statut === 'CONFIRMER').length;
+    const dbl = cmds.filter(o => o.statut === 'DOUBLE').length;
+    $('#kpis').replaceChildren(
+      el('div', { class: 'kpi' }, el('span', { text: 'Commandes · ' + lab }), el('b', { text: fmt(cmds.length) })),
+      el('div', { class: 'kpi' }, el('span', { text: 'Confirmées · ' + lab }), el('b', { text: fmt(conf) })),
+      el('div', { class: 'kpi' }, el('span', { text: 'Confirmation · ' + lab }), el('b', { text: cmds.length - dbl > 0 ? pct(conf / (cmds.length - dbl) * 100) : '—' })),
+      el('div', { class: 'kpi' }, el('span', { text: 'Livraison · 7 j' }), el('b', { text: pct(s7.taux_livr) })),
+    );
+    return;
+  }
   $('#kpis').replaceChildren(
     el('div', { class: 'kpi' }, el('span', { text: "Commandes · auj." }), el('b', { text: fmt(auj.assignes) })),
     el('div', { class: 'kpi' }, el('span', { text: "Confirmées · auj." }), el('b', { text: fmt(auj.confirmes) })),
