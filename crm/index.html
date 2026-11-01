@@ -178,6 +178,32 @@
   .pwa-bar .x { background: none; border: 0; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0 4px; }
   .fab-chat { position: fixed; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom)); width: 58px; height: 58px; border-radius: 50%; border: 0; background: #22c55e; color: #fff; display: grid; place-items: center; box-shadow: 0 10px 24px rgba(34,197,94,.4); z-index: 40; cursor: pointer; }
   .fab-chat[hidden] { display: none; }
+  .fab-camion { position: fixed; right: 20px; bottom: calc(90px + env(safe-area-inset-bottom)); width: 50px; height: 50px; border-radius: 50%; border: 0; background: #f59e0b; font-size: 24px; display: grid; place-items: center; box-shadow: 0 8px 20px rgba(245,158,11,.4); z-index: 40; cursor: pointer; }
+  .fab-camion[hidden] { display: none; }
+  .fab-camion .b { position: absolute; top: -4px; right: -4px; min-width: 22px; height: 22px; border-radius: 11px; background: #ef4444; color: #fff; font-size: 12px; font-weight: 800; display: grid; place-items: center; padding: 0 6px; border: 2px solid var(--bg); }
+  .fab-camion.alerte { animation: fab-secoue 1.6s ease-in-out infinite; }
+  .alr-fond { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.62); display: grid; place-items: center; padding: 18px; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+  .alr { width: 100%; max-width: 380px; max-height: calc(100vh - 40px); overflow: auto; background: #171b26; color: #e8ebf2; border: 1px solid #2a3042; border-radius: 22px; padding: 20px 18px 14px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,.6); animation: alr-in .22s ease-out; }
+  .alr.rouge { border-color: #5b2228; } .alr.jaune { border-color: #5b4312; } .alr.bleu { border-color: #1e3a66; }
+  @keyframes alr-in { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .alr-ic { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 10px; display: grid; place-items: center; font-size: 32px; }
+  .alr h3 { font-size: 18px; margin: 0 0 6px; }
+  .alr-tag { display: inline-block; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 20px; margin-bottom: 10px; }
+  .alr-cl { font-size: 16px; font-weight: 800; margin-bottom: 3px; }
+  .alr-pr { font-size: 13px; color: #aab3c5; line-height: 1.45; margin-bottom: 12px; }
+  .alr-note { font-size: 12.5px; color: #c8cdd8; background: #11141c; border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; }
+  .alr-liste { text-align: left; font-size: 13.5px; line-height: 1.8; background: #11141c; border-radius: 12px; padding: 8px 12px; margin: 8px 0 4px; }
+  .alr-steps { text-align: right; direction: rtl; background: #11141c; border-radius: 12px; padding: 9px 12px; margin-bottom: 8px; font-size: 13.5px; line-height: 1.9; }
+  .alr-steps .d { color: #4ade80; } .alr-steps .n { color: #8a93a6; }
+  .alr-2 { display: flex; gap: 8px; }
+  .alr-b { display: block; flex: 1; width: 100%; padding: 13px; border-radius: 12px; font-weight: 800; font-size: 15px; margin-top: 8px; border: 0; cursor: pointer; text-decoration: none; text-align: center; font-family: inherit; }
+  .alr-b.ok { background: #22c55e; color: #04210f; } .alr-b.ok:disabled { background: #232838; color: #5e6678; }
+  .alr-b.gr { background: #232838; color: #e8ebf2; } .alr-b.wa { background: #123222; color: #4ade80; }
+  .alr-tard { background: none; border: 0; color: #8a93a6; font-size: 12.5px; margin-top: 10px; padding: 6px; cursor: pointer; font-family: inherit; }
+  .alr-opts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 8px 0 10px; }
+  .alr-o { font-size: 13px; font-weight: 700; padding: 9px 12px; border-radius: 20px; border: 1px solid #2f3648; background: none; color: #e8ebf2; cursor: pointer; font-family: inherit; }
+  .alr-o.on { background: #14324a; border-color: #3b82f6; color: #9cc7ff; }
+  .alr-ta { width: 100%; border: 1px solid #2f3648; border-radius: 12px; padding: 10px; font: inherit; font-size: 16px; background: #0f121a; color: #e8ebf2; resize: none; }
   .fab-chat.alerte { animation: fab-secoue 1.6s ease-in-out infinite; }
   .fab-chat.alerte::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: #22c55e; animation: fab-onde 1.6s ease-out infinite; z-index: -1; }
   .fab-chat.alerte .b { animation: fab-pop 1.6s ease-in-out infinite; }
@@ -397,7 +423,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611011827';
+const VERSION = '202611011855';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -495,7 +521,7 @@ async function login(pin) {
     $('#f-agent').hidden = false; $('#f-jours').hidden = false;
     $('#f-agent').replaceChildren(el('option', { value: 'TOUS', text: 'Toutes les agentes' }), el('option', { value: 'LIBRE', text: 'Non attribuées' }), ...AGENTES.map(a => el('option', { value: a, text: nomPropre(a) })), el('option', { value: 'NO APPEL', text: 'No appel' }));
   }
-  $('#fab-chat').hidden = false; lireLus(); chargerChat();
+  $('#fab-chat').hidden = false; lireLus(); chargerChat(); chargerAlertes();
   charger();
   api('villes').then(d => { st.villes = d.villes; $('#villes').replaceChildren(...d.villes.map(v => el('option', { value: v }))); }).catch(() => {});
   chargerStats();
@@ -881,6 +907,182 @@ document.body.append(
   el('div', { class: 'chat', id: 'chat', hidden: true }),
 );
 setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerChat(); }, 12000);
+// ---------- Alertes de livraison (au milieu de l'application) ----------
+// Livré (son caisse) · Sorti pour livraison (klaxon) · Client injoignable (alerte, revient toutes les 2 min
+// tant que l'agente n'a pas appelé / écrit sur WhatsApp ET écrit la situation ; recommence chaque jour tant que pas livré)
+function sonWav(dur, f) {
+  try {
+    const sr = 22050, SIL = 0.3, n = Math.floor(sr * (dur + SIL)), buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+    const w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) { const t = i / sr - SIL; v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, t < 0 ? 0 : f(t))) * 32767, true); }
+    const a = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }))); a.preload = 'auto'; return a;
+  } catch (e) { return null; }
+}
+const env = (u, d, a = 0.01, r = 0.04) => u < 0 || u > d ? 0 : Math.min(1, u / a) * Math.min(1, (d - u) / r);
+const SON_LIVRE = (() => { try { const a = new Audio('sons/livre.mp3'); a.preload = 'auto'; return a; } catch (e) { return null; } })();
+// klaxon doux : deux notes « dents de scie » à 392 Hz
+const SON_SORTI = sonWav(0.55, t => { let x = 0; for (const [d, l] of [[0, 0.18], [0.25, 0.25]]) { const u = t - d; if (u >= 0 && u < l) x += (((u * 392) % 1) * 2 - 1) * 0.3 * env(u, l); } return x; });
+// alerte : trois notes qui descendent
+const SON_PASREP = sonWav(0.55, t => { let x = 0; for (const [d, f] of [[0, 880], [0.14, 660], [0.28, 440]]) { const u = t - d; if (u >= 0 && u < 0.2) x += (Math.sin(2 * Math.PI * f * u) >= 0 ? 1 : -1) * 0.28 * env(u, 0.2); } return x; });
+const SONS_LIV = [SON_LIVRE, SON_SORTI, SON_PASREP].filter(Boolean);
+let sonsLivPrets = false;
+function debloquerSonsLiv() {
+  if (sonsLivPrets) return;
+  for (const a of SONS_LIV) { try { a.muted = false; a.currentTime = 0; const p = a.play(); const fin = () => { a.pause(); a.currentTime = 0; }; if (p && p.then) p.then(() => setTimeout(fin, 100)).catch(() => {}); else setTimeout(fin, 100); } catch (e) {} }
+  sonsLivPrets = true;
+}
+document.addEventListener('touchend', debloquerSonsLiv, { passive: true }); document.addEventListener('click', debloquerSonsLiv);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') sonsLivPrets = false; });
+function jouerSon(a) { try { if (!a) return; a.muted = false; a.currentTime = 0.28; const p = a.play(); if (p && p.catch) p.catch(() => {}); if (navigator.vibrate) navigator.vibrate([150, 80, 150]); } catch (e) {} }
+
+const ALR = { items: [], file: [], ouvert: false, dernier: 0, charge: false };
+const tLiv = s => { s = String(s || '').trim(); if (!s) return 0; return Date.parse(s.replace(' ', 'T') + (/[zZ]$|[+-]\d\d:?\d\d$/.test(s) ? '' : 'Z')) || 0; };
+const lireMap = k => { try { return JSON.parse(store.get(k + st.agent) || '{}') || {}; } catch (e) { return {}; } };
+const ecrireMap = (k, m) => store.set(k + st.agent, JSON.stringify(m));
+const debutJour = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
+const seuilLiv = o => Math.max(debutJour(), tLiv(o.dliv));
+const lignesLivreur = o => String(o.notes || '').split('\n').map(l => l.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}) · ([A-Z]+) · Note · Livreur\s*-?\s*(.*)$/)).filter(Boolean);
+function traiteLiv(o) {
+  const T = seuilLiv(o);
+  if ((lireMap('liv_faits_')[o.colis] || 0) >= T) return true;
+  return lignesLivreur(o).some(m => tLiv(m[1]) >= T);
+}
+const appeleLiv = o => (lireMap('liv_appel_')[o.colis] || 0) >= seuilLiv(o);
+const enAttenteLiv = () => ALR.items.filter(o => o.g === 'pasrep' && o.agent === st.agent && !traiteLiv(o));
+const telLiv = o => String(o.tel || '').replace(/\D/g, '').slice(-9);
+const MSG_SORTI = 'السلام عليكم {c}، معاك Zena Shop. الطلب ديالك ({p}) خرج اليوم مع الليفرور وغادي يتاصل بيك. خلي التيليفون ديالك مشعول عافاك 🙏';
+const waLiv = (o, modele) => 'https://wa.me/212' + telLiv(o) + '?text=' + encodeURIComponent(modele.replace('{c}', o.client || '').replace('{p}', String(o.produit || '').split(' — ')[0]));
+
+async function chargerAlertes() {
+  if (!st.pin || ALR.charge) return; ALR.charge = true;
+  try {
+    const d = await api('alertes', { jours: 15 });
+    ALR.items = d.alertes || [];
+    traiterAlertes();
+  } catch (e) {} finally { ALR.charge = false; }
+}
+function traiterAlertes() {
+  const moi = st.agent, admin = moi === 'ADMIN', suivi = moi === 'HAJIBA';
+  const vus = store.get('liv_vus_' + moi) ? lireMap('liv_vus_') : null;
+  const nouveau = {}, livres = [];
+  for (const o of ALR.items) {
+    nouveau[o.colis] = o.g;
+    if (!vus || vus[o.colis] === o.g) continue;
+    if (o.g === 'livre' && (o.agent === moi || admin)) livres.push(o);
+    else if (o.g === 'sorti' && o.agent === moi) ALR.file.push({ t: 'sorti', o });
+    else if (o.g === 'pasrep' && o.agent !== moi && (admin || suivi)) ALR.file.push({ t: 'info', o });
+  }
+  if (livres.length > 3) ALR.file.unshift({ t: 'livres', l: livres }); else for (const o of livres) ALR.file.unshift({ t: 'livre', o });
+  ecrireMap('liv_vus_', nouveau);
+  majCamion(); verifierAlertes();
+}
+function verifierAlertes() {
+  if (!st.pin || ALR.ouvert || document.visibilityState !== 'visible') return;
+  if (ALR.file.length) return montrerAlerte(ALR.file.shift());
+  const p = enAttenteLiv();
+  if (p.length && Date.now() - ALR.dernier >= 120000) montrerAlerte({ t: 'pasrep', o: p[0], n: p.length });
+}
+setInterval(verifierAlertes, 15000);
+setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerAlertes(); }, 90000);
+document.addEventListener('visibilitychange', () => { if (st.pin && document.visibilityState === 'visible') chargerAlertes(); });
+
+function fermerAlerte(box, relance) { box.remove(); ALR.ouvert = false; if (relance) ALR.dernier = Date.now(); majCamion(); setTimeout(verifierAlertes, 400); }
+function montrerAlerte(a) {
+  ALR.ouvert = true;
+  const o = a.o || {};
+  const prix = String(o.total || '').replace('درهم', 'DH').trim();
+  const ligne = [String(o.produit || '').split(' — ').slice(0, 3).join(' — '), o.ville].filter(Boolean).join(' · ');
+  const fond = el('div', { class: 'alr-fond' });
+  const carte = el('div', { class: 'alr' });
+  const boutonsContact = (modele, apres) => el('div', { class: 'alr-2' },
+    el('a', { class: 'alr-b gr', href: 'tel:0' + telLiv(o), onclick: () => apres && apres() }, '📞 Appeler'),
+    el('a', { class: 'alr-b wa', href: waLiv(o, modele), target: '_blank', rel: 'noopener', onclick: () => apres && apres() }, 'WhatsApp'));
+  const ok = (txt = '👍 OK') => el('button', { class: 'alr-b ok', onclick: () => fermerAlerte(fond) }, txt);
+  const qui = o.agent && o.agent !== st.agent ? ' · ' + nomPropre(o.agent) : '';
+  if (a.t === 'livre' || a.t === 'livres') {
+    jouerSon(SON_LIVRE);
+    if (a.t === 'livres') {
+      const tot = a.l.reduce((s, x) => s + (parseFloat(String(x.total).replace(/[^\d.]/g, '')) || 0), 0);
+      carte.append(el('div', { class: 'alr-ic', style: 'background:#123222' }, '💰'), el('h3', { style: 'color:#4ade80', text: a.l.length + ' commandes livrées !' }),
+        el('div', { class: 'alr-cl', text: Math.round(tot) + ' DH' }),
+        el('div', { class: 'alr-liste' }, ...a.l.slice(0, 8).map(x => el('div', { text: '✅ ' + x.client + ' · ' + String(x.total || '').replace('درهم', 'DH') + (st.agent === 'ADMIN' && x.agent ? ' · ' + nomPropre(x.agent) : '') })), a.l.length > 8 ? el('div', { text: '+ ' + (a.l.length - 8) + ' autres' }) : null), ok('👍 Super, OK'));
+    } else {
+      carte.append(el('div', { class: 'alr-ic', style: 'background:#123222' }, '💰'), el('h3', { style: 'color:#4ade80', text: 'Commande livrée !' }),
+        el('div', { class: 'alr-cl', text: o.client + ' · ' + prix + qui }), el('div', { class: 'alr-pr', text: ligne }), ok('👍 Super, OK'));
+    }
+  } else if (a.t === 'sorti') {
+    jouerSon(SON_SORTI);
+    carte.classList.add('bleu');
+    carte.append(el('div', { class: 'alr-ic', style: 'background:#142038' }, '🚚'), el('h3', { style: 'color:#78a6f5', text: 'Colis sorti pour livraison' }),
+      el('div', { class: 'alr-cl', text: o.client + ' · ' + prix }), el('div', { class: 'alr-pr', text: ligne + ' · ' + o.tel }),
+      el('div', { class: 'alr-note', text: 'Appelez-la pour qu\'elle soit disponible quand le livreur arrive.' }), boutonsContact(MSG_SORTI), ok());
+  } else if (a.t === 'info') {
+    jouerSon(SON_PASREP);
+    carte.classList.add('rouge');
+    carte.append(el('div', { class: 'alr-ic', style: 'background:#3a1418' }, '📵'), el('span', { class: 'alr-tag', style: 'background:#3a1418;color:#ff9a9a', text: 'Le livreur n\'a pas pu joindre' }),
+      el('div', { class: 'alr-cl', text: o.client + ' · ' + prix + qui }), el('div', { class: 'alr-pr', text: ligne + ' · ' + o.tel }),
+      boutonsContact((GROUPES.find(g => g.id === 'pr') || {}).msg || MSG_DEFAUT), ok());
+  } else {
+    // client injoignable de l'agente : obligatoire (appeler/WhatsApp puis écrire la situation)
+    jouerSon(SON_PASREP);
+    const anciennes = lignesLivreur(o).filter(m => tLiv(m[1]) < seuilLiv(o));
+    const jourDe = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+    const jours = Math.round((debutJour() - jourDe(tLiv(o.dliv))) / 86400000) + 1;
+    const relance = anciennes.length > 0 || tLiv(o.dliv) < debutJour();
+    carte.classList.add(relance ? 'jaune' : 'rouge');
+    const etape1 = el('div', { class: appeleLiv(o) ? 'd' : 'n' });
+    const etape2 = el('div', { class: 'n', text: '② ' + (relance ? 'كتبي الحالة ديال اليوم' : 'كتبي شنو قالت فالكوموند') });
+    const majEtapes = () => { const f = appeleLiv(o); etape1.className = f ? 'd' : 'n'; etape1.textContent = f ? '✓ ① عيطتي ولا صيفطتي واتساب' : '① عيطي ولا صيفطي ليها واتساب'; ecrire.disabled = !f; };
+    const marquer = () => { const m = lireMap('liv_appel_'); m[o.colis] = Date.now(); ecrireMap('liv_appel_', m); setTimeout(majEtapes, 300); };
+    const ecrire = el('button', { class: 'alr-b ok', onclick: () => situation() }, '📝 Écrire la situation');
+    const der = anciennes.length ? anciennes[anciennes.length - 1] : null;
+    carte.append(el('div', { class: 'alr-ic', style: 'background:' + (relance ? '#3a2a10' : '#3a1418') }, relance ? '↻' : '📵'),
+      el('span', { class: 'alr-tag', style: relance ? 'background:#3a2a10;color:#fbbf24' : 'background:#3a1418;color:#ff9a9a', text: relance ? 'Toujours pas livrée · ' + Math.max(2, jours) + 'e jour' : 'Le livreur n\'a pas pu joindre' }),
+      el('div', { class: 'alr-cl', text: o.client + ' · ' + prix }), el('div', { class: 'alr-pr', text: ligne + ' · ' + o.tel }),
+      ...(der ? [el('div', { class: 'alr-note', text: 'Dernière note · ' + nomPropre(der[2]) + ' : « ' + der[3] + ' »' })] : []),
+      el('div', { class: 'alr-steps' }, etape1, etape2),
+      boutonsContact((GROUPES.find(g => g.id === 'pr') || {}).msg || MSG_DEFAUT, marquer), ecrire,
+      el('button', { class: 'alr-tard', onclick: () => fermerAlerte(fond, true) }, (a.n > 1 ? a.n + ' clients à rappeler · ' : '') + 'Plus tard (revient dans 2 min)'));
+    majEtapes();
+    const situation = () => {
+      const MOTIFS = ['Va recevoir aujourd\'hui', 'Reporté à demain', 'Ne répond pas', 'Téléphone éteint', 'Annule', 'Mauvaise adresse'];
+      let motif = '';
+      const ta = el('textarea', { class: 'alr-ta', rows: 2, placeholder: 'Ce qu\'elle a dit (facultatif)…' });
+      const go = el('button', { class: 'alr-b ok', disabled: true }, 'Enregistrer · fermer');
+      const opts = el('div', { class: 'alr-opts' }, ...MOTIFS.map(m => { const b = el('button', { class: 'alr-o', text: m, onclick: () => { motif = m; for (const x of opts.children) x.classList.toggle('on', x === b); go.disabled = false; } }); return b; }));
+      go.addEventListener('click', async () => {
+        go.disabled = true;
+        const texte = 'Livreur - ' + motif + (ta.value.trim() ? ' — ' + ta.value.trim() : '');
+        try {
+          if (o.row) await api('maj', { row: o.row, id: o.id, champs: {}, note: { type: 'note', texte } });
+          const m = lireMap('liv_faits_'); m[o.colis] = Date.now(); ecrireMap('liv_faits_', m);
+          o.notes = (o.notes ? o.notes + '\n' : '') + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' · ' + st.agent + ' · Note · ' + texte;
+          toast('Situation enregistrée');
+          ALR.dernier = Date.now() - 100000; fond.remove(); ALR.ouvert = false; majCamion(); setTimeout(verifierAlertes, 600);
+        } catch (e) { toast(e.message, true); go.disabled = false; }
+      });
+      carte.replaceChildren(el('div', { class: 'alr-steps' }, el('div', { class: 'd', text: '✓ ① عيطتي ولا صيفطتي واتساب' }), el('div', { class: 'n', text: '② كتبي الحالة' })),
+        el('h3', { text: '📝 Situation de ' + o.client }), opts, ta, go, el('button', { class: 'alr-tard', onclick: () => fermerAlerte(fond, true) }, 'Plus tard'));
+    };
+  }
+  fond.append(carte); document.body.append(fond);
+}
+// icône camion : clients injoignables à rappeler (l'admin voit tous ceux pas encore traités)
+function majCamion() {
+  const b = $('#fab-camion'); if (!b) return;
+  const n = st.agent === 'ADMIN' ? ALR.items.filter(o => o.g === 'pasrep' && !traiteLiv(o)).length : enAttenteLiv().length;
+  b.hidden = !st.pin || !n; b.classList.toggle('alerte', n > 0);
+  b.querySelector('.b').textContent = n > 99 ? '99+' : n;
+}
+document.body.append(el('button', { class: 'fab-camion', id: 'fab-camion', hidden: true, 'aria-label': 'Clients injoignables', onclick: () => {
+  if (chat.ouvert) fermerChat();
+  if (st.view !== 'orders') { const b = document.querySelector('#views button[data-view="orders"]'); if (b) b.click(); }
+  const q = $('#q'); if (q && q.value) { q.value = ''; st.q = ''; }
+  st.tab = 'l-pr'; st.page = 1; rendre(); window.scrollTo({ top: 0, behavior: 'smooth' });
+} }, '🚚', el('span', { class: 'b' })));
+
 document.addEventListener('visibilitychange', () => { if (st.pin && document.visibilityState === 'visible') chargerChat(); });
 setInterval(() => { if (st.pin && chat.ouvert && chat.conv && document.visibilityState === 'visible') chargerChat(); }, 8000);
 
