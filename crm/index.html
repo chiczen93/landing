@@ -447,7 +447,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611011954';
+const VERSION = '202611012019';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -989,7 +989,8 @@ function traiteLiv(o) {
   return lignesLivreur(o).some(m => tLiv(m[1]) >= T);
 }
 const appeleLiv = o => (lireMap('liv_appel_')[o.colis] || 0) >= seuilLiv(o);
-const enAttenteLiv = () => ALR.items.filter(o => o.g === 'pasrep' && o.agent === st.agent && !traiteLiv(o));
+const aRappeler = g => g === 'pasrep' || g === 'annule';
+const enAttenteLiv = () => ALR.items.filter(o => aRappeler(o.g) && o.agent === st.agent && !traiteLiv(o));
 const telLiv = o => String(o.tel || '').replace(/\D/g, '').slice(-9);
 const MSG_SORTI = 'السلام عليكم {c}، معاك Zena Shop. الطلب ديالك ({p}) خرج اليوم مع الليفرور وغادي يتاصل بيك. خلي التيليفون ديالك مشعول عافاك 🙏';
 const waLiv = (o, modele) => 'https://wa.me/212' + telLiv(o) + '?text=' + encodeURIComponent(modele.replace('{c}', o.client || '').replace('{p}', String(o.produit || '').split(' — ')[0]));
@@ -1011,7 +1012,7 @@ function traiterAlertes() {
     if (!vus || vus[o.colis] === o.g) continue;
     if (o.g === 'livre' && (o.agent === moi || admin)) livres.push(o);
     else if (o.g === 'sorti' && o.agent === moi) ALR.file.push({ t: 'sorti', o });
-    else if (o.g === 'pasrep' && o.agent !== moi && (admin || suivi)) ALR.file.push({ t: 'info', o });
+    else if (aRappeler(o.g) && o.agent !== moi && (admin || suivi)) ALR.file.push({ t: 'info', o });
   }
   if (livres.length > 3) ALR.file.unshift({ t: 'livres', l: livres }); else for (const o of livres) ALR.file.unshift({ t: 'livre', o });
   ecrireMap('liv_vus_', nouveau);
@@ -1063,7 +1064,7 @@ function montrerAlerte(a) {
   } else if (a.t === 'info') {
     jouerSon(SON_PASREP);
     carte.classList.add('rouge');
-    carte.append(el('div', { class: 'alr-ic', style: 'background:#3a1418' }, '📵'), el('span', { class: 'alr-tag', style: 'background:#3a1418;color:#ff9a9a', text: 'Le livreur n\'a pas pu joindre' }),
+    carte.append(el('div', { class: 'alr-ic', style: 'background:#3a1418' }, '📵'), el('span', { class: 'alr-tag', style: 'background:#3a1418;color:#ff9a9a', text: o.g === 'annule' ? '❌ ' + (o.livraison || 'Annulé') : 'Le livreur n\'a pas pu joindre' }),
       el('div', { class: 'alr-cl', text: o.client + ' · ' + prix + qui }), el('div', { class: 'alr-pr', text: ligne + ' · ' + o.tel }),
       boutonsContact((GROUPES.find(g => g.id === 'pr') || {}).msg || MSG_DEFAUT), ok());
   } else {
@@ -1088,10 +1089,11 @@ function contenuInjoignable(o, carte, fini) {
   const ecrire = el('button', { class: 'alr-b ok', onclick: () => situation() }, '📝 Écrire la situation');
   const majEtapes = () => { const f = appeleLiv(o); etape1.className = f ? 'd' : 'n'; etape1.textContent = f ? '✓ ① عيطتي ولا صيفطتي واتساب' : '① عيطي ولا صيفطي ليها واتساب'; ecrire.disabled = !f; };
   const marquer = () => { const m = lireMap('liv_appel_'); m[o.colis] = Date.now(); ecrireMap('liv_appel_', m); setTimeout(majEtapes, 300); };
-  const modele = (GROUPES.find(g => g.id === 'pr') || {}).msg || MSG_DEFAUT;
+  const modele = (GROUPES.find(g => g.id === (o.g === 'annule' ? 'an' : 'pr')) || {}).msg || MSG_DEFAUT;
   const der = anciennes.length ? anciennes[anciennes.length - 1] : null;
-  carte.replaceChildren(el('div', { class: 'alr-ic', style: 'background:' + (relance ? '#3a2a10' : '#3a1418') }, relance ? '↻' : '📵'),
-    el('span', { class: 'alr-tag', style: relance ? 'background:#3a2a10;color:#fbbf24' : 'background:#3a1418;color:#ff9a9a', text: relance ? 'Toujours pas livrée · ' + Math.max(2, jours) + 'e jour' : 'Le livreur n\'a pas pu joindre' }),
+  const annule = o.g === 'annule';
+  carte.replaceChildren(el('div', { class: 'alr-ic', style: 'background:' + (relance ? '#3a2a10' : '#3a1418') }, relance ? '↻' : annule ? '❌' : '📵'),
+    el('span', { class: 'alr-tag', style: relance ? 'background:#3a2a10;color:#fbbf24' : 'background:#3a1418;color:#ff9a9a', text: (annule ? '❌ ' + (o.livraison || 'Annulé') + (relance ? ' · ' + Math.max(2, jours) + 'e jour' : '') : relance ? 'Toujours pas livrée · ' + Math.max(2, jours) + 'e jour' : 'Le livreur n\'a pas pu joindre') }),
     el('div', { class: 'alr-cl', text: o.client + ' · ' + prix }), el('div', { class: 'alr-pr', text: ligne + ' · ' + o.tel }),
     ...(der ? [el('div', { class: 'alr-note', text: 'Dernière note · ' + nomPropre(der[2]) + ' : « ' + der[3] + ' »' })] : []),
     el('div', { class: 'alr-steps' }, etape1, etape2),
@@ -1101,7 +1103,7 @@ function contenuInjoignable(o, carte, fini) {
     ecrire);
   majEtapes();
   const situation = () => {
-    const MOTIFS = ['Va recevoir aujourd\'hui', 'Reporté à demain', 'Ne répond pas', 'Téléphone éteint', 'Annule', 'Mauvaise adresse'];
+    const MOTIFS = o.g === 'annule' ? ['Renvoyer le colis', 'Reporté à demain', 'Annule définitivement', 'Prix / produit', 'Ne répond pas', 'Téléphone éteint'] : ['Va recevoir aujourd\'hui', 'Reporté à demain', 'Ne répond pas', 'Téléphone éteint', 'Annule', 'Mauvaise adresse'];
     let motif = '';
     const ta = el('textarea', { class: 'alr-ta', rows: 2, placeholder: 'Écrire la note (ou choisir en haut)…' });
     const go = el('button', { class: 'alr-b ok', disabled: true }, 'Enregistrer');
@@ -1117,7 +1119,7 @@ function contenuInjoignable(o, carte, fini) {
       try {
         if (o.row) await api('maj', { row: o.row, id: o.id, champs: {}, note: { type: 'note', texte } });
         const ref = [o.client, String(o.produit || ''), String(o.total || '').replace('درهم', 'DH').trim(), o.ville, o.tel, o.colis, o.livraison].filter(Boolean).join(' · ');
-        for (const c of partage) { try { const d = await api('envoyer', { a: c, texte: '📵 ' + texte.replace(/^Livreur - /, ''), ref }); if (d.msg) chat.msgs.push(d.msg); } catch (e) {} }
+        for (const c of partage) { try { const d = await api('envoyer', { a: c, texte: (o.g === 'annule' ? '❌ ' : '📵 ') + texte.replace(/^Livreur - /, ''), ref }); if (d.msg) chat.msgs.push(d.msg); } catch (e) {} }
         const m = lireMap('liv_faits_'); m[o.colis] = Date.now(); ecrireMap('liv_faits_', m);
         o.notes = (o.notes ? o.notes + '\n' : '') + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' · ' + st.agent + ' · Note · ' + texte;
         toast('Situation enregistrée');
@@ -1184,7 +1186,7 @@ function finCarrousel() {
 // icône camion : clients injoignables à rappeler (l'admin voit tous ceux pas encore traités)
 function majCamion() {
   const b = $('#fab-camion'); if (!b) return;
-  const n = st.agent === 'ADMIN' ? ALR.items.filter(o => o.g === 'pasrep' && !traiteLiv(o)).length : enAttenteLiv().length;
+  const n = st.agent === 'ADMIN' ? ALR.items.filter(o => aRappeler(o.g) && !traiteLiv(o)).length : enAttenteLiv().length;
   b.hidden = !st.pin || !n; b.classList.toggle('alerte', n > 0);
   b.querySelector('.b').textContent = n > 99 ? '99+' : n;
 }
@@ -1533,7 +1535,7 @@ function carte(o) {
     el('div', { class: 'row1' }, el('div', { class: 'name', text: o.client || '—' }), el('div', { class: 'date' + (enRetard ? ' late' : ''), text: quand.t })),
     chips, boiteDbl, gl ? null : boiteRisque, ligneHist,
     el('div', { class: 'prod' }, o.produit || '—', o.total ? el('b', { text: '  ·  ' + o.total.replace('درهم', 'DH') }) : null),
-    meta, gl && gl.id === 'pr' ? boiteSituation(o) : null, blocNotes,
+    meta, gl && (gl.id === 'pr' || gl.id === 'an') ? boiteSituation(o) : null, blocNotes,
     contact, gl ? el('div', { class: 'acts' }, el('button', { class: 'act', onclick: () => ouvrirChat(null, [o.client, o.produit, o.colis, o.livraison, o.tel].filter(Boolean).join(' · ')) }, '💬 Équipe')) : acts,
     gl ? null : el('button', { class: 'more', onclick: () => { ouvert ? st.ouvert.delete(key) : st.ouvert.add(key); rerender(); } }, icone('edit'), ouvert ? 'Fermer' : 'Modifier ville, adresse, produit'),
     edit, save,
