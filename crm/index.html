@@ -203,6 +203,8 @@
   .alr-opts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 8px 0 10px; }
   .alr-o { font-size: 13px; font-weight: 700; padding: 9px 12px; border-radius: 20px; border: 1px solid #2f3648; background: none; color: #e8ebf2; cursor: pointer; font-family: inherit; }
   .alr-o.on { background: #14324a; border-color: #3b82f6; color: #9cc7ff; }
+  .alr-part { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; margin: 10px 0 2px; font-size: 12.5px; color: #8a93a6; }
+  .alr-part span { width: 100%; }
   .alr-ta { width: 100%; border: 1px solid #2f3648; border-radius: 12px; padding: 10px; font: inherit; font-size: 16px; background: #0f121a; color: #e8ebf2; resize: none; }
   .fab-chat.alerte { animation: fab-secoue 1.6s ease-in-out infinite; }
   .fab-chat.alerte::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: #22c55e; animation: fab-onde 1.6s ease-out infinite; z-index: -1; }
@@ -423,7 +425,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611011857';
+const VERSION = '202611011932';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1064,14 +1066,23 @@ function montrerAlerte(a) {
     const situation = () => {
       const MOTIFS = ['Va recevoir aujourd\'hui', 'Reporté à demain', 'Ne répond pas', 'Téléphone éteint', 'Annule', 'Mauvaise adresse'];
       let motif = '';
-      const ta = el('textarea', { class: 'alr-ta', rows: 2, placeholder: 'Ce qu\'elle a dit (facultatif)…' });
+      const ta = el('textarea', { class: 'alr-ta', rows: 2, placeholder: 'Écrire la note (ou choisir en haut)…' });
       const go = el('button', { class: 'alr-b ok', disabled: true }, 'Enregistrer · fermer');
-      const opts = el('div', { class: 'alr-opts' }, ...MOTIFS.map(m => { const b = el('button', { class: 'alr-o', text: m, onclick: () => { motif = m; for (const x of opts.children) x.classList.toggle('on', x === b); go.disabled = false; } }); return b; }));
+      const pret = () => { go.disabled = !motif && !ta.value.trim(); };
+      ta.addEventListener('input', pret);
+      // un choix en haut OU une note écrite suffit ; recliquer le choix l'enlève
+      const opts = el('div', { class: 'alr-opts' }, ...MOTIFS.map(m => { const b = el('button', { class: 'alr-o', text: m, onclick: () => { motif = motif === m ? '' : m; for (const x of opts.children) x.classList.toggle('on', x === b && motif === m); pret(); } }); return b; }));
+      // partager la commande dans la discussion (groupe et/ou Hajiba qui fait le suivi)
+      const partage = new Set();
+      const choixPartage = el('div', { class: 'alr-part' }, el('span', { text: '💬 Partager aussi avec' }),
+        ...[['EQUIPE', '👥 Groupe'], ['HAJIBA', '👤 Hajiba (suivi)']].filter(([c]) => c !== st.agent).map(([c, t]) => { const b = el('button', { class: 'alr-o', text: t, onclick: () => { partage.has(c) ? partage.delete(c) : partage.add(c); b.classList.toggle('on', partage.has(c)); } }); return b; }));
       go.addEventListener('click', async () => {
         go.disabled = true;
-        const texte = 'Livreur - ' + motif + (ta.value.trim() ? ' — ' + ta.value.trim() : '');
+        const texte = 'Livreur - ' + [motif, ta.value.trim()].filter(Boolean).join(' — ');
         try {
           if (o.row) await api('maj', { row: o.row, id: o.id, champs: {}, note: { type: 'note', texte } });
+          const ref = [o.client, String(o.produit || ''), String(o.total || '').replace('درهم', 'DH').trim(), o.ville, o.tel, o.colis, o.livraison].filter(Boolean).join(' · ');
+          for (const c of partage) { try { const d = await api('envoyer', { a: c, texte: '📵 ' + texte.replace(/^Livreur - /, ''), ref }); if (d.msg) chat.msgs.push(d.msg); } catch (e) {} }
           const m = lireMap('liv_faits_'); m[o.colis] = Date.now(); ecrireMap('liv_faits_', m);
           o.notes = (o.notes ? o.notes + '\n' : '') + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' · ' + st.agent + ' · Note · ' + texte;
           toast('Situation enregistrée');
@@ -1079,7 +1090,7 @@ function montrerAlerte(a) {
         } catch (e) { toast(e.message, true); go.disabled = false; }
       });
       carte.replaceChildren(el('div', { class: 'alr-steps' }, el('div', { class: 'd', text: '✓ ① عيطتي ولا صيفطتي واتساب' }), el('div', { class: 'n', text: '② كتبي الحالة' })),
-        el('h3', { text: '📝 Situation de ' + o.client }), opts, ta, go, el('button', { class: 'alr-tard', onclick: () => fermerAlerte(fond, true) }, 'Plus tard'));
+        el('h3', { text: '📝 Situation de ' + o.client }), opts, ta, choixPartage, go, el('button', { class: 'alr-tard', onclick: () => fermerAlerte(fond, true) }, 'Plus tard'));
     };
   }
   fond.append(carte); document.body.append(fond);
