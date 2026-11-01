@@ -182,6 +182,21 @@
   .fab-camion[hidden] { display: none; }
   .fab-camion .b { position: absolute; top: -4px; right: -4px; min-width: 22px; height: 22px; border-radius: 11px; background: #ef4444; color: #fff; font-size: 12px; font-weight: 800; display: grid; place-items: center; padding: 0 6px; border: 2px solid var(--bg); }
   .fab-camion.alerte { animation: fab-secoue 1.6s ease-in-out infinite; }
+  .car-fond { position: fixed; inset: 0; z-index: 92; background: rgba(4,6,10,.88); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); display: flex; flex-direction: column; padding: calc(14px + env(safe-area-inset-top)) 0 calc(14px + env(safe-area-inset-bottom)); }
+  .car-top { text-align: center; color: #e8ebf2; padding: 6px 16px 10px; }
+  .car-top b { display: block; font-size: 16px; } .car-top span { display: block; font-size: 12.5px; color: #8a93a6; margin-top: 2px; }
+  .car-top em { display: inline-block; font-style: normal; margin-top: 6px; font-size: 11.5px; font-weight: 800; color: #fbbf24; background: #3a2a10; border-radius: 20px; padding: 4px 10px; }
+  .car-piste { flex: 1; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .car-piste::-webkit-scrollbar { display: none; }
+  .car-slide { flex: 0 0 100%; scroll-snap-align: center; display: flex; align-items: center; justify-content: center; padding: 0 22px; overflow-y: auto; }
+  .car-slide .alr { animation: none; max-height: 100%; }
+  .alr.vert { border-color: #1f4d33; }
+  .car-fl { position: absolute; top: 50%; width: 30px; height: 60px; border: 0; background: none; color: #8a93a6; font-size: 30px; cursor: pointer; }
+  .car-fl.g { left: 0; } .car-fl.d { right: 0; }
+  .car-dots { display: flex; justify-content: center; gap: 6px; padding: 12px 0 6px; flex-wrap: wrap; }
+  .car-dots i { width: 8px; height: 8px; border-radius: 4px; background: #3a4155; transition: width .2s; }
+  .car-dots i.ok { background: #22c55e; } .car-dots i.on { width: 22px; background: #e8ebf2; } .car-dots i.ok.on { background: #4ade80; }
+  .car-pied { text-align: center; font-size: 12px; color: #ff9a9a; padding: 4px 16px; }
   .alr-fond { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.62); display: grid; place-items: center; padding: 18px; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
   .alr { width: 100%; max-width: 380px; max-height: calc(100vh - 40px); overflow: auto; background: #171b26; color: #e8ebf2; border: 1px solid #2a3042; border-radius: 22px; padding: 20px 18px 14px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,.6); animation: alr-in .22s ease-out; }
   .alr.rouge { border-color: #5b2228; } .alr.jaune { border-color: #5b4312; } .alr.bleu { border-color: #1e3a66; }
@@ -425,7 +440,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611011932';
+const VERSION = '202611011942';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -996,10 +1011,13 @@ function traiterAlertes() {
   majCamion(); verifierAlertes();
 }
 function verifierAlertes() {
-  if (!st.pin || ALR.ouvert || document.visibilityState !== 'visible') return;
-  if (ALR.file.length) return montrerAlerte(ALR.file.shift());
+  if (!st.pin || document.visibilityState !== 'visible') return;
   const p = enAttenteLiv();
-  if (p.length && Date.now() - ALR.dernier >= 120000) montrerAlerte({ t: 'pasrep', o: p[0], n: p.length });
+  // les clients injoignables passent avant tout : carrousel bloquant (les nouveaux s'ajoutent s'il est déjà ouvert)
+  if (CAR.ouvert) { if (p.length && !CAR.fini) ajouterSlides(p); return; }
+  if (ALR.ouvert) return;
+  if (p.length) return montrerCarrousel(p);
+  if (ALR.file.length) return montrerAlerte(ALR.file.shift());
 }
 setInterval(verifierAlertes, 15000);
 setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerAlertes(); }, 90000);
@@ -1042,58 +1060,119 @@ function montrerAlerte(a) {
       el('div', { class: 'alr-cl', text: o.client + ' · ' + prix + qui }), el('div', { class: 'alr-pr', text: ligne + ' · ' + o.tel }),
       boutonsContact((GROUPES.find(g => g.id === 'pr') || {}).msg || MSG_DEFAUT), ok());
   } else {
-    // client injoignable de l'agente : obligatoire (appeler/WhatsApp puis écrire la situation)
-    jouerSon(SON_PASREP);
-    const anciennes = lignesLivreur(o).filter(m => tLiv(m[1]) < seuilLiv(o));
-    const jourDe = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
-    const jours = Math.round((debutJour() - jourDe(tLiv(o.dliv))) / 86400000) + 1;
-    const relance = anciennes.length > 0 || tLiv(o.dliv) < debutJour();
-    carte.classList.add(relance ? 'jaune' : 'rouge');
-    const etape1 = el('div', { class: appeleLiv(o) ? 'd' : 'n' });
-    const etape2 = el('div', { class: 'n', text: '② ' + (relance ? 'كتبي الحالة ديال اليوم' : 'كتبي شنو قالت فالكوموند') });
-    const majEtapes = () => { const f = appeleLiv(o); etape1.className = f ? 'd' : 'n'; etape1.textContent = f ? '✓ ① عيطتي ولا صيفطتي واتساب' : '① عيطي ولا صيفطي ليها واتساب'; ecrire.disabled = !f; };
-    const marquer = () => { const m = lireMap('liv_appel_'); m[o.colis] = Date.now(); ecrireMap('liv_appel_', m); setTimeout(majEtapes, 300); };
-    const ecrire = el('button', { class: 'alr-b ok', onclick: () => situation() }, '📝 Écrire la situation');
-    const der = anciennes.length ? anciennes[anciennes.length - 1] : null;
-    carte.append(el('div', { class: 'alr-ic', style: 'background:' + (relance ? '#3a2a10' : '#3a1418') }, relance ? '↻' : '📵'),
-      el('span', { class: 'alr-tag', style: relance ? 'background:#3a2a10;color:#fbbf24' : 'background:#3a1418;color:#ff9a9a', text: relance ? 'Toujours pas livrée · ' + Math.max(2, jours) + 'e jour' : 'Le livreur n\'a pas pu joindre' }),
-      el('div', { class: 'alr-cl', text: o.client + ' · ' + prix }), el('div', { class: 'alr-pr', text: ligne + ' · ' + o.tel }),
-      ...(der ? [el('div', { class: 'alr-note', text: 'Dernière note · ' + nomPropre(der[2]) + ' : « ' + der[3] + ' »' })] : []),
-      el('div', { class: 'alr-steps' }, etape1, etape2),
-      boutonsContact((GROUPES.find(g => g.id === 'pr') || {}).msg || MSG_DEFAUT, marquer), ecrire,
-      el('button', { class: 'alr-tard', onclick: () => fermerAlerte(fond, true) }, (a.n > 1 ? a.n + ' clients à rappeler · ' : '') + 'Plus tard (revient dans 2 min)'));
-    majEtapes();
-    const situation = () => {
-      const MOTIFS = ['Va recevoir aujourd\'hui', 'Reporté à demain', 'Ne répond pas', 'Téléphone éteint', 'Annule', 'Mauvaise adresse'];
-      let motif = '';
-      const ta = el('textarea', { class: 'alr-ta', rows: 2, placeholder: 'Écrire la note (ou choisir en haut)…' });
-      const go = el('button', { class: 'alr-b ok', disabled: true }, 'Enregistrer · fermer');
-      const pret = () => { go.disabled = !motif && !ta.value.trim(); };
-      ta.addEventListener('input', pret);
-      // un choix en haut OU une note écrite suffit ; recliquer le choix l'enlève
-      const opts = el('div', { class: 'alr-opts' }, ...MOTIFS.map(m => { const b = el('button', { class: 'alr-o', text: m, onclick: () => { motif = motif === m ? '' : m; for (const x of opts.children) x.classList.toggle('on', x === b && motif === m); pret(); } }); return b; }));
-      // partager la commande dans la discussion (groupe et/ou Hajiba qui fait le suivi)
-      const partage = new Set();
-      const choixPartage = el('div', { class: 'alr-part' }, el('span', { text: '💬 Partager aussi avec' }),
-        ...[['EQUIPE', '👥 Groupe'], ['HAJIBA', '👤 Hajiba (suivi)']].filter(([c]) => c !== st.agent).map(([c, t]) => { const b = el('button', { class: 'alr-o', text: t, onclick: () => { partage.has(c) ? partage.delete(c) : partage.add(c); b.classList.toggle('on', partage.has(c)); } }); return b; }));
-      go.addEventListener('click', async () => {
-        go.disabled = true;
-        const texte = 'Livreur - ' + [motif, ta.value.trim()].filter(Boolean).join(' — ');
-        try {
-          if (o.row) await api('maj', { row: o.row, id: o.id, champs: {}, note: { type: 'note', texte } });
-          const ref = [o.client, String(o.produit || ''), String(o.total || '').replace('درهم', 'DH').trim(), o.ville, o.tel, o.colis, o.livraison].filter(Boolean).join(' · ');
-          for (const c of partage) { try { const d = await api('envoyer', { a: c, texte: '📵 ' + texte.replace(/^Livreur - /, ''), ref }); if (d.msg) chat.msgs.push(d.msg); } catch (e) {} }
-          const m = lireMap('liv_faits_'); m[o.colis] = Date.now(); ecrireMap('liv_faits_', m);
-          o.notes = (o.notes ? o.notes + '\n' : '') + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' · ' + st.agent + ' · Note · ' + texte;
-          toast('Situation enregistrée');
-          ALR.dernier = Date.now() - 100000; fond.remove(); ALR.ouvert = false; majCamion(); setTimeout(verifierAlertes, 600);
-        } catch (e) { toast(e.message, true); go.disabled = false; }
-      });
-      carte.replaceChildren(el('div', { class: 'alr-steps' }, el('div', { class: 'd', text: '✓ ① عيطتي ولا صيفطتي واتساب' }), el('div', { class: 'n', text: '② كتبي الحالة' })),
-        el('h3', { text: '📝 Situation de ' + o.client }), opts, ta, choixPartage, go, el('button', { class: 'alr-tard', onclick: () => fermerAlerte(fond, true) }, 'Plus tard'));
-    };
+    // client injoignable de l'agente : carrousel bloquant
+    ALR.ouvert = false; if (CAR.ouvert) ajouterSlides([o]); else montrerCarrousel([o]); return;
   }
   fond.append(carte); document.body.append(fond);
+}
+// ---------- Clients injoignables : carrousel bloquant (on ne peut pas travailler tant qu'il reste des clients) ----------
+// Chaque client : ① appeler ou WhatsApp, ② écrire la situation (choix en haut et/ou note). On glisse de droite à gauche.
+const CAR = { ouvert: false, fond: null, piste: null, dots: null, titre: null, slides: new Map() };
+function contenuInjoignable(o, carte, fini) {
+  const prix = String(o.total || '').replace('درهم', 'DH').trim();
+  const ligne = [String(o.produit || '').split(' — ').slice(0, 3).join(' — '), o.ville].filter(Boolean).join(' · ');
+  const anciennes = lignesLivreur(o).filter(m => tLiv(m[1]) < seuilLiv(o));
+  const jourDe = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const jours = Math.round((debutJour() - jourDe(tLiv(o.dliv))) / 86400000) + 1;
+  const relance = anciennes.length > 0 || tLiv(o.dliv) < debutJour();
+  carte.className = 'alr ' + (relance ? 'jaune' : 'rouge');
+  const etape1 = el('div', { class: 'n' });
+  const etape2 = el('div', { class: 'n', text: '② ' + (relance ? 'كتبي الحالة ديال اليوم' : 'كتبي شنو قالت فالكوموند') });
+  const ecrire = el('button', { class: 'alr-b ok', onclick: () => situation() }, '📝 Écrire la situation');
+  const majEtapes = () => { const f = appeleLiv(o); etape1.className = f ? 'd' : 'n'; etape1.textContent = f ? '✓ ① عيطتي ولا صيفطتي واتساب' : '① عيطي ولا صيفطي ليها واتساب'; ecrire.disabled = !f; };
+  const marquer = () => { const m = lireMap('liv_appel_'); m[o.colis] = Date.now(); ecrireMap('liv_appel_', m); setTimeout(majEtapes, 300); };
+  const modele = (GROUPES.find(g => g.id === 'pr') || {}).msg || MSG_DEFAUT;
+  const der = anciennes.length ? anciennes[anciennes.length - 1] : null;
+  carte.replaceChildren(el('div', { class: 'alr-ic', style: 'background:' + (relance ? '#3a2a10' : '#3a1418') }, relance ? '↻' : '📵'),
+    el('span', { class: 'alr-tag', style: relance ? 'background:#3a2a10;color:#fbbf24' : 'background:#3a1418;color:#ff9a9a', text: relance ? 'Toujours pas livrée · ' + Math.max(2, jours) + 'e jour' : 'Le livreur n\'a pas pu joindre' }),
+    el('div', { class: 'alr-cl', text: o.client + ' · ' + prix }), el('div', { class: 'alr-pr', text: ligne + ' · ' + o.tel }),
+    ...(der ? [el('div', { class: 'alr-note', text: 'Dernière note · ' + nomPropre(der[2]) + ' : « ' + der[3] + ' »' })] : []),
+    el('div', { class: 'alr-steps' }, etape1, etape2),
+    el('div', { class: 'alr-2' },
+      el('a', { class: 'alr-b gr', href: 'tel:0' + telLiv(o), onclick: marquer }, '📞 Appeler'),
+      el('a', { class: 'alr-b wa', href: waLiv(o, modele), target: '_blank', rel: 'noopener', onclick: marquer }, 'WhatsApp')),
+    ecrire);
+  majEtapes();
+  const situation = () => {
+    const MOTIFS = ['Va recevoir aujourd\'hui', 'Reporté à demain', 'Ne répond pas', 'Téléphone éteint', 'Annule', 'Mauvaise adresse'];
+    let motif = '';
+    const ta = el('textarea', { class: 'alr-ta', rows: 2, placeholder: 'Écrire la note (ou choisir en haut)…' });
+    const go = el('button', { class: 'alr-b ok', disabled: true }, 'Enregistrer');
+    const pret = () => { go.disabled = !motif && !ta.value.trim(); };
+    ta.addEventListener('input', pret);
+    const opts = el('div', { class: 'alr-opts' }, ...MOTIFS.map(m => { const b = el('button', { class: 'alr-o', text: m, onclick: () => { motif = motif === m ? '' : m; for (const x of opts.children) x.classList.toggle('on', x === b && motif === m); pret(); } }); return b; }));
+    const partage = new Set();
+    const choixPartage = el('div', { class: 'alr-part' }, el('span', { text: '💬 Partager aussi avec' }),
+      ...[['EQUIPE', '👥 Groupe'], ['HAJIBA', '👤 Hajiba (suivi)']].filter(([c]) => c !== st.agent).map(([c, t]) => { const b = el('button', { class: 'alr-o', text: t, onclick: () => { partage.has(c) ? partage.delete(c) : partage.add(c); b.classList.toggle('on', partage.has(c)); } }); return b; }));
+    go.addEventListener('click', async () => {
+      go.disabled = true;
+      const texte = 'Livreur - ' + [motif, ta.value.trim()].filter(Boolean).join(' — ');
+      try {
+        if (o.row) await api('maj', { row: o.row, id: o.id, champs: {}, note: { type: 'note', texte } });
+        const ref = [o.client, String(o.produit || ''), String(o.total || '').replace('درهم', 'DH').trim(), o.ville, o.tel, o.colis, o.livraison].filter(Boolean).join(' · ');
+        for (const c of partage) { try { const d = await api('envoyer', { a: c, texte: '📵 ' + texte.replace(/^Livreur - /, ''), ref }); if (d.msg) chat.msgs.push(d.msg); } catch (e) {} }
+        const m = lireMap('liv_faits_'); m[o.colis] = Date.now(); ecrireMap('liv_faits_', m);
+        o.notes = (o.notes ? o.notes + '\n' : '') + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' · ' + st.agent + ' · Note · ' + texte;
+        toast('Situation enregistrée');
+        fini(texte.replace(/^Livreur - /, ''));
+      } catch (e) { toast(e.message, true); go.disabled = false; }
+    });
+    carte.replaceChildren(el('div', { class: 'alr-steps' }, el('div', { class: 'd', text: '✓ ① عيطتي ولا صيفطتي واتساب' }), el('div', { class: 'n', text: '② كتبي الحالة' })),
+      el('h3', { text: '📝 Situation de ' + o.client }), opts, ta, choixPartage, go,
+      el('button', { class: 'alr-tard', onclick: () => contenuInjoignable(o, carte, fini) }, '‹ Retour'));
+  };
+}
+function montrerCarrousel(list) {
+  CAR.ouvert = true; CAR.fini = false; CAR.slides = new Map();
+  jouerSon(SON_PASREP);
+  CAR.titre = el('div', { class: 'car-top' });
+  CAR.piste = el('div', { class: 'car-piste' });
+  CAR.dots = el('div', { class: 'car-dots' });
+  CAR.piste.addEventListener('scroll', () => { clearTimeout(CAR.t); CAR.t = setTimeout(majCar, 80); }, { passive: true });
+  const fleche = (sens, txt) => el('button', { class: 'car-fl ' + (sens < 0 ? 'g' : 'd'), onclick: () => CAR.piste.scrollBy({ left: sens * CAR.piste.clientWidth, behavior: 'smooth' }) }, txt);
+  CAR.fond = el('div', { class: 'car-fond' }, CAR.titre, CAR.piste, fleche(-1, '‹'), fleche(1, '›'), CAR.dots,
+    el('div', { class: 'car-pied', text: 'ما كاينش "Plus tard" · خاصك تكملي كاملين باش تخدمي' }));
+  document.body.append(CAR.fond);
+  ajouterSlides(list);
+}
+function ajouterSlides(list) {
+  let nouveau = false;
+  for (const o of list) {
+    if (CAR.slides.has(o.colis)) continue;
+    const carte = el('div', { class: 'alr' });
+    const slide = el('div', { class: 'car-slide' }, carte);
+    const x = { o, slide, carte, fait: false };
+    contenuInjoignable(o, carte, note => {
+      x.fait = true;
+      carte.className = 'alr vert';
+      carte.replaceChildren(el('div', { class: 'alr-ic', style: 'background:#123222' }, '✅'), el('div', { class: 'alr-cl', text: o.client }), el('div', { class: 'alr-pr', text: '« ' + note + ' »' }));
+      majCar(); majCamion();
+      const suivant = [...CAR.slides.values()].find(y => !y.fait);
+      if (suivant) setTimeout(() => CAR.piste.scrollTo({ left: suivant.slide.offsetLeft - CAR.piste.offsetLeft, behavior: 'smooth' }), 500);
+      else setTimeout(finCarrousel, 600);
+    });
+    CAR.slides.set(o.colis, x); CAR.piste.append(slide); nouveau = true;
+  }
+  if (nouveau && CAR.slides.size > list.length) jouerSon(SON_PASREP);
+  majCar();
+}
+function majCar() {
+  if (!CAR.ouvert || CAR.fini) return;
+  const l = [...CAR.slides.values()], faits = l.filter(x => x.fait).length, reste = l.length - faits;
+  const i = CAR.piste.clientWidth ? Math.round(CAR.piste.scrollLeft / CAR.piste.clientWidth) : 0;
+  const matin = l.some(x => tLiv(x.o.dliv) < debutJour());
+  CAR.titre.replaceChildren(el('b', { text: '📵 ' + (matin ? 'Avant de commencer · ' : '') + l.length + ' client' + (l.length > 1 ? 's' : '') + ' à rappeler' }),
+    el('span', { text: faits + ' fait' + (faits > 1 ? 's' : '') + ' · ' + reste + ' restant' + (reste > 1 ? 's' : '') }), el('em', { text: '🔒 Travail en pause' }));
+  CAR.dots.replaceChildren(...l.map((x, k) => el('i', { class: (x.fait ? 'ok' : '') + (k === i ? ' on' : '') })));
+}
+function finCarrousel() {
+  const n = CAR.slides.size; CAR.fini = true;
+  CAR.piste.replaceChildren(el('div', { class: 'car-slide' }, el('div', { class: 'alr vert' },
+    el('div', { class: 'alr-ic', style: 'background:#123222' }, '✅'), el('h3', { style: 'color:#4ade80', text: 'Bravo ' + nomPropre(st.agent) + ' !' }),
+    el('div', { class: 'alr-pr', text: n + ' client' + (n > 1 ? 's' : '') + ' rappelé' + (n > 1 ? 's' : '') + '. Vous pouvez travailler.' }),
+    el('button', { class: 'alr-b ok', onclick: () => { CAR.fond.remove(); CAR.ouvert = false; majCamion(); setTimeout(verifierAlertes, 300); } }, '🚀 Commencer'))));
+  CAR.dots.replaceChildren(); CAR.titre.replaceChildren(el('b', { text: '📵 ' + n + ' / ' + n + ' faits' }));
+  for (const b of CAR.fond.querySelectorAll('.car-fl, .car-pied')) b.remove();
 }
 // icône camion : clients injoignables à rappeler (l'admin voit tous ceux pas encore traités)
 function majCamion() {
