@@ -267,6 +267,8 @@
   .ann-voc { margin-top: 6px; } .ann-voc .vocal .vit { background: rgba(255,255,255,.7); color: inherit; border-color: rgba(0,0,0,.15); }
   .ann-vocbox .saisie.rec { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 26px; padding: 4px 6px; }
   .ann-vocbox .p-ic { width: 40px; height: 40px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; flex: none; border-radius: 50%; color: #ef4444; }
+  .ann-aide { margin-top: 6px; font-size: 12.5px; font-weight: 700; opacity: .8; }
+  .ann [hidden] { display: none !important; }
   .ann-lab { font-size: 11.5px; font-weight: 800; color: var(--muted); margin: 12px 0 4px; letter-spacing: .04em; }
   .ann-lus { margin-top: 10px; background: rgba(255,255,255,.55); border-radius: 10px; padding: 8px 10px; font-size: 13px; }
   .ann-lus > div { display: flex; justify-content: space-between; padding: 3px 0; }
@@ -470,7 +472,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611012107';
+const VERSION = '202611012110';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -795,7 +797,7 @@ const FICHIER_API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm-fichier-envo
 // iPhone (Safari) demande l'audio par morceaux (Range) et n8n renvoie le fichier entier -> « Error ».
 // On télécharge donc le vocal en entier puis on le lit depuis la mémoire (blob).
 const VOCAUX = new Map();
-function lecteurVocal(f, local) {
+function lecteurVocal(f, local, fin) {
   const a = el('audio', { controls: true, preload: 'auto' });
   let p = local ? Promise.resolve(local) : VOCAUX.get(f);
   if (!p) { p = fetch(FICHIER_URL(f)).then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); }).then(b => URL.createObjectURL(b.type ? b : new Blob([b], { type: 'audio/mp4' }))); VOCAUX.set(f, p); p.catch(() => VOCAUX.delete(f)); }
@@ -803,8 +805,9 @@ function lecteurVocal(f, local) {
   const v = el('button', { class: 'vit', type: 'button', text: '1x' });
   v.addEventListener('click', () => { const n = VIT[(VIT.indexOf(a.playbackRate) + 1) % VIT.length] || 1; a.defaultPlaybackRate = n; a.playbackRate = n; v.textContent = String(n).replace('.', ',') + 'x'; });
   a.addEventListener('play', () => { a.playbackRate = a.defaultPlaybackRate; });
+  if (fin) a.addEventListener('ended', () => fin());
   const boite = el('div', { class: 'vocal' }, a, v);
-  p.then(u => { const r = a.playbackRate; a.src = u; a.playbackRate = r; }).catch(() => { boite.replaceWith(el('span', { class: 'note', text: '🎤 Vocal indisponible' })); });
+  p.then(u => { const r = a.playbackRate; a.src = u; a.playbackRate = r; }).catch(() => { boite.replaceWith(el('span', { class: 'note', text: '🎤 Vocal indisponible' })); if (fin) fin(true); });
   return boite;
 }
 const FICHIER_URL = f => 'https://n8n.srv2034083.hstgr.cloud/webhook/crm-fichier?f=' + encodeURIComponent(f);
@@ -943,7 +946,7 @@ document.body.append(
 setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerChat(); }, 12000);
 // ---------- Annonces de l'admin (sans titre) : Urgent (à confirmer « J'ai compris »), Info, Objectif ----------
 // l'agente peut fermer une annonce, mais elle revient à chaque ouverture de l'application (tant qu'elle est active)
-const ANN = { liste: [], caches: new Set() };
+const ANN = { liste: [], caches: new Set(), ecoutes: new Set(), noeuds: new Map() };
 const ANN_TYPES = { urgent: { t: '🔥 URGENT', ic: '⚠️' }, info: { t: '📢 INFO', ic: '📢' }, objectif: { t: '🎯 OBJECTIF', ic: '🎯' } };
 const ANN_GENS = ['HAJIBA', 'BTISSAM', 'GHIZLANE', 'SAMIRA', 'ILHAM'];
 const dateCourte = q => { const d = new Date(q); return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); };
@@ -955,18 +958,34 @@ function rendreAnnonces() {
   const box = $('#annonces'); if (!box) return;
   $('#btn-annonces').hidden = st.agent !== 'ADMIN';
   if (st.agent === 'ADMIN') { box.replaceChildren(); return; }
-  const aLire = ANN.liste.filter(a => a.active && !ANN.caches.has(a.id));
+  // une annonce avec vocal : impossible de la fermer avant d'avoir écouté le vocal jusqu'au bout ;
+  // une fois écoutée, elle ne revient plus jamais (les annonces écrites, elles, reviennent à chaque ouverture)
+  const dejaLue = a => a.lues.some(l => l.agent === st.agent);
+  const aLire = ANN.liste.filter(a => a.active && !ANN.caches.has(a.id) && !(a.fichier && dejaLue(a) && !ANN.ecoutes.has(a.id)));
+  const noeuds = new Map();
   box.replaceChildren(...aLire.map(a => {
+    const cle = a.id + '|' + a.type + '|' + a.texte + '|' + a.fichier;
+    const ex = ANN.noeuds.get(a.id);
+    if (ex && ex.cle === cle) { noeuds.set(a.id, ex); return ex.n; }
     const T = ANN_TYPES[a.type] || ANN_TYPES.info;
-    const lire = () => { ANN.caches.add(a.id); rendreAnnonces(); if (!a.lues.some(l => l.agent === st.agent)) api('annonces', { op: 'lue', id: a.id }).then(() => a.lues.push({ agent: st.agent, quand: new Date().toISOString() })).catch(() => {}); };
+    const marquer = () => { if (!dejaLue(a)) api('annonces', { op: 'lue', id: a.id }).then(() => { if (!dejaLue(a)) a.lues.push({ agent: st.agent, quand: new Date().toISOString() }); }).catch(() => {}); };
+    const lire = () => { ANN.caches.add(a.id); ANN.ecoutes.delete(a.id); marquer(); rendreAnnonces(); };
     const ferme = el('button', { class: 'ann-x', 'aria-label': 'Fermer', text: '×', onclick: lire });
-    return el('div', { class: 'ann ann-' + (ANN_TYPES[a.type] ? a.type : 'info') },
-      el('div', { class: 'ann-ic', text: T.ic }), ferme,
+    const ok = el('div', { style: 'text-align:right' }, el('button', { class: 'ann-ok', onclick: lire }, a.fichier ? '✓ J\'ai écouté' : "✓ J'ai compris"));
+    const aide = el('div', { class: 'ann-aide', text: '🎧 Écoutez le vocal jusqu\'à la fin pour fermer' });
+    const ecoute = () => { ANN.ecoutes.add(a.id); marquer(); ferme.hidden = false; ok.hidden = false; aide.remove(); };
+    if (a.fichier && !ANN.ecoutes.has(a.id)) { ferme.hidden = true; ok.hidden = true; }
+    const n = el('div', { class: 'ann ann-' + (ANN_TYPES[a.type] ? a.type : 'info') },
+      el('div', { class: 'ann-ic', text: a.fichier ? '🎤' : T.ic }), ferme,
       el('div', { class: 'ann-c' }, el('span', { class: 'ann-tg', text: T.t }), el('div', { class: 'ann-d', text: '📅 ' + dateCourte(a.quand) + ' · Admin' }),
         a.texte ? el('div', { class: 'ann-tx', dir: 'auto', text: a.texte }) : null,
-        a.fichier ? el('div', { class: 'ann-voc' }, lecteurVocal(a.fichier)) : null,
-        a.type === 'urgent' ? el('div', { style: 'text-align:right' }, el('button', { class: 'ann-ok', onclick: lire }, "✓ J'ai compris")) : null));
+        a.fichier ? el('div', { class: 'ann-voc' }, lecteurVocal(a.fichier, null, ecoute)) : null,
+        a.fichier && !ANN.ecoutes.has(a.id) ? aide : null,
+        a.type === 'urgent' || a.fichier ? ok : null));
+    noeuds.set(a.id, { cle, n });
+    return n;
   }));
+  ANN.noeuds = noeuds;
 }
 // écran admin : publier / modifier / supprimer, et qui a lu
 function ouvrirAnnonces(edit) {
@@ -1049,7 +1068,7 @@ function ouvrirAnnonces(edit) {
 setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerAnnonces(); }, 60000);
 // en revenant dans l'application, les annonces fermées réapparaissent
 let annCacheeA = 0;
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') annCacheeA = Date.now(); else if (st.pin) { if (annCacheeA && Date.now() - annCacheeA > 60000) ANN.caches.clear(); chargerAnnonces(); } });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') annCacheeA = Date.now(); else if (st.pin) { if (annCacheeA && Date.now() - annCacheeA > 60000) { ANN.caches.clear(); ANN.ecoutes.clear(); } chargerAnnonces(); } });
 $('#btn-annonces').addEventListener('click', () => ouvrirAnnonces());
 // ---------- Tests des alertes (bouton 🔔 dans la discussion) ----------
 function menuTest() {
