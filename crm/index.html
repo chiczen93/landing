@@ -76,6 +76,27 @@
   .icon-btn { height: 36px; min-width: 36px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel); display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; font-weight: 600; font-size: 13px; color: var(--ink-2); flex: none; }
   .icon-btn.spin svg { animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  .classement { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; margin-bottom: 14px; }
+  .cl-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .cl-top h3 { margin: 0; font-size: 16px; }
+  .cl-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .podium { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 12px; }
+  .podium .p { flex: 1; text-align: center; min-width: 0; }
+  .podium .av { width: 48px; height: 48px; border-radius: 50%; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; position: relative; }
+  .podium .p1 .av { width: 58px; height: 58px; }
+  .podium .md { position: absolute; bottom: -6px; right: -8px; font-size: 20px; }
+  .podium b { display: block; font-size: 13px; } .podium small { font-size: 11px; color: var(--muted); }
+  .podium .bloc { margin-top: 6px; border-radius: 10px 10px 0 0; background: var(--line-2); font-weight: 800; font-size: 20px; padding-top: 6px; }
+  .podium .p1 .bloc { background: #facc1526; color: #ca8a04; }
+  .cl-list { display: flex; flex-direction: column; gap: 7px; }
+  .cl-l { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; background: var(--panel-2); }
+  .cl-l .r { width: 22px; font-weight: 800; font-size: 16px; text-align: center; color: var(--muted); flex: none; }
+  .cl-l .avatar { flex: none; }
+  .cl-l .x { flex: 1; min-width: 0; }
+  .cl-l .x > b { display: flex; justify-content: space-between; font-size: 14px; }
+  .cl-l .cl-bar { height: 6px; border-radius: 3px; background: var(--line-2); margin: 6px 0 4px; overflow: hidden; }
+  .cl-l .cl-bar i { display: block; height: 100%; border-radius: 3px; }
+  .cl-l .x > span { font-size: 12px; color: var(--muted); }
   .seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--line-2); gap: 3px; margin-bottom: 12px; }
   .seg button { border: 0; background: transparent; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px; color: var(--muted); }
   .seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); }
@@ -315,6 +336,12 @@
       <button class="btn ghost loadmore" id="more" hidden>Afficher plus</button>
     </section>
     <section id="perf" hidden>
+      <div class="classement">
+        <div class="cl-top"><h3>🏆 Classement des agentes</h3>
+          <div class="periods" id="cl-periods" style="margin:0"><button class="tab" data-c="7j" aria-pressed="true">Cette semaine</button><button class="tab" data-c="30j">Ce mois</button></div></div>
+        <div class="cl-sub" id="cl-sub">Selon le taux de livraison</div>
+        <div id="cl-body"></div>
+      </div>
       <div class="periods" id="periods">
         <button class="tab" data-p="aujourdhui">Aujourd'hui</button>
         <button class="tab" data-p="7j" aria-pressed="true">7 jours</button>
@@ -333,7 +360,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611010335';
+const VERSION = '202611010356';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -391,7 +418,7 @@ const TABS = [
 ];
 const TONCOL = { ok: 'var(--ok)', bad: 'var(--bad)', warn: 'var(--warn)', info: 'var(--info)', '': 'var(--muted)' };
 
-const st = { res: null, resQ: '', tabQ: null, cherche: null, pin: '', agent: '', role: '', commandes: [], tab: 'new', q: '', page: 1, ouvert: new Set(), brouillon: {}, villes: [], stats: [], periode: '7j', view: 'orders', at: 0, busy: false };
+const st = { res: null, resQ: '', tabQ: null, cherche: null, pin: '', agent: '', role: '', commandes: [], tab: 'new', q: '', page: 1, ouvert: new Set(), brouillon: {}, villes: [], stats: [], periode: '7j', clPer: '7j', view: 'orders', at: 0, busy: false };
 const $ = s => document.querySelector(s);
 const el = (tag, attrs = {}, ...kids) => {
   const e = document.createElement(tag);
@@ -1008,7 +1035,37 @@ function anneau(taux, col) {
   svg.append(c1, c2, t); return svg;
 }
 function cell(v, label, ton) { return el('div', { class: 'cell' + (ton ? ' ' + ton : '') }, el('b', { text: v }), el('span', { text: label })); }
+const CL_AGENTES = ['HAJIBA', 'BTISSAM', 'GHIZLANE', 'SAMIRA', 'ILHAM'];
+function rendreClassement() {
+  const per = st.clPer;
+  const rows = CL_AGENTES.map(a => {
+    const r = st.stats.find(x => x.agent === a && x.periode === per) || {};
+    const l = Number(r.livres) || 0, rt = Number(r.retours) || 0, f = l + rt;
+    return { agent: a, l, rt, f, taux: f ? l * 100 / f : -1, ca: Number(r.ca_livre) || 0 };
+  }).sort((a, b) => b.taux - a.taux || b.l - a.l);
+  const col = a => COULEURS[a] || 'var(--brand)';
+  const ton = t => t < 0 ? 'var(--muted)' : t >= 50 ? 'var(--ok)' : t >= 35 ? 'var(--warn)' : 'var(--bad)';
+  const tx = t => t < 0 ? '—' : t.toFixed(1).replace('.', ',') + ' %';
+  const med = ['🥇', '🥈', '🥉'];
+  const pod = [1, 0, 2].filter(i => rows[i] && rows[i].f).map(i => el('div', { class: 'p' + (i === 0 ? ' p1' : '') },
+    el('div', { class: 'av', style: 'background:' + col(rows[i].agent), text: rows[i].agent.slice(0, 2) }, el('span', { class: 'md', text: med[i] })),
+    el('b', { text: nomPropre(rows[i].agent) }), el('small', { text: tx(rows[i].taux) }),
+    el('div', { class: 'bloc', style: 'height:' + [80, 58, 42][i] + 'px', text: String(i + 1) })));
+  const liste = rows.map((r, i) => el('div', { class: 'cl-l' },
+    el('span', { class: 'r', text: String(i + 1) }),
+    el('div', { class: 'avatar', style: 'background:' + col(r.agent), text: r.agent.slice(0, 2) }),
+    el('div', { class: 'x' },
+      el('b', {}, el('span', { text: nomPropre(r.agent) }), el('span', { style: 'color:' + ton(r.taux), text: tx(r.taux) })),
+      el('div', { class: 'cl-bar' }, el('i', { style: 'width:' + Math.max(0, r.taux) + '%;background:' + ton(r.taux) })),
+      el('span', { text: r.f ? '✅ ' + fmt(r.l) + ' livrées · ↩️ ' + fmt(r.rt) + ' retours · ' + fmt(r.ca) + ' DH' : 'Pas encore de colis livré ou retourné' }))));
+  $('#cl-sub').textContent = 'Selon le taux de livraison · ' + (per === '7j' ? '7 derniers jours' : '30 derniers jours');
+  $('#cl-body').replaceChildren(...[pod.length ? el('div', { class: 'podium' }, ...pod) : null, el('div', { class: 'cl-list' }, ...liste)].filter(Boolean));
+}
+for (const b of document.querySelectorAll('#cl-periods .tab')) b.addEventListener('click', () => {
+  st.clPer = b.dataset.c; for (const x of document.querySelectorAll('#cl-periods .tab')) x.setAttribute('aria-pressed', String(x === b)); rendreClassement();
+});
 function rendrePerf() {
+  rendreClassement();
   const rows = st.stats.filter(r => r.periode === st.periode && r.agent !== 'TOTAL' && (Number(r.assignes) > 0 || Number(r.colis) > 0));
   rows.sort((a, b) => Number(b.confirmes) - Number(a.confirmes));
   const tot = st.stats.find(r => r.periode === st.periode && r.agent === 'TOTAL');
