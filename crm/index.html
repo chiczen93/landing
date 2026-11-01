@@ -423,7 +423,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611011855';
+const VERSION = '202611011857';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -700,7 +700,7 @@ function rendreChat() {
       return { c, der, n: nonLus(c) };
     });
     box.replaceChildren(...[
-      el('div', { class: 'chat-top' }, el('b', { text: chat.ref ? '💬 Envoyer à…' : '💬 Équipe' }), el('button', { 'aria-label': 'Tester le son', title: 'Tester le son', style: 'font-size:18px', text: '🔔', onclick: () => { sonMessage(); toast('Test du son'); } }), el('button', { 'aria-label': 'Fermer', text: '×', onclick: fermerChat })),
+      el('div', { class: 'chat-top' }, el('b', { text: chat.ref ? '💬 Envoyer à…' : '💬 Équipe' }), el('button', { 'aria-label': 'Tester le son', title: 'Tester le son', style: 'font-size:18px', text: '🔔', onclick: () => menuTest() }), el('button', { 'aria-label': 'Fermer', text: '×', onclick: fermerChat })),
       refBox,
       el('div', { class: 'chat-body' }, ...convs.map(({ c, der, n }) => el('div', { class: 'c-item', onclick: () => { chat.conv = c; rendreChat(); } },
         el('div', { class: 'c-av', style: 'background:' + couleurChat(c), text: initiales(c) }),
@@ -744,7 +744,7 @@ function rendreChat() {
   box.replaceChildren(...[
     el('div', { class: 'chat-top' }, el('button', { 'aria-label': 'Retour', text: '‹', onclick: () => { chat.conv = null; rendreChat(); } }),
       el('div', { class: 'c-av', style: 'width:34px;height:34px;font-size:12px;background:' + couleurChat(c), text: initiales(c) }), el('b', { text: nomChat(c) }),
-      el('button', { 'aria-label': 'Tester le son', title: 'Tester le son', style: 'font-size:18px', text: '🔔', onclick: () => { sonMessage(); toast('Test du son'); } }),
+      el('button', { 'aria-label': 'Tester le son', title: 'Tester le son', style: 'font-size:18px', text: '🔔', onclick: () => menuTest() }),
       el('button', { 'aria-label': 'Fermer', text: '×', onclick: fermerChat })),
     corps, refBox, bar].filter(Boolean));
   majMessages(); ajusterChat();
@@ -907,6 +907,21 @@ document.body.append(
   el('div', { class: 'chat', id: 'chat', hidden: true }),
 );
 setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerChat(); }, 12000);
+// ---------- Tests des alertes (bouton 🔔 dans la discussion) ----------
+function menuTest() {
+  const ex = { row: null, id: '', client: 'Test Salma', tel: '0600000000', produit: 'Legging hiver polaire — M — 1 pièce', total: '169 درهم', ville: 'Casablanca', agent: st.agent, colis: 'TEST-' + Date.now(), livraison: '', g: '', dliv: new Date().toISOString().slice(0, 19).replace('T', ' '), notes: '' };
+  const lancer = a => { fond.remove(); if (chat.ouvert) fermerChat(); setTimeout(() => { ALR.ouvert = false; montrerAlerte(a); }, 250); };
+  const fond = el('div', { class: 'lu-fond', style: 'position:fixed;z-index:95', onclick: e => { if (e.target === fond) fond.remove(); } },
+    el('div', { class: 'lu-sheet' }, el('div', { class: 'lu-grab' }), el('h3', { text: '🔔 Tester les alertes' }),
+      ...[['💬 Son des messages', () => { fond.remove(); sonMessage(); toast('Test du son'); }],
+        ['💰 Commande livrée', () => lancer({ t: 'livre', o: ex })],
+        ['💰 Plusieurs livrées', () => lancer({ t: 'livres', l: [ex, { ...ex, client: 'Test Nadia', total: '220 درهم' }, { ...ex, client: 'Test Khadija', total: '250 درهم' }, { ...ex, client: 'Test Imane', total: '160 درهم' }] })],
+        ['🚚 Colis sorti', () => lancer({ t: 'sorti', o: ex })],
+        ['📵 Client injoignable', () => lancer({ t: 'pasrep', n: 1, o: { ...ex, g: 'pasrep' } })],
+        ['↻ Injoignable · 2e jour', () => lancer({ t: 'pasrep', n: 1, o: { ...ex, g: 'pasrep', dliv: new Date(Date.now() - 86400000).toISOString().slice(0, 19).replace('T', ' '), notes: new Date(Date.now() - 86400000).toISOString().slice(0, 16).replace('T', ' ') + ' · ' + st.agent + " · Note · Livreur - Va recevoir aujourd'hui" } })],
+      ].map(([t, f]) => el('button', { class: 'alr-o', style: 'display:block;width:100%;text-align:left;margin:6px 0;color:var(--ink);border-color:var(--line)', text: t, onclick: f }))));
+  document.body.append(fond);
+}
 // ---------- Alertes de livraison (au milieu de l'application) ----------
 // Livré (son caisse) · Sorti pour livraison (klaxon) · Client injoignable (alerte, revient toutes les 2 min
 // tant que l'agente n'a pas appelé / écrit sur WhatsApp ET écrit la situation ; recommence chaque jour tant que pas livré)
