@@ -447,7 +447,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611012019';
+const VERSION = '202611012025';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1535,7 +1535,7 @@ function carte(o) {
     el('div', { class: 'row1' }, el('div', { class: 'name', text: o.client || '—' }), el('div', { class: 'date' + (enRetard ? ' late' : ''), text: quand.t })),
     chips, boiteDbl, gl ? null : boiteRisque, ligneHist,
     el('div', { class: 'prod' }, o.produit || '—', o.total ? el('b', { text: '  ·  ' + o.total.replace('درهم', 'DH') }) : null),
-    meta, gl && (gl.id === 'pr' || gl.id === 'an') ? boiteSituation(o) : null, blocNotes,
+    meta, gl && (gl.id === 'pr' || (gl.id === 'an' && !/refus/i.test(o.livraison || ''))) ? boiteSituation(o) : null, blocNotes,
     contact, gl ? el('div', { class: 'acts' }, el('button', { class: 'act', onclick: () => ouvrirChat(null, [o.client, o.produit, o.colis, o.livraison, o.tel].filter(Boolean).join(' · ')) }, '💬 Équipe')) : acts,
     gl ? null : el('button', { class: 'more', onclick: () => { ouvert ? st.ouvert.delete(key) : st.ouvert.add(key); rerender(); } }, icone('edit'), ouvert ? 'Fermer' : 'Modifier ville, adresse, produit'),
     edit, save,
