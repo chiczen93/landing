@@ -130,6 +130,7 @@
   .acts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   .act { border: 1px solid var(--line); background: var(--panel); border-radius: 9px; padding: 8px 6px; cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--ink-2); display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
   .act .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .act.c-info .dot { background: var(--info); } .act[aria-pressed="true"].c-info { background: var(--info); border-color: var(--info); color: #fff; }
   .act.c-ok .dot { background: var(--ok); } .act.c-bad .dot { background: var(--bad); } .act.c-warn .dot { background: var(--warn); }
   .act[aria-pressed="true"].c-ok { background: var(--ok); border-color: var(--ok); color: #fff; }
   .act[aria-pressed="true"].c-bad { background: var(--bad); border-color: var(--bad); color: #fff; }
@@ -206,6 +207,7 @@
   .motifs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
   .motif { border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); border-radius: 20px; padding: 8px 12px; font-weight: 700; font-size: 13px; cursor: pointer; }
   .motif[aria-pressed="true"] { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+  .feuille.info .motif[aria-pressed="true"] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); }
   .feuille.warn .motif[aria-pressed="true"] { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
   .feuille textarea { width: 100%; min-height: 64px; border: 1px solid var(--line); border-radius: 12px; padding: 10px; font: inherit; font-size: 14px; background: var(--bg); color: var(--ink); margin-bottom: 12px; resize: vertical; }
   .feuille .go { width: 100%; padding: 13px; border-radius: 12px; border: 0; font-weight: 800; font-size: 15px; color: #fff; background: var(--bad); cursor: pointer; }
@@ -295,7 +297,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611010242';
+const VERSION = '202611010246';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -312,6 +314,7 @@ const STATUTS = [
   { v: 'MESSAGE WTSP', t: 'Msg WhatsApp', c: 'warn' },
   { v: 'ANNULER', t: 'Annulé', c: 'bad' },
   { v: 'DOUBLE', t: 'Doublon', c: 'bad' },
+  { v: 'REPORTER', t: 'Reporté', c: 'info' },
 ];
 const LABEL = Object.fromEntries(STATUTS.map(s => [s.v, s.t]));
 const TON = Object.fromEntries(STATUTS.map(s => [s.v, s.c]));
@@ -336,6 +339,7 @@ const TABS = [
   { groupe: 'Confirmation' },
   { id: 'new', t: 'Nouvelles', c: 'info', f: o => !o.colis && !o.statut },
   { id: 'ps', t: 'Pas répondu', c: 'warn', f: o => !o.colis && PS.includes(o.statut) },
+  { id: 'rep', t: 'Reportées', c: 'info', f: o => !o.colis && o.statut === 'REPORTER' },
   { id: 'ok', t: 'Confirmées · à expédier', c: 'ok', f: o => !o.colis && o.statut === 'CONFIRMER' },
   { id: 'ko', t: 'Annulées', c: 'bad', f: o => !o.colis && ['ANNULER', 'DOUBLE'].includes(o.statut) },
   { groupe: 'Livraison' },
@@ -568,6 +572,11 @@ $('#more').addEventListener('click', () => { st.page++; rendreListe(); });
 function tonLivraison(s) { return /retour livr[ée] au client/i.test(s) || /^retourn[ée]$/i.test(s) ? 'plain' : /livr[ée] au client/i.test(s) ? 'ok' : /retour|annul|refus/i.test(s) ? 'bad' : /r[ée]pond|injoign|report/i.test(s) ? 'warn' : 'info'; }
 // ---------- notes (appels, raisons d'annulation, notes libres) ----------
 const MOTIFS_APPEL = ['Ne répond pas', 'Téléphone éteint', 'Occupée, rappeler', 'Numéro incorrect', 'Répondeur'];
+function joursReport() {
+  const J = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+  const lab = n => { const d = new Date(Date.now() + n * 86400000); return J[d.getDay()] + ' ' + String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); };
+  return ['Demain · ' + lab(1), 'Après-demain · ' + lab(2), 'Dans 3 jours · ' + lab(3), 'Semaine prochaine · ' + lab(7), 'Fin du mois', 'Date à confirmer'];
+}
 const MOTIFS_ANNULE = ['Prix trop cher', "A changé d'avis", "N'a pas commandé", 'Délai trop long', 'Taille / couleur', 'Déjà acheté ailleurs', 'Autre'];
 function lireNotes(txt) {
   return String(txt || '').split('\n').map(l => l.trim()).filter(Boolean).map(l => {
@@ -603,6 +612,7 @@ async function noter(o, key, type, statut) {
   let r;
   if (type === 'appel') r = await feuille({ titre: '📵 ' + (LABEL[statut] || 'Pas répondu') + ' · appel ' + (nbAppels + 1), sous: "Choisissez ce qui s'est passé (1 clic)", motifs: MOTIFS_APPEL, ton: 'warn', bouton: 'Enregistrer', defaut: MOTIFS_APPEL[0] });
   else if (type === 'annule') r = await feuille({ titre: '❌ Pourquoi annulée ?', sous: "Raison obligatoire avant d'annuler", motifs: MOTIFS_ANNULE, obligatoire: 'motif', bouton: 'Annuler la commande' });
+  else if (type === 'report') r = await feuille({ titre: '📅 Reporter à quand ?', sous: 'Le client veut être livré plus tard', motifs: joursReport(), obligatoire: 'motif', ton: 'info', bouton: 'Reporter la commande' });
   else r = await feuille({ titre: '📝 Note', sous: 'Visible par vous et l’administrateur', obligatoire: 'texte', ton: 'info', bouton: 'Ajouter la note' });
   if (!r) return;
   const b = st.brouillon[key] || {};
@@ -634,7 +644,7 @@ function carte(o) {
 
   const chips = el('div', { class: 'chips' },
     gl ? el('span', { class: 'pill ' + tonLivraison(o.livraison), text: o.livraison || 'Expédiée' })
-       : statut ? el('span', { class: 'pill ' + TON[statut], text: (LABEL[statut] || statut) + ((statut === 'PS REPOND' || statut === '2 PS RPS') && lireNotes(o.notes).filter(x => x.appel).length ? ' · ' + lireNotes(o.notes).filter(x => x.appel).length + ' appels' : '') }) : el('span', { class: 'pill info', text: 'Nouvelle' }),
+       : statut ? el('span', { class: 'pill ' + TON[statut], text: (LABEL[statut] || statut) + (statut === 'REPORTER' ? (r => r ? ' · ' + r.texte.split(' · ')[1] : '')(lireNotes(o.notes).filter(x => /^Reporté/.test(x.texte)).pop()) : '') + ((statut === 'PS REPOND' || statut === '2 PS RPS') && lireNotes(o.notes).filter(x => x.appel).length ? ' · ' + lireNotes(o.notes).filter(x => x.appel).length + ' appels' : '') }) : el('span', { class: 'pill info', text: 'Nouvelle' }),
     libre ? el('span', { class: 'pill brand plain', text: 'Non attribuée' }) : (st.role === 'admin' && o.agent ? el('span', { class: 'pill plain', text: nomPropre(o.agent) }) : null),
     !gl && o.wa ? el('span', { class: 'pill ' + (/oui|✅/i.test(o.wa) ? 'ok' : /non|❌/i.test(o.wa) ? 'bad' : 'plain'), text: 'WhatsApp : ' + o.wa.replace(/[✅❌⏳]\s*/g, '') }) : null,
     o.ancien ? el('span', { class: 'pill plain', text: 'Client fidèle' }) : null,
@@ -666,6 +676,7 @@ function carte(o) {
     onclick: () => {
       if (o.row && (s.v === 'PS REPOND' || s.v === '2 PS RPS')) return noter(o, key, 'appel', s.v);
       if (o.row && s.v === 'ANNULER' && statut !== 'ANNULER') return noter(o, key, 'annule', 'ANNULER');
+      if (o.row && s.v === 'REPORTER') return noter(o, key, 'report', 'REPORTER');
       b.statut = statut === s.v ? '' : s.v; if (b.statut === 'CONFIRMER') st.ouvert.add(key); rerender();
     },
   }, el('span', { class: 'dot' }), s.t)),
