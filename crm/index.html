@@ -190,6 +190,28 @@
   .card.risk { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, var(--panel)); }
   .card.risk::before { background: var(--warn); width: 5px; }
   .card.risk .prod, .card.risk .contact a:not(.wa), .card.risk .act:not([aria-pressed="true"]) { background: color-mix(in srgb, var(--warn) 7%, var(--panel)); }
+  .notes { border-top: 1px solid var(--line-2); padding-top: 8px; display: grid; gap: 5px; font-size: 12.5px; }
+  .notes > b { font-size: 11px; letter-spacing: .05em; color: var(--muted); font-weight: 800; }
+  .notes .n { display: flex; gap: 8px; line-height: 1.35; }
+  .notes .n .d { color: var(--muted); flex: none; width: 92px; font-size: 11.5px; }
+  .notes .n.annule { color: var(--bad); }
+  .appels { display: flex; gap: 4px; }
+  .appels i { width: 18px; height: 5px; border-radius: 3px; background: var(--line-2); }
+  .appels i.on { background: var(--warn); }
+  .voile { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
+  .feuille { background: var(--panel); width: 100%; max-width: 560px; border-radius: 20px 20px 0 0; padding: 14px 16px calc(18px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); }
+  .feuille .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 12px; }
+  .feuille h3 { font-size: 17px; font-weight: 800; }
+  .feuille p { font-size: 12.5px; color: var(--muted); margin: 2px 0 12px; }
+  .motifs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+  .motif { border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); border-radius: 20px; padding: 8px 12px; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .motif[aria-pressed="true"] { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+  .feuille.warn .motif[aria-pressed="true"] { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+  .feuille textarea { width: 100%; min-height: 64px; border: 1px solid var(--line); border-radius: 12px; padding: 10px; font: inherit; font-size: 14px; background: var(--bg); color: var(--ink); margin-bottom: 12px; resize: vertical; }
+  .feuille .go { width: 100%; padding: 13px; border-radius: 12px; border: 0; font-weight: 800; font-size: 15px; color: #fff; background: var(--bad); cursor: pointer; }
+  .feuille.warn .go { background: var(--warn); color: #1a1305; }
+  .feuille.info .go { background: var(--brand); color: var(--brand-ink); }
+  .feuille .go:disabled { opacity: .5; }
   .hist { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; }
   .hist > b { font-weight: 800; color: var(--ink-2); margin-right: 2px; }
   .hist .h { padding: 2px 8px; border-radius: 6px; font-weight: 700; background: var(--line-2); color: var(--ink-2); }
@@ -273,7 +295,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611010011';
+const VERSION = '202611010056';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -543,6 +565,60 @@ function rendreListe() {
 $('#more').addEventListener('click', () => { st.page++; rendreListe(); });
 
 function tonLivraison(s) { return /retour livr[ée] au client/i.test(s) || /^retourn[ée]$/i.test(s) ? 'plain' : /livr[ée] au client/i.test(s) ? 'ok' : /retour|annul|refus/i.test(s) ? 'bad' : /r[ée]pond|injoign|report/i.test(s) ? 'warn' : 'info'; }
+// ---------- notes (appels, raisons d'annulation, notes libres) ----------
+const MOTIFS_APPEL = ['Ne répond pas', 'Téléphone éteint', 'Occupée, rappeler', 'Numéro incorrect', 'Répondeur'];
+const MOTIFS_ANNULE = ['Prix trop cher', "A changé d'avis", "N'a pas commandé", 'Délai trop long', 'Taille / couleur', 'Déjà acheté ailleurs', 'Autre'];
+function lireNotes(txt) {
+  return String(txt || '').split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+    const p = l.split(' · ');
+    return { quand: p[0] || '', qui: p[1] || '', texte: p.slice(2).join(' · '), annule: /^Annulé/.test(p[2] || ''), appel: /^Appel \d+/.test(p[2] || '') };
+  });
+}
+function quandNote(q) {
+  const d = new Date(q.replace(' ', 'T') + ':00Z'); if (isNaN(d)) return q;
+  const auj = new Date().toISOString().slice(0, 10), hier = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const j = q.slice(0, 10), h = q.slice(11, 16);
+  return (j === auj ? "aujourd'hui" : j === hier ? 'hier' : j.slice(8, 10) + '/' + j.slice(5, 7)) + ' ' + h;
+}
+function feuille({ titre, sous, motifs, obligatoire, ton, bouton, defaut }) {
+  return new Promise(res => {
+    let choix = defaut || '';
+    const ta = el('textarea', { placeholder: obligatoire === 'texte' ? 'Écrivez la note…' : 'Note (facultatif)…' });
+    const go = el('button', { class: 'go', text: bouton });
+    const maj = () => { go.disabled = (obligatoire === 'motif' && !choix) || (obligatoire === 'texte' && !ta.value.trim()); };
+    const boutons = (motifs || []).map(m => { const b = el('button', { class: 'motif', 'aria-pressed': String(m === choix), text: m }); b.addEventListener('click', () => { choix = m; for (const x of boutons) x.setAttribute('aria-pressed', String(x === b)); maj(); }); return b; });
+    ta.addEventListener('input', maj);
+    const box = el('div', { class: 'feuille ' + (ton || '') }, el('div', { class: 'grab' }), el('h3', { text: titre }), el('p', { text: sous }), motifs ? el('div', { class: 'motifs' }, ...boutons) : null, ta, go);
+    const voile = el('div', { class: 'voile' }, box);
+    const fin = v => { voile.remove(); res(v); };
+    voile.addEventListener('click', e => { if (e.target === voile) fin(null); });
+    go.addEventListener('click', () => fin({ motif: choix, texte: ta.value.trim() }));
+    document.body.append(voile); maj(); if (obligatoire === 'texte') setTimeout(() => ta.focus(), 50);
+  });
+}
+async function noter(o, key, type, statut) {
+  const n = lireNotes(o.notes);
+  const nbAppels = n.filter(x => x.appel).length;
+  let r;
+  if (type === 'appel') r = await feuille({ titre: '📵 ' + (LABEL[statut] || 'Pas répondu') + ' · appel ' + (nbAppels + 1), sous: "Choisissez ce qui s'est passé (1 clic)", motifs: MOTIFS_APPEL, ton: 'warn', bouton: 'Enregistrer', defaut: MOTIFS_APPEL[0] });
+  else if (type === 'annule') r = await feuille({ titre: '❌ Pourquoi annulée ?', sous: "Raison obligatoire avant d'annuler", motifs: MOTIFS_ANNULE, obligatoire: 'motif', bouton: 'Annuler la commande' });
+  else r = await feuille({ titre: '📝 Note', sous: 'Visible par vous et l’administrateur', obligatoire: 'texte', ton: 'info', bouton: 'Ajouter la note' });
+  if (!r) return;
+  const b = st.brouillon[key] || {};
+  const champs = {};
+  for (const k of Object.keys(b)) if ((b[k] ?? '') !== (o[k] ?? '')) champs[k] = b[k];
+  delete champs.statut;
+  if (statut) champs.statut = statut;
+  try {
+    const d = await api('maj', { row: o.row, id: o.id, champs, note: { type, motif: r.motif, texte: r.texte } });
+    Object.assign(o, champs);
+    if (d.champs && d.champs.agent !== undefined) o.agent = String(d.champs.agent).toUpperCase();
+    if (d.notes !== undefined) o.notes = d.notes;
+    delete st.brouillon[key]; st.ouvert.delete(key);
+    toast(type === 'note' ? 'Note ajoutée' : 'Enregistré'); rerender();
+  } catch (e) { toast(e.message, true); }
+}
+
 function carte(o) {
   const key = (o.id || o.colis) + '|' + o.row;
   const gl = o.colis ? GROUPES.find(g => g.f(o.livraison || '')) : null;
@@ -557,7 +633,7 @@ function carte(o) {
 
   const chips = el('div', { class: 'chips' },
     gl ? el('span', { class: 'pill ' + tonLivraison(o.livraison), text: o.livraison || 'Expédiée' })
-       : statut ? el('span', { class: 'pill ' + TON[statut], text: LABEL[statut] || statut }) : el('span', { class: 'pill info', text: 'Nouvelle' }),
+       : statut ? el('span', { class: 'pill ' + TON[statut], text: (LABEL[statut] || statut) + ((statut === 'PS REPOND' || statut === '2 PS RPS') && lireNotes(o.notes).filter(x => x.appel).length ? ' · ' + lireNotes(o.notes).filter(x => x.appel).length + ' appels' : '') }) : el('span', { class: 'pill info', text: 'Nouvelle' }),
     libre ? el('span', { class: 'pill brand plain', text: 'Non attribuée' }) : (st.role === 'admin' && o.agent ? el('span', { class: 'pill plain', text: nomPropre(o.agent) }) : null),
     !gl && o.wa ? el('span', { class: 'pill ' + (/oui|✅/i.test(o.wa) ? 'ok' : /non|❌/i.test(o.wa) ? 'bad' : 'plain'), text: 'WhatsApp : ' + o.wa.replace(/[✅❌⏳]\s*/g, '') }) : null,
     o.ancien ? el('span', { class: 'pill plain', text: 'Client fidèle' }) : null,
@@ -586,8 +662,20 @@ function carte(o) {
 
   const acts = el('div', { class: 'acts' }, ...STATUTS.map(s => el('button', {
     class: 'act c-' + s.c, 'aria-pressed': String(statut === s.v),
-    onclick: () => { b.statut = statut === s.v ? '' : s.v; if (b.statut === 'CONFIRMER') st.ouvert.add(key); rerender(); },
-  }, el('span', { class: 'dot' }), s.t)));
+    onclick: () => {
+      if (o.row && (s.v === 'PS REPOND' || s.v === '2 PS RPS')) return noter(o, key, 'appel', s.v);
+      if (o.row && s.v === 'ANNULER' && statut !== 'ANNULER') return noter(o, key, 'annule', 'ANNULER');
+      b.statut = statut === s.v ? '' : s.v; if (b.statut === 'CONFIRMER') st.ouvert.add(key); rerender();
+    },
+  }, el('span', { class: 'dot' }), s.t)),
+    o.row ? el('button', { class: 'act', onclick: () => noter(o, key, 'note') }, '📝 Note') : null);
+  const lesNotes = lireNotes(o.notes);
+  const nbAppels = lesNotes.filter(x => x.appel).length;
+  const blocNotes = lesNotes.length ? el('div', { class: 'notes' },
+    el('b', { text: 'NOTES' }),
+    nbAppels ? el('div', { class: 'appels' }, ...Array.from({ length: Math.max(5, nbAppels) }, (_, i) => el('i', { class: i < nbAppels ? 'on' : '' }))) : null,
+    ...lesNotes.slice().reverse().slice(0, 6).map(x => el('div', { class: 'n' + (x.annule ? ' annule' : '') }, el('span', { class: 'd', text: quandNote(x.quand) }), el('span', {}, el('b', { text: x.texte.split(' · ')[0] }), x.texte.includes(' · ') ? ' · ' + x.texte.split(' · ').slice(1).join(' · ') : '', st.role === 'admin' || x.qui !== st.agent ? ' — ' + nomPropre(x.qui) : ''))),
+  ) : null;
 
   const val = k => (k in b ? b[k] : (o[k] || ''));
   const champ = (k, label, type) => el('label', {}, label, type === 'area'
@@ -619,7 +707,7 @@ function carte(o) {
     el('div', { class: 'row1' }, el('div', { class: 'name', text: o.client || '—' }), el('div', { class: 'date' + (enRetard ? ' late' : ''), text: quand.t })),
     chips, boiteDbl, gl ? null : boiteRisque, ligneHist,
     el('div', { class: 'prod' }, o.produit || '—', o.total ? el('b', { text: '  ·  ' + o.total.replace('درهم', 'DH') }) : null),
-    meta,
+    meta, blocNotes,
     contact, gl ? null : acts,
     gl ? null : el('button', { class: 'more', onclick: () => { ouvert ? st.ouvert.delete(key) : st.ouvert.add(key); rerender(); } }, icone('edit'), ouvert ? 'Fermer' : 'Modifier ville, adresse, produit'),
     edit, save,
