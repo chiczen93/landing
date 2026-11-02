@@ -491,7 +491,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611012154';
+const VERSION = '202611020047';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1193,14 +1193,15 @@ const tLiv = s => { s = String(s || '').trim(); if (!s) return 0; return Date.pa
 const lireMap = k => { try { return JSON.parse(store.get(k + st.agent) || '{}') || {}; } catch (e) { return {}; } };
 const ecrireMap = (k, m) => store.set(k + st.agent, JSON.stringify(m));
 const debutJour = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
-const seuilLiv = o => Math.max(debutJour(), tLiv(o.dliv));
+// une situation écrite reste valable jusqu'au lendemain 20:00 ; après, le colis revient s'il n'est toujours pas livré
+const finCycleLiv = t => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 20, 0, 0).getTime(); };
+const valideLiv = (o, t) => !!t && t >= tLiv(o.dliv) && Date.now() < finCycleLiv(t);
 const lignesLivreur = o => String(o.notes || '').split('\n').map(l => l.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}) · ([A-Z]+) · Note · Livreur\s*-?\s*(.*)$/)).filter(Boolean);
 function traiteLiv(o) {
-  const T = seuilLiv(o);
-  if ((lireMap('liv_faits_')[o.colis] || 0) >= T) return true;
-  return lignesLivreur(o).some(m => tLiv(m[1]) >= T);
+  if (valideLiv(o, lireMap('liv_faits_')[o.colis] || 0)) return true;
+  return lignesLivreur(o).some(m => valideLiv(o, tLiv(m[1])));
 }
-const appeleLiv = o => (lireMap('liv_appel_')[o.colis] || 0) >= seuilLiv(o);
+const appeleLiv = o => valideLiv(o, lireMap('liv_appel_')[o.colis] || 0);
 const aRappeler = g => g === 'pasrep' || g === 'annule';
 const enAttenteLiv = () => ALR.items.filter(o => aRappeler(o.g) && o.agent === st.agent && !traiteLiv(o));
 const telLiv = o => String(o.tel || '').replace(/\D/g, '').slice(-9);
@@ -1291,7 +1292,7 @@ const CAR = { ouvert: false, fond: null, piste: null, dots: null, titre: null, s
 function contenuInjoignable(o, carte, fini) {
   const prix = String(o.total || '').replace('درهم', 'DH').trim();
   const ligne = [String(o.produit || '').split(' — ').slice(0, 3).join(' — '), o.ville].filter(Boolean).join(' · ');
-  const anciennes = lignesLivreur(o).filter(m => tLiv(m[1]) < seuilLiv(o));
+  const anciennes = lignesLivreur(o).filter(m => !valideLiv(o, tLiv(m[1])));
   const jourDe = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
   const jours = Math.round((debutJour() - jourDe(tLiv(o.dliv))) / 86400000) + 1;
   const relance = anciennes.length > 0 || tLiv(o.dliv) < debutJour();
