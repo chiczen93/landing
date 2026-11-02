@@ -506,7 +506,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611021045';
+const VERSION = '202611021049';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1167,8 +1167,9 @@ const COULEURS_P = [['Noir', /noire?s?|black|كحل|اكحل|أسود|اسود|�
   ['Rouge', /rouge|red|أحمر|احمر|حمراء/i, '#c0392b'], ['Bleu', /bleu|blue|أزرق|ازرق|زرقاء/i, '#2f6fd6'], ['Vert', /vert|green|أخضر|اخضر/i, '#2e8b57'], ['Nude', /nude|chair/i, '#e2b48f']];
 const enAttenteStk = o => (o.statut === 'CONFIRMER' && !o.colis) || (o.colis && !/doublon/i.test(o.livraison || '') && (!o.livraison || /envoy[ée] [àa]|attente|ramassage|nouveau colis|new_parcel/i.test(o.livraison)));
 function lireProduit(t) {
-  const txt = String(t || ''), parts = txt.split(/\s+—\s+|\s+-\s+(?=\S)/);
-  const modele = (parts[0] || 'Autre').replace(/\s+/g, ' ').trim().slice(0, 60) || 'Autre';
+  const txt = String(t || ''), parts = txt.split(/\s*—\s*|\s+-\s+(?=\S)/);
+  // nom du modèle : avant le premier « — », sans la taille collée à la fin (« Beauty Shop —xL », « … Beauty Shop XL »)
+  const modele = (parts[0] || 'Autre').replace(/\s+/g, ' ').replace(/[\s\-–—\/]+(?:taille\s*)?(?:[2-6]\s?xl|xxxl|xxl|xl|xs|s|m|l)\s*$/i, '').trim().slice(0, 60) || 'Autre';
   const b = ' ' + txt.toLowerCase() + ' ';
   let m = b.match(/(?<![\p{L}\p{N}])([2-6]\s?xl|xxxl|xxl|xl|xs|s|m|l)(?![\p{L}\p{N}])/u), taille = m ? m[1].replace(/\s/g, '').toUpperCase() : 'Unique';
   if (taille === '2XL') taille = 'XXL'; if (taille === 'XXXL') taille = '3XL';
@@ -1184,8 +1185,9 @@ function repartirStk(liste) {
   const mod = new Map();
   for (const o of liste) {
     const p = lireProduit(o.produit);
-    if (!mod.has(p.modele)) mod.set(p.modele, { nom: p.modele, colis: 0, pcs: 0, cases: new Map(), packs: new Map(), tailles: new Set(), coul: new Set() });
-    const M = mod.get(p.modele); M.colis++; M.pcs += p.pcs; M.tailles.add(p.taille);
+    const km = p.modele.toLowerCase().replace(/[^\p{L}\p{N}%]+/gu, ' ').trim();
+    if (!mod.has(km)) mod.set(km, { nom: p.modele, colis: 0, pcs: 0, cases: new Map(), packs: new Map(), tailles: new Set(), coul: new Set() });
+    const M = mod.get(km); M.colis++; M.pcs += p.pcs; M.tailles.add(p.taille);
     const kp = p.pcs + '|' + p.taille; if (!M.packs.has(kp)) M.packs.set(kp, { n: 0, o: [] }); M.packs.get(kp).n++; M.packs.get(kp).o.push(o);
     const cs = p.coul.length ? p.coul : ['—'];
     const base = Math.floor(p.pcs / cs.length); let reste = p.pcs - base * cs.length;
