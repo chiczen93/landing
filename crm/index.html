@@ -301,6 +301,9 @@
   .stk-back { border: 0; background: none; color: var(--brand); font-weight: 700; font-size: 13px; padding: 4px 0; cursor: pointer; }
   .stk-r { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; } .stk-r small { display: block; color: var(--muted); font-size: 11.5px; }
   .stk-p { font-size: 10.5px; font-weight: 800; padding: 4px 7px; border-radius: 7px; white-space: nowrap; } .stk-p.ok { background: #123222; color: #4ade80; } .stk-p.w { background: #2d2012; color: #f0a54a; } .stk-p.b { background: #14324a; color: #7cb8ff; }
+  .alr.retard { background: #1a0d10; border: 2px solid #ef4444; box-shadow: 0 0 0 6px rgba(239,68,68,.15), 0 20px 50px rgba(0,0,0,.6); }
+  .alr-tl { margin: 12px 0; text-align: left; background: rgba(0,0,0,.25); border-radius: 12px; padding: 8px 10px; font-size: 12px; color: #cfa9a9; } .alr-tl > div { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; } .alr-tl b { color: #fff; font-weight: 700; text-align: right; }
+  .alr-q { direction: rtl; font-size: 14.5px; font-weight: 800; color: #fff; margin: 12px 0 8px; line-height: 1.5; }
   .ann-lab { font-size: 11.5px; font-weight: 800; color: var(--muted); margin: 12px 0 4px; letter-spacing: .04em; }
   .ann-lus { margin-top: 10px; background: rgba(255,255,255,.55); border-radius: 10px; padding: 8px 10px; font-size: 13px; }
   .ann-lus > div { display: flex; justify-content: space-between; padding: 3px 0; }
@@ -506,7 +509,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611021823';
+const VERSION = '202611021906';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1332,6 +1335,7 @@ async function chargerAlertes() {
   try {
     const d = await api('alertes', { jours: 15 });
     ALR.items = d.alertes || [];
+    await chargerAnnul();
     traiterAlertes();
   } catch (e) {} finally { ALR.charge = false; }
 }
@@ -1357,13 +1361,79 @@ function verifierAlertes() {
   // les clients injoignables passent avant tout : carrousel bloquant (les nouveaux s'ajoutent s'il est déjà ouvert)
   if (CAR.ouvert) { if (p.length && !CAR.fini) ajouterSlides(p); return; }
   if (ALR.ouvert) return;
+  // Hajiba : les colis à annuler chez la société passent avant tout (bloquant)
+  const aAnnuler = annulAFaire();
+  if (aAnnuler.length) return montrerAnnulHajiba(aAnnuler[0], aAnnuler.length);
   if (p.length) return montrerCarrousel(p);
+  const r = retards();
+  if (r.length) return montrerRetard(r[0], r.length);
   if (ALR.file.length) return montrerAlerte(ALR.file.shift());
 }
 setInterval(verifierAlertes, 15000);
 setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerAlertes(); }, 90000);
 document.addEventListener('visibilitychange', () => { if (st.pin && document.visibilityState === 'visible') chargerAlertes(); });
 
+// ---------- Colis 3 jours après « le livreur n'a pas pu joindre » et toujours pas livré ----------
+// popup rouge (agente du colis + admin) : Oui → demande d'annulation envoyée à Hajiba ; Non → on garde 24 h puis ça revient
+const ANL = { liste: [] };
+async function chargerAnnul() { try { const d = await api('annul', {}); ANL.liste = d.annulations || []; } catch (e) {} }
+const annulDe = c => ANL.liste.find(a => a.colis === c);
+const debutRetard = o => Math.min(o.inj1 ? tLiv(o.inj1) : Infinity, o.g === 'pasrep' && o.dliv ? tLiv(o.dliv) : Infinity);
+const societe = o => /^CL-IRY/i.test(o.colis || '') ? 'Irsaliyat' : 'Colya';
+function retards() {
+  if (!st.agent) return [];
+  const now = Date.now();
+  return ALR.items.filter(o => ['pasrep', 'rp', 'sorti'].includes(o.g) && (o.agent === st.agent || st.agent === 'ADMIN')).filter(o => {
+    const t = debutRetard(o); if (!isFinite(t) || now - t < 3 * 86400000) return false;
+    const a = annulDe(o.colis); if (!a) return true;
+    return a.etat === 'garder' && now > Date.parse(a.jusqua || 0);
+  }).sort((a, b) => debutRetard(a) - debutRetard(b));
+}
+const annulAFaire = () => st.agent === 'HAJIBA' ? ANL.liste.filter(a => a.etat === 'demande') : [];
+const dureeJ = ms => { const h = Math.floor(ms / 3600000); return Math.floor(h / 24) + ' j ' + (h % 24) + ' h'; };
+const dateCourte2 = t => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+function montrerRetard(o, n) {
+  ALR.ouvert = true; jouerSon(SON_PASREP);
+  const prix = String(o.total || '').replace('درهم', 'DH').trim(), t0 = debutRetard(o);
+  const derniere = lignesLivreur(o).pop();
+  const fond = el('div', { class: 'alr-fond' }), carte = el('div', { class: 'alr rouge retard' });
+  const infos = { client: o.client, total: prix, produit: o.produit, ville: o.ville, tel: o.tel, agent: o.agent, societe: societe(o), livraison: o.livraison };
+  const fin = () => { fond.remove(); ALR.ouvert = false; majCamion(); setTimeout(verifierAlertes, 400); };
+  const oui = el('button', { class: 'alr-b', style: 'background:#ef4444;color:#fff', onclick: async () => { oui.disabled = true; try { await api('annul', { op: 'demander', colis: o.colis, infos }); ANL.liste.push({ colis: o.colis, etat: 'demande', infos }); toast('Demande envoyée à Hajiba'); fin(); } catch (e) { toast(e.message, true); oui.disabled = false; } } }, '✓ Oui, annuler');
+  const non = el('button', { class: 'alr-b gr', onclick: async () => { non.disabled = true; try { await api('annul', { op: 'garder', colis: o.colis, infos }); ANL.liste = ANL.liste.filter(a => a.colis !== o.colis).concat({ colis: o.colis, etat: 'garder', jusqua: new Date(Date.now() + 86400000).toISOString() }); toast('On garde 24 h'); fin(); } catch (e) { toast(e.message, true); non.disabled = false; } } }, '✗ Non · 24 h');
+  carte.append(el('div', { class: 'alr-ic', style: 'background:#3a1418' }, '⏰'),
+    el('span', { class: 'alr-tag', style: 'background:#ef4444;color:#fff', text: '🔴 ' + Math.floor((Date.now() - t0) / 86400000) + ' jours · pas livré' + (n > 1 ? ' · 1/' + n : '') }),
+    el('div', { class: 'alr-cl', text: o.client + ' · ' + prix + (o.agent && o.agent !== st.agent ? ' · ' + nomPropre(o.agent) : '') }),
+    el('div', { class: 'alr-pr', text: [String(o.produit || '').split(' — ').slice(0, 3).join(' — '), o.ville, o.tel].filter(Boolean).join(' · ') }),
+    el('div', { class: 'alr-tl' },
+      el('div', {}, el('span', { text: '📵 Le livreur n\'a pas pu joindre' }), el('b', { text: dateCourte2(t0) })),
+      el('div', {}, el('span', { text: '🚚 État actuel' }), el('b', { text: (o.livraison || '—') + ' · ' + societe(o) })),
+      derniere ? el('div', {}, el('span', { text: '📝 Dernière situation' }), el('b', { text: '"' + (derniere[3] || '').slice(0, 40) + '"' })) : el('div', {}),
+      el('div', {}, el('span', { text: '⏳ Depuis' }), el('b', { style: 'color:#ff8a8a', text: dureeJ(Date.now() - t0) }))),
+    el('div', { class: 'alr-2' }, el('a', { class: 'alr-b gr', href: 'tel:0' + telLiv(o) }, '📞 Appeler'), el('a', { class: 'alr-b wa', href: waLiv(o, (GROUPES.find(g => g.id === 'pr') || {}).msg || MSG_DEFAUT), target: '_blank', rel: 'noopener' }, 'WhatsApp')),
+    el('div', { class: 'alr-q', text: 'هاد الكوليس هادي ' + Math.floor((Date.now() - t0) / 86400000) + ' أيام والليفرور ما لقاش الكليان، وباقي ما تليفراش. واش نلغيوه؟' }),
+    el('div', { class: 'alr-2' }, oui, non));
+  fond.append(carte); document.body.append(fond);
+}
+function montrerAnnulHajiba(a, n) {
+  ALR.ouvert = true; jouerSon(SON_PASREP);
+  const i = a.infos || {}, soc = i.societe || (/^CL-IRY/i.test(a.colis) ? 'Irsaliyat' : 'Colya');
+  const site = soc === 'Irsaliyat' ? 'https://irsaliyat.ma' : 'https://colyamaroc.app/clients/parcels';
+  const fond = el('div', { class: 'alr-fond' }), carte = el('div', { class: 'alr rouge' });
+  const fait = el('button', { class: 'alr-b ok', onclick: async () => { fait.disabled = true; try { await api('annul', { op: 'fait', colis: a.colis }); a.etat = 'fait'; toast('Annulation enregistrée'); fond.remove(); ALR.ouvert = false; setTimeout(verifierAlertes, 400); } catch (e) { toast(e.message, true); fait.disabled = false; } } }, "✓ C'est annulé sur " + soc);
+  carte.append(el('div', { class: 'alr-ic', style: 'background:#3a1418' }, '🛑'),
+    el('span', { class: 'alr-tag', style: 'background:#ef4444;color:#fff', text: '❌ À ANNULER · ' + soc + (n > 1 ? ' · 1/' + n : '') }),
+    el('div', { class: 'alr-cl', text: (i.client || '—') + ' · ' + (i.total || '') + (i.agent ? ' · ' + nomPropre(i.agent) : '') }),
+    el('div', { class: 'alr-pr', text: [String(i.produit || '').split(' — ').slice(0, 3).join(' — '), i.ville, i.tel].filter(Boolean).join(' · ') }),
+    el('div', { class: 'alr-tl' },
+      el('div', {}, el('span', { text: '📦 Colis' }), el('b', { text: a.colis })),
+      el('div', {}, el('span', { text: '🙋 Demandé par' }), el('b', { text: nomPropre(a.qui || '') + (a.quand ? ' · ' + dateCourte2(a.quand) : '') })),
+      el('div', {}, el('span', { text: '❓ Raison' }), el('b', { text: '3 jours sans livraison' }))),
+    el('div', { class: 'alr-2' }, el('button', { class: 'alr-b gr', onclick: e => { try { navigator.clipboard.writeText(a.colis); e.currentTarget.textContent = '✓ Copié'; } catch (er) {} } }, '📋 Copier le code'),
+      el('a', { class: 'alr-b wa', href: site, target: '_blank', rel: 'noopener' }, '🌐 Ouvrir ' + soc)),
+    fait);
+  fond.append(carte); document.body.append(fond);
+}
 function fermerAlerte(box, relance) { box.remove(); ALR.ouvert = false; if (relance) ALR.dernier = Date.now(); majCamion(); setTimeout(verifierAlertes, 400); }
 function montrerAlerte(a) {
   ALR.ouvert = true;
