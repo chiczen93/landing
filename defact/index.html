@@ -353,6 +353,8 @@ footer{text-align:center;color:var(--muted);font-size:13.5px;padding:24px 0 100p
   function tel(v) { var d = String(v).replace(/\D/g, ''); if (d.indexOf('212') === 0) d = '0' + d.slice(3); return /^0[5-7]\d{8}$/.test(d) ? d : ''; }
   function erreur(n, m) { var e = f.querySelector('[data-for="' + n + '"]'); if (e) e.textContent = m || ''; }
 
+  function cookie(n) { var m = document.cookie.match('(?:^|; )' + n + '=([^;]*)'); return m ? decodeURIComponent(m[1]) : ''; }
+  function fbcUrl() { var c = new URLSearchParams(location.search).get('fbclid'); return c ? 'fb.1.' + Date.now() + '.' + c : ''; }
   f.addEventListener('submit', function (ev) {
     ev.preventDefault();
     var nom = f.nom.value.trim(), t = tel(f.telephone.value), ville = f.ville.value.trim(), ok = true;
@@ -367,8 +369,12 @@ footer{text-align:center;color:var(--muted);font-size:13.5px;padding:24px 0 100p
     var data = new URLSearchParams({
       produit: P.produit, taille: o.label, quantite: 'مقاس ' + val('taille') + ' — لون ' + couleurs,
       prix: String(o.prix), nom: nom, telephone: t, ville: ville, note: '',
-      page: location.pathname, event_id: eventId
+      page: location.pathname, event_id: eventId,
+      pixels: PAGE.pixelsMeta.join(','), fbp: cookie('_fbp'), fbc: cookie('_fbc') || fbcUrl(), url: location.href
     });
+    var ph = '212' + t.replace(/\D/g, '').replace(/^0/, '');
+    try { PAGE.pixelsMeta.forEach(function (id) { fbq('init', id, { ph: ph, fn: nom.split(' ')[0].toLowerCase(), country: 'ma' }); }); } catch (e) {}
+    try { ttq.identify({ phone_number: '+' + ph }); } catch (e) {}
     var btn = document.getElementById('btn'); btn.disabled = true; btn.firstChild.nodeValue = 'كنصيفطو الطلب… ';
     document.getElementById('errForm').textContent = '';
     fetch(P.webhook, { method: 'POST', body: data }).then(function (r) {
