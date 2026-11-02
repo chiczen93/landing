@@ -506,7 +506,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611021058';
+const VERSION = '202611021638';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1344,7 +1344,8 @@ function traiterAlertes() {
     if (!vus || vus[o.colis] === o.g) continue;
     if (o.g === 'livre' && (o.agent === moi || admin)) livres.push(o);
     else if (o.g === 'sorti' && o.agent === moi) ALR.file.push({ t: 'sorti', o });
-    else if (aRappeler(o.g) && o.agent !== moi && (admin || suivi)) ALR.file.push({ t: 'info', o });
+    // l'admin ne reçoit que les clients injoignables (pas les annulés / refusés) ; Hajiba (suivi) reçoit les deux
+    else if (aRappeler(o.g) && o.agent !== moi && (suivi || (admin && o.g === 'pasrep'))) ALR.file.push({ t: 'info', o });
   }
   if (livres.length > 3) ALR.file.unshift({ t: 'livres', l: livres }); else for (const o of livres) ALR.file.unshift({ t: 'livre', o });
   ecrireMap('liv_vus_', nouveau);
