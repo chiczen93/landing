@@ -295,6 +295,8 @@
   .stk-m th { color: var(--muted); font-weight: 700; font-size: 10.5px; text-align: center; padding: 3px 4px; } .stk-m td { text-align: center; padding: 6px 4px; border-top: 1px solid var(--line); font-weight: 700; }
   .stk-m td.c { text-align: left; font-weight: 600; white-space: nowrap; } .stk-m td.n { cursor: pointer; color: var(--ink); text-decoration: underline dotted; } .stk-m td.z { color: var(--muted); opacity: .5; font-weight: 500; } .stk-m td.t { color: #f59e0b; }
   .stk-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; border: 1px solid #555; vertical-align: -1px; }
+  .stk-sub { font-size: 10.5px; font-weight: 800; color: var(--muted); margin: 8px 0 2px; letter-spacing: .03em; } .stk-coul td.n { color: var(--muted); }
+  .stk-anc { display: block; width: 100%; text-align: left; margin: 14px 0 8px; padding: 11px 12px; border-radius: 12px; border: 1px dashed #f59e0b; background: rgba(245,158,11,.08); color: #f59e0b; font-weight: 800; font-size: 13px; cursor: pointer; font-family: inherit; }
   .stk-back { border: 0; background: none; color: var(--brand); font-weight: 700; font-size: 13px; padding: 4px 0; cursor: pointer; }
   .stk-r { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; } .stk-r small { display: block; color: var(--muted); font-size: 11.5px; }
   .stk-p { font-size: 10.5px; font-weight: 800; padding: 4px 7px; border-radius: 7px; white-space: nowrap; } .stk-p.ok { background: #123222; color: #4ade80; } .stk-p.w { background: #2d2012; color: #f0a54a; } .stk-p.b { background: #14324a; color: #7cb8ff; }
@@ -503,7 +505,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611021033';
+const VERSION = '202611021039';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1181,8 +1183,9 @@ function repartirStk(liste) {
   const mod = new Map();
   for (const o of liste) {
     const p = lireProduit(o.produit);
-    if (!mod.has(p.modele)) mod.set(p.modele, { nom: p.modele, colis: 0, pcs: 0, cases: new Map(), tailles: new Set(), coul: new Set() });
+    if (!mod.has(p.modele)) mod.set(p.modele, { nom: p.modele, colis: 0, pcs: 0, cases: new Map(), packs: new Map(), tailles: new Set(), coul: new Set() });
     const M = mod.get(p.modele); M.colis++; M.pcs += p.pcs; M.tailles.add(p.taille);
+    const kp = p.pcs + '|' + p.taille; if (!M.packs.has(kp)) M.packs.set(kp, { n: 0, o: [] }); M.packs.get(kp).n++; M.packs.get(kp).o.push(o);
     const cs = p.coul.length ? p.coul : ['—'];
     const base = Math.floor(p.pcs / cs.length); let reste = p.pcs - base * cs.length;
     cs.forEach(c => {
@@ -1206,19 +1209,34 @@ async function ouvrirStock() {
   const fond = el('div', { class: 'lu-fond', style: 'position:fixed;z-index:95', onclick: e => { if (e.target === fond) fond.remove(); } });
   const sheet = el('div', { class: 'lu-sheet stk', style: 'max-height:90%' });
   fond.append(sheet); document.body.append(fond);
+  // les commandes des 3 derniers jours d'abord ; les plus anciennes (4 à 7 jours) à part
+  const recent = o => (Date.now() - (Date.parse(o.date) || 0)) < 3 * 86400000;
+  let voirAnciens = false;
+  const blocModele = M => {
+    const tailles = TAILLES.filter(t => M.tailles.has(t)), th = el('tr', {}, el('th', {}), ...tailles.map(t => el('th', { text: t === 'Unique' ? '—' : t })), el('th', { text: 'Tot' }));
+    const nomT = t => t === 'Unique' ? '' : t + ' · ';
+    // 1) combien de commandes par pack (5, 6, 10 pièces…) et par taille
+    const packs = [...new Set([...M.packs.keys()].map(k => Number(k.split('|')[0])))].sort((a, b) => a - b);
+    const tPacks = el('table', {}, th, ...packs.map(n => el('tr', {}, el('td', { class: 'c', text: n === 1 ? '1 pièce' : 'Pack ' + n }),
+      ...tailles.map(t => { const x = M.packs.get(n + '|' + t); return el('td', x ? { class: 'n', onclick: () => detail(M.nom + ' · ' + nomT(t) + (n === 1 ? '1 pièce' : 'pack ' + n), x.o) } : { class: 'z' }, x ? String(x.n) : '–'); }),
+      el('td', { class: 't', text: String(tailles.reduce((a, t) => a + ((M.packs.get(n + '|' + t) || {}).n || 0), 0)) }))));
+    // 2) les couleurs (en pièces), seulement si des couleurs sont écrites
+    const coul = [...M.coul].filter(c => c !== '—');
+    const tCoul = coul.length ? el('table', { class: 'stk-coul' }, th.cloneNode(true), ...[...coul, ...(M.coul.has('—') ? ['—'] : [])].map(c => { const col = COULEURS_P.find(x => x[0] === c); return el('tr', {}, el('td', { class: 'c' }, el('i', { class: 'stk-dot', style: 'background:' + (col ? col[2] : 'transparent') }), c === '—' ? 'Sans couleur' : c),
+      ...tailles.map(t => { const x = M.cases.get(c + '|' + t); return el('td', x ? { class: 'n', onclick: () => detail(M.nom + ' · ' + nomT(t) + (c === '—' ? 'Sans couleur' : c), x.o) } : { class: 'z' }, x ? String(x.n) : '–'); }),
+      el('td', { class: 't', text: String(tailles.reduce((a, t) => a + ((M.cases.get(c + '|' + t) || {}).n || 0), 0)) })); })) : null;
+    return el('div', { class: 'stk-m' }, el('div', { class: 'stk-h' }, el('b', { text: M.nom }), el('span', { text: M.colis + ' cmd · ' + M.pcs + ' pcs' })),
+      el('div', { class: 'stk-w' }, tPacks), tCoul ? el('div', { class: 'stk-sub', text: 'Couleurs (en pièces)' }) : null, tCoul ? el('div', { class: 'stk-w' }, tCoul) : null);
+  };
   const vue = () => {
-    const mods = repartirStk(STK.liste), pcs = mods.reduce((a, m) => a + m.pcs, 0);
+    const rec = STK.liste.filter(recent), anc = STK.liste.filter(o => !recent(o));
+    const mods = repartirStk(rec), pcs = mods.reduce((a, m) => a + m.pcs, 0), modsA = repartirStk(anc);
     sheet.replaceChildren(el('div', { class: 'lu-grab' }), el('h3', { text: '📦 À préparer · pas encore sortis' }),
-      el('div', { class: 'ann-d', text: 'Confirmées + colis pas encore ramassés par Irsaliyat / Colya · 7 derniers jours' }),
-      el('div', { class: 'stk-tot' }, ...[['COLIS', STK.liste.length], ['PIÈCES', pcs], ['MODÈLES', mods.length]].map(([t, n]) => el('div', {}, el('small', { text: t }), el('b', { text: String(n) })))),
-      ...(mods.length ? mods.map(M => {
-        const tailles = TAILLES.filter(t => M.tailles.has(t)), coul = [...M.coul].sort((a, b) => a === '—' ? 1 : b === '—' ? -1 : 0);
-        const cell = (c, t) => { const x = M.cases.get(c + '|' + t); return el('td', x ? { class: 'n', onclick: () => detail(M.nom + ' · ' + (t === 'Unique' ? '' : t + ' · ') + (c === '—' ? 'Sans couleur' : c), x.o) } : { class: 'z' }, x ? String(x.n) : '–'); };
-        const totC = c => tailles.reduce((a, t) => a + ((M.cases.get(c + '|' + t) || {}).n || 0), 0);
-        return el('div', { class: 'stk-m' }, el('div', { class: 'stk-h' }, el('b', { text: M.nom }), el('span', { text: M.colis + ' colis · ' + M.pcs + ' pcs' })),
-          el('div', { class: 'stk-w' }, el('table', {}, el('tr', {}, el('th', {}), ...tailles.map(t => el('th', { text: t === 'Unique' ? '—' : t })), el('th', { text: 'Tot' })),
-            ...coul.map(c => { const col = COULEURS_P.find(x => x[0] === c); return el('tr', {}, el('td', { class: 'c' }, el('i', { class: 'stk-dot', style: 'background:' + (col ? col[2] : 'transparent') }), c === '—' ? 'Sans couleur' : c), ...tailles.map(t => cell(c, t)), el('td', { class: 't', text: String(totC(c)) })); }))));
-      }) : [el('div', { class: 'chat-vide', text: 'Rien à préparer 🎉' })]));
+      el('div', { class: 'ann-d', text: 'Confirmées + colis pas encore ramassés par Irsaliyat / Colya · 3 derniers jours · chiffres = nombre de commandes' }),
+      el('div', { class: 'stk-tot' }, ...[['COMMANDES', rec.length], ['PIÈCES', pcs], ['MODÈLES', mods.length]].map(([t, n]) => el('div', {}, el('small', { text: t }), el('b', { text: String(n) })))),
+      ...(mods.length ? mods.map(blocModele) : [el('div', { class: 'chat-vide', text: 'Rien à préparer 🎉' })]),
+      anc.length ? el('button', { class: 'stk-anc', onclick: () => { voirAnciens = !voirAnciens; vue(); } }, (voirAnciens ? '▾ ' : '▸ ') + '⏳ Plus de 3 jours · ' + anc.length + ' commande' + (anc.length > 1 ? 's' : '') + ' · ' + modsA.reduce((a, m) => a + m.pcs, 0) + ' pcs') : null,
+      ...(voirAnciens ? modsA.map(blocModele) : []));
   };
   const detail = (titre, os) => {
     let f = 'tous';
