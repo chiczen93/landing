@@ -506,7 +506,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611021049';
+const VERSION = '202611021058';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1915,17 +1915,20 @@ function rendreKpis() {
   const auj = st.stats.find(r => r.agent === moi && r.periode === 'aujourdhui') || {};
   const s7 = st.stats.find(r => r.agent === moi && r.periode === '7j') || {};
   const per = st.role === 'admin' ? $('#f-jours').value : '';
-  if (per === 'auj' || per === 'hier') {
-    // la période choisie (aujourd'hui / hier) : calculé sur les commandes affichées
-    const lab = per === 'hier' ? 'hier' : 'auj.';
+  if (st.role === 'admin' && per) {
+    // tout le tableau suit la période (et l'agente) choisies : calculé sur les commandes affichées
+    const lab = { auj: 'auj.', hier: 'hier' }[per] || per + ' j';
     const cmds = st.commandes.filter(o => o.row);
     const conf = cmds.filter(o => o.statut === 'CONFIRMER').length;
     const dbl = cmds.filter(o => o.statut === 'DOUBLE').length;
+    // livraison : livrés / colis terminés (livrés + retours + annulés / refusés) de la période
+    const g = st.commandes.filter(o => o.colis).map(gLiv);
+    const livres = g.filter(x => x === 'ok').length, finis = g.filter(x => ['ok', 'rr', 'rt', 'an'].includes(x)).length;
     $('#kpis').replaceChildren(
       el('div', { class: 'kpi' }, el('span', { text: 'Commandes · ' + lab }), el('b', { text: fmt(cmds.length) })),
       el('div', { class: 'kpi' }, el('span', { text: 'Confirmées · ' + lab }), el('b', { text: fmt(conf) })),
       el('div', { class: 'kpi' }, el('span', { text: 'Confirmation · ' + lab }), el('b', { text: cmds.length - dbl > 0 ? pct(conf / (cmds.length - dbl) * 100) : '—' })),
-      el('div', { class: 'kpi' }, el('span', { text: 'Livraison · 7 j' }), el('b', { text: pct(s7.taux_livr) })),
+      el('div', { class: 'kpi' }, el('span', { text: 'Livraison · ' + lab }), el('b', { text: finis ? pct(livres / finis * 100) : '—' })),
     );
     return;
   }
