@@ -287,6 +287,17 @@
   .pres-r .p-av { margin: 0; }
   .pres-t { flex: 1; min-width: 0; } .pres-t b { display: block; font-size: 14px; } .pres-t small { font-size: 12px; color: var(--muted); }
   .pres-s { font-size: 12px; font-weight: 800; white-space: nowrap; }
+  .btn-stock { position: relative; } .btn-stock .b { position: absolute; top: -7px; right: -8px; background: #f59e0b; color: #1a1200; font-size: 10px; font-weight: 900; font-style: normal; border-radius: 9px; padding: 1px 5px; line-height: 1.4; }
+  .stk-tot { display: flex; gap: 8px; margin: 10px 0; } .stk-tot div { flex: 1; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; } .stk-tot small { font-size: 10.5px; color: var(--muted); font-weight: 700; } .stk-tot b { display: block; font-size: 19px; }
+  .stk-m { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 10px; margin-bottom: 9px; }
+  .stk-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; } .stk-h b { font-size: 13.5px; } .stk-h span { font-size: 11.5px; color: #f59e0b; font-weight: 800; white-space: nowrap; }
+  .stk-w { overflow-x: auto; } .stk-m table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .stk-m th { color: var(--muted); font-weight: 700; font-size: 10.5px; text-align: center; padding: 3px 4px; } .stk-m td { text-align: center; padding: 6px 4px; border-top: 1px solid var(--line); font-weight: 700; }
+  .stk-m td.c { text-align: left; font-weight: 600; white-space: nowrap; } .stk-m td.n { cursor: pointer; color: var(--ink); text-decoration: underline dotted; } .stk-m td.z { color: var(--muted); opacity: .5; font-weight: 500; } .stk-m td.t { color: #f59e0b; }
+  .stk-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; border: 1px solid #555; vertical-align: -1px; }
+  .stk-back { border: 0; background: none; color: var(--brand); font-weight: 700; font-size: 13px; padding: 4px 0; cursor: pointer; }
+  .stk-r { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; } .stk-r small { display: block; color: var(--muted); font-size: 11.5px; }
+  .stk-p { font-size: 10.5px; font-weight: 800; padding: 4px 7px; border-radius: 7px; white-space: nowrap; } .stk-p.ok { background: #123222; color: #4ade80; } .stk-p.w { background: #2d2012; color: #f0a54a; } .stk-p.b { background: #14324a; color: #7cb8ff; }
   .ann-lab { font-size: 11.5px; font-weight: 800; color: var(--muted); margin: 12px 0 4px; letter-spacing: .04em; }
   .ann-lus { margin-top: 10px; background: rgba(255,255,255,.55); border-radius: 10px; padding: 8px 10px; font-size: 13px; }
   .ann-lus > div { display: flex; justify-content: space-between; padding: 3px 0; }
@@ -436,6 +447,7 @@
           <div class="mark"><img src="icons/icon-192.png" alt=""></div>
           <div class="who"><b id="me">—</b><small id="sync">—</small></div>
         </div>
+        <button class="icon-btn btn-stock" id="btn-stock" aria-label="À préparer" hidden>📦<i class="b" hidden></i></button>
         <button class="icon-btn" id="btn-annonces" aria-label="Annonces" hidden>📢</button>
         <button class="icon-btn" id="refresh" aria-label="Actualiser"><svg class="i"><use href="#i-refresh"/></svg></button>
         <button class="icon-btn" id="logout" aria-label="Déconnexion"><svg class="i"><use href="#i-out"/></svg><span>Quitter</span></button>
@@ -491,7 +503,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611020047';
+const VERSION = '202611021033';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -590,7 +602,7 @@ async function login(pin) {
     $('#f-agent').hidden = false; $('#f-jours').hidden = false;
     $('#f-agent').replaceChildren(el('option', { value: 'TOUS', text: 'Toutes les agentes' }), el('option', { value: 'LIBRE', text: 'Non attribuées' }), ...AGENTES.map(a => el('option', { value: a, text: nomPropre(a) })), el('option', { value: 'NO APPEL', text: 'No appel' }));
   }
-  $('#fab-chat').hidden = false; lireLus(); chargerChat(); chargerAlertes(); chargerAnnonces(); signalPresence(); chargerPresence();
+  $('#fab-chat').hidden = false; lireLus(); chargerChat(); chargerAlertes(); chargerAnnonces(); signalPresence(); chargerPresence(); chargerStock();
   charger();
   api('villes').then(d => { st.villes = d.villes; $('#villes').replaceChildren(...d.villes.map(v => el('option', { value: v }))); }).catch(() => {});
   chargerStats();
@@ -1143,6 +1155,85 @@ function voirPresence() {
     el('div', { class: 'ann-d', style: 'margin-top:10px;opacity:.7', text: 'Temps = application ouverte · actions = statuts, notes et messages' })));
   document.body.append(fond);
 }
+// ---------- À préparer (admin) : modèles × tailles × couleurs des commandes pas encore sorties ----------
+// confirmées sans colis + colis encore chez Irsaliyat / Colya (pas ramassés), 7 derniers jours ; dès qu'un colis est expédié il disparaît
+const STK = { liste: [], vu: 0 };
+const TAILLES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL', 'Unique'];
+const COULEURS_P = [['Noir', /noire?s?|black|كحل|اكحل|أسود|اسود|سوداء/i, '#111'], ['Gris', /gris|grey|رمادي|رماضي|griss/i, '#7b7b7b'], ['Marron', /marron|brun|chocolat|قهوي|ماروني|قهوة/i, '#6b4a2b'],
+  ['Taupe', /taupe/i, '#8b7d6b'], ['Beige', /beige|بيج/i, '#d8c3a5'], ['Blanc', /blanc|white|أبيض|ابيض|بيضاء/i, '#eee'], ['Rose', /rose|pink|وردي|روز/i, '#e88aa8'],
+  ['Rouge', /rouge|red|أحمر|احمر|حمراء/i, '#c0392b'], ['Bleu', /bleu|blue|أزرق|ازرق|زرقاء/i, '#2f6fd6'], ['Vert', /vert|green|أخضر|اخضر/i, '#2e8b57'], ['Nude', /nude|chair/i, '#e2b48f']];
+const enAttenteStk = o => (o.statut === 'CONFIRMER' && !o.colis) || (o.colis && !/doublon/i.test(o.livraison || '') && (!o.livraison || /envoy[ée] [àa]|attente|ramassage|nouveau colis|new_parcel/i.test(o.livraison)));
+function lireProduit(t) {
+  const txt = String(t || ''), parts = txt.split(/\s+—\s+|\s+-\s+(?=\S)/);
+  const modele = (parts[0] || 'Autre').replace(/\s+/g, ' ').trim().slice(0, 60) || 'Autre';
+  const b = ' ' + txt.toLowerCase() + ' ';
+  let m = b.match(/(?<![\p{L}\p{N}])([2-6]\s?xl|xxxl|xxl|xl|xs|s|m|l)(?![\p{L}\p{N}])/u), taille = m ? m[1].replace(/\s/g, '').toUpperCase() : 'Unique';
+  if (taille === '2XL') taille = 'XXL'; if (taille === 'XXXL') taille = '3XL';
+  const q = b.match(/(\d+)\s*(?:pi[eè]ces?|pcs?|ps|قطع|قطعة|بياس)/u);
+  let pcs = q ? Number(q[1]) : 1;
+  const off = b.match(/\+\s*(\d+)\s*(?:off|gratuit|cadeau|هدية)/i); if (off) pcs += Number(off[1]);
+  if (!(pcs > 0 && pcs < 100)) pcs = 1;
+  let coul = COULEURS_P.filter(([, re]) => re.test(txt)).map(c => c[0]);
+  if (/taupe\s+gris/i.test(txt) && !/gris\s*(?:fonc|anthra|clair)|\bet gris|\/\s*gris|gris\s*\//i.test(txt)) coul = coul.filter(c => c !== 'Gris'); // « Taupe gris chaud » = une seule couleur
+  return { modele, taille, pcs, coul };
+}
+function repartirStk(liste) {
+  const mod = new Map();
+  for (const o of liste) {
+    const p = lireProduit(o.produit);
+    if (!mod.has(p.modele)) mod.set(p.modele, { nom: p.modele, colis: 0, pcs: 0, cases: new Map(), tailles: new Set(), coul: new Set() });
+    const M = mod.get(p.modele); M.colis++; M.pcs += p.pcs; M.tailles.add(p.taille);
+    const cs = p.coul.length ? p.coul : ['—'];
+    const base = Math.floor(p.pcs / cs.length); let reste = p.pcs - base * cs.length;
+    cs.forEach(c => {
+      const n = base + (reste-- > 0 ? 1 : 0); if (!n) return;
+      M.coul.add(c); const k = c + '|' + p.taille;
+      if (!M.cases.has(k)) M.cases.set(k, { n: 0, o: [] });
+      const x = M.cases.get(k); x.n += n; if (!x.o.includes(o)) x.o.push(o);
+    });
+  }
+  return [...mod.values()].sort((a, b) => b.pcs - a.pcs);
+}
+async function chargerStock() {
+  if (!st.pin || st.agent !== 'ADMIN') return;
+  $('#btn-stock').hidden = false;
+  try { const d = await api('commandes', { filtre: 'TOUS', jours: 7 }); STK.liste = (d.commandes || []).filter(enAttenteStk); STK.vu = Date.now(); majBadgeStock(); } catch (e) {}
+}
+function majBadgeStock() { const b = $('#btn-stock .b'); if (!b) return; b.hidden = !STK.liste.length; b.textContent = STK.liste.length; }
+setInterval(() => { if (document.visibilityState === 'visible') chargerStock(); }, 120000);
+const etatStk = o => !o.colis ? ['Confirmé', 'ok'] : /colya/i.test(o.livraison) || /^\d/.test(o.colis) ? ['Colya · ' + (o.livraison || 'En attente').replace(/envoy[ée] [àa] colya/i, 'Envoyé'), 'b'] : ['Irsaliyat · ' + (o.livraison || '').replace(/envoy[ée] [àa] irsaliyat/i, 'Envoyé').replace('En attente de ramassage', 'Attente ramassage'), 'w'];
+async function ouvrirStock() {
+  const fond = el('div', { class: 'lu-fond', style: 'position:fixed;z-index:95', onclick: e => { if (e.target === fond) fond.remove(); } });
+  const sheet = el('div', { class: 'lu-sheet stk', style: 'max-height:90%' });
+  fond.append(sheet); document.body.append(fond);
+  const vue = () => {
+    const mods = repartirStk(STK.liste), pcs = mods.reduce((a, m) => a + m.pcs, 0);
+    sheet.replaceChildren(el('div', { class: 'lu-grab' }), el('h3', { text: '📦 À préparer · pas encore sortis' }),
+      el('div', { class: 'ann-d', text: 'Confirmées + colis pas encore ramassés par Irsaliyat / Colya · 7 derniers jours' }),
+      el('div', { class: 'stk-tot' }, ...[['COLIS', STK.liste.length], ['PIÈCES', pcs], ['MODÈLES', mods.length]].map(([t, n]) => el('div', {}, el('small', { text: t }), el('b', { text: String(n) })))),
+      ...(mods.length ? mods.map(M => {
+        const tailles = TAILLES.filter(t => M.tailles.has(t)), coul = [...M.coul].sort((a, b) => a === '—' ? 1 : b === '—' ? -1 : 0);
+        const cell = (c, t) => { const x = M.cases.get(c + '|' + t); return el('td', x ? { class: 'n', onclick: () => detail(M.nom + ' · ' + (t === 'Unique' ? '' : t + ' · ') + (c === '—' ? 'Sans couleur' : c), x.o) } : { class: 'z' }, x ? String(x.n) : '–'); };
+        const totC = c => tailles.reduce((a, t) => a + ((M.cases.get(c + '|' + t) || {}).n || 0), 0);
+        return el('div', { class: 'stk-m' }, el('div', { class: 'stk-h' }, el('b', { text: M.nom }), el('span', { text: M.colis + ' colis · ' + M.pcs + ' pcs' })),
+          el('div', { class: 'stk-w' }, el('table', {}, el('tr', {}, el('th', {}), ...tailles.map(t => el('th', { text: t === 'Unique' ? '—' : t })), el('th', { text: 'Tot' })),
+            ...coul.map(c => { const col = COULEURS_P.find(x => x[0] === c); return el('tr', {}, el('td', { class: 'c' }, el('i', { class: 'stk-dot', style: 'background:' + (col ? col[2] : 'transparent') }), c === '—' ? 'Sans couleur' : c), ...tailles.map(t => cell(c, t)), el('td', { class: 't', text: String(totC(c)) })); }))));
+      }) : [el('div', { class: 'chat-vide', text: 'Rien à préparer 🎉' })]));
+  };
+  const detail = (titre, os) => {
+    let f = 'tous';
+    const r = () => {
+      const groupes = { tous: os, conf: os.filter(o => !o.colis), irs: os.filter(o => o.colis && etatStk(o)[1] === 'w'), col: os.filter(o => o.colis && etatStk(o)[1] === 'b') };
+      sheet.replaceChildren(el('div', { class: 'lu-grab' }), el('button', { class: 'stk-back', onclick: vue }, '‹ Retour'), el('h3', { text: titre }),
+        el('div', { class: 'alr-opts', style: 'justify-content:flex-start;margin:8px 0' }, ...[['tous', 'Tous'], ['conf', 'Confirmés'], ['irs', 'Irsaliyat'], ['col', 'Colya']].filter(([k]) => k === 'tous' || groupes[k].length).map(([k, t]) => el('button', { class: 'alr-o' + (f === k ? ' on' : ''), style: 'color:var(--ink);border-color:var(--line)', text: t + ' · ' + groupes[k].length, onclick: () => { f = k; r(); } }))),
+        ...groupes[f].map(o => { const [t, c] = etatStk(o); const p = lireProduit(o.produit); return el('div', { class: 'stk-r' }, el('div', {}, el('b', { text: o.client || '—' }), ' · ' + (o.ville || '—'), el('small', { text: [nomPropre(o.agent || ''), p.pcs + ' pc' + (p.pcs > 1 ? 's' : ''), (o.total || '').replace('درهم', 'DH')].filter(Boolean).join(' · ') })), el('span', { class: 'stk-p ' + c, text: t })); }));
+    };
+    r();
+  };
+  vue();
+  if (Date.now() - STK.vu > 60000) { await chargerStock(); if (document.body.contains(fond)) vue(); }
+}
+$('#btn-stock').addEventListener('click', ouvrirStock);
 // ---------- Tests des alertes (bouton 🔔 dans la discussion) ----------
 function menuTest() {
   const ex = { row: null, id: '', client: 'Test Salma', tel: '0600000000', produit: 'Legging hiver polaire — M — 1 pièce', total: '169 درهم', ville: 'Casablanca', agent: st.agent, colis: 'TEST-' + Date.now(), livraison: '', g: '', dliv: new Date().toISOString().slice(0, 19).replace('T', ' '), notes: '' };
