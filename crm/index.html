@@ -477,6 +477,21 @@
   .nl-l { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid #1a3d28; cursor: pointer; } .nl-l:last-child { border-bottom: 0; }
   .nl-l .nl-av { width: 30px; height: 30px; font-size: 11px; } .nl-l b { flex: 1; font-size: 13.5px; }
   body.avec-nl .tabs-wrap { padding-top: calc(var(--nlh, 70px) + 16px + env(safe-area-inset-top)); }
+
+  /* ---------- carte « argent » (admin) ---------- */
+  .arg { margin: 0 0 10px; }
+  .arg-in { width: 100%; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: linear-gradient(135deg, rgba(249,115,22,.10), var(--panel)); border: 1.5px solid #f97316; border-radius: 16px; padding: 12px 14px; }
+  .arg-h { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 800; color: #f97316; letter-spacing: .03em; }
+  .arg-h em { margin-left: auto; font-style: normal; font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0; }
+  .arg-big { font-size: 24px; font-weight: 900; margin-top: 6px; font-variant-numeric: tabular-nums; } .arg-big small { font-size: 13px; color: #f97316; font-weight: 700; }
+  .arg-l { font-size: 12px; color: var(--muted); }
+  .arg-g { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .arg-g div { background: var(--line-2); border-radius: 12px; padding: 8px 10px; } .arg-g b { display: block; font-size: 14.5px; font-variant-numeric: tabular-nums; } .arg-g span { font-size: 11px; color: var(--muted); }
+  .arg-v { color: #16a34a; } .arg-o { color: #d97706; }
+  .arg-t { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  .arg-t th { text-align: right; font-size: 11px; color: var(--muted); font-weight: 700; padding: 6px 4px; border-bottom: 1px solid var(--line); } .arg-t th:first-child, .arg-t td:first-child { text-align: left; }
+  .arg-t td { text-align: right; padding: 7px 4px; border-bottom: 1px solid var(--line-2); } .arg-t tr.tot td { font-weight: 800; border-bottom: 0; }
+  .arg-note { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -515,6 +530,7 @@
       </div>
       <div class="pwa-bar" id="pwa-bar" hidden></div>
       <div class="pres" id="presence" hidden></div>
+      <div class="arg" id="argent" hidden></div>
       <div class="seg" id="views" role="group" aria-label="Vue">
         <button data-view="orders" aria-pressed="true">Commandes</button>
         <button data-view="perf" aria-pressed="false">Performance</button>
@@ -564,7 +580,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611031646';
+const VERSION = '202611031836';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -663,7 +679,7 @@ async function login(pin) {
     $('#f-agent').hidden = false; $('#f-jours').hidden = false;
     $('#f-agent').replaceChildren(el('option', { value: 'TOUS', text: 'Toutes les agentes' }), el('option', { value: 'LIBRE', text: 'Non attribuées' }), ...AGENTES.map(a => el('option', { value: a, text: nomPropre(a) })), el('option', { value: 'NO APPEL', text: 'No appel' }));
   }
-  $('#fab-chat').hidden = false; lireLus(); chargerChat(); chargerAlertes(); chargerAnnonces(); signalPresence(); chargerPresence(); chargerStock();
+  $('#fab-chat').hidden = false; lireLus(); chargerChat(); chargerAlertes(); chargerAnnonces(); signalPresence(); chargerPresence(); chargerStock(); chargerArgent();
   charger();
   api('villes').then(d => { st.villes = d.villes; $('#villes').replaceChildren(...d.villes.map(v => el('option', { value: v }))); }).catch(() => {});
   chargerStats();
@@ -1554,6 +1570,66 @@ async function chargerStock() {
 }
 function majBadgeStock() { const b = $('#btn-stock .b'); if (!b) return; b.hidden = !STK.liste.length; b.textContent = STK.liste.length; }
 setInterval(() => { if (document.visibilityState === 'visible') chargerStock(); }, 120000);
+
+// ---------- 💰 Argent (admin) : colis livrés = argent que la société de livraison doit verser ----------
+// Calculé depuis les colis de l'application (les livrés restent 7 jours avant le nettoyage de la nuit).
+// Plus tard : versé / non versé et factures lus directement chez Irsaliyat.
+const ARG = { liste: [], vu: 0 };
+const societeArg = o => /colya/i.test(o.livraison || '') || /^(api|\d)/i.test(o.colis || '') ? 'Colya' : 'Irsaliyat';
+const prixArg = o => Number(String(o.total || '').replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+const livreArg = o => /^livr[ée]/i.test(String(o.livraison || '').trim());
+const finiArg = o => /retour|retourn|refus|annul/i.test(String(o.livraison || ''));
+const dhs = n => Math.round(n).toLocaleString('fr-FR').replace(/ | /g, ' ') + ' DH';
+async function chargerArgent() {
+  if (!st.pin || st.agent !== 'ADMIN') return;
+  try { const d = await api('commandes', { filtre: 'TOUS', jours: 30 }); ARG.liste = (d.commandes || []).filter(o => o.colis && !/^[⚠⏳✅]/.test(o.colis)); ARG.vu = Date.now(); rendreArgent(); } catch (e) {}
+}
+setInterval(() => { if (document.visibilityState === 'visible') chargerArgent(); }, 600000);
+function calculArgent() {
+  const minuit = new Date(); minuit.setHours(0, 0, 0, 0);
+  const il7 = minuit.getTime() - 6 * 86400000;
+  const r = { jours: [], soc: { Irsaliyat: { n: 0, dh: 0 }, Colya: { n: 0, dh: 0 } }, auj: { n: 0, dh: 0 }, route: { n: 0, dh: 0 }, liv: [] };
+  for (let i = 6; i >= 0; i--) r.jours.push({ t: minuit.getTime() - i * 86400000, Irsaliyat: { n: 0, dh: 0 }, Colya: { n: 0, dh: 0 } });
+  for (const o of ARG.liste) {
+    const p = prixArg(o), sc = societeArg(o);
+    if (livreArg(o)) {
+      const t = tLiv(o.dliv); if (!t || t < il7) continue;
+      r.soc[sc].n++; r.soc[sc].dh += p; r.liv.push(o);
+      const j = r.jours.find(x => t >= x.t && t < x.t + 86400000); if (j) { j[sc].n++; j[sc].dh += p; }
+      if (t >= minuit.getTime()) { r.auj.n++; r.auj.dh += p; }
+    } else if (!finiArg(o) && !/envoy[ée]|en attente/i.test(o.livraison || '')) { r.route.n++; r.route.dh += p; } // ramassé, pas encore livré
+  }
+  r.tot = { n: r.soc.Irsaliyat.n + r.soc.Colya.n, dh: r.soc.Irsaliyat.dh + r.soc.Colya.dh };
+  return r;
+}
+function rendreArgent() {
+  const box = $('#argent'); if (!box) return;
+  box.hidden = st.agent !== 'ADMIN' || !ARG.vu; if (box.hidden) return;
+  const r = calculArgent();
+  box.replaceChildren(el('button', { class: 'arg-in', type: 'button', onclick: voirArgent },
+    el('div', { class: 'arg-h' }, '💰 ARGENT LIVRÉ · 7 JOURS', el('em', { text: 'mis à jour ' + heureHM(new Date(ARG.vu).toISOString()) })),
+    el('div', { class: 'arg-big' }, dhs(r.tot.dh).replace(' DH', ' '), el('small', { text: 'DH' })),
+    el('div', { class: 'arg-l', text: r.tot.n + ' colis livrés · à recevoir des sociétés de livraison' }),
+    el('div', { class: 'arg-g' },
+      el('div', {}, el('b', { class: 'arg-v', text: dhs(r.auj.dh) }), el('span', { text: "Livré aujourd'hui · " + r.auj.n + ' colis' })),
+      el('div', {}, el('b', { class: 'arg-o', text: dhs(r.route.dh) }), el('span', { text: 'En route · ' + r.route.n + ' colis' })),
+      el('div', {}, el('b', { text: dhs(r.soc.Irsaliyat.dh) }), el('span', { text: 'Irsaliyat · ' + r.soc.Irsaliyat.n + ' livrés' })),
+      el('div', {}, el('b', { text: dhs(r.soc.Colya.dh) }), el('span', { text: 'Colya (Casa) · ' + r.soc.Colya.n + ' livrés' })))));
+}
+function voirArgent() {
+  const r = calculArgent();
+  const fond = el('div', { class: 'lu-fond', style: 'position:fixed;z-index:95', onclick: e => { if (e.target === fond) fond.remove(); } });
+  const jour = t => new Date(t).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+  const lignes = [...r.jours].reverse().map(j => el('tr', {}, el('td', { text: jour(j.t) }), el('td', { text: j.Irsaliyat.n ? dhs(j.Irsaliyat.dh) + ' · ' + j.Irsaliyat.n : '—' }), el('td', { text: j.Colya.n ? dhs(j.Colya.dh) + ' · ' + j.Colya.n : '—' }), el('td', { text: dhs(j.Irsaliyat.dh + j.Colya.dh) })));
+  const auj = r.liv.filter(o => tLiv(o.dliv) >= new Date().setHours(0, 0, 0, 0)).sort((a, b) => tLiv(b.dliv) - tLiv(a.dliv));
+  fond.append(el('div', { class: 'lu-sheet', style: 'max-height:88%' }, el('div', { class: 'lu-grab' }), el('h3', { text: '💰 Argent livré · 7 derniers jours' }),
+    el('table', { class: 'arg-t' }, el('tr', {}, el('th', { text: 'Jour' }), el('th', { text: 'Irsaliyat' }), el('th', { text: 'Colya' }), el('th', { text: 'Total' })), ...lignes,
+      el('tr', { class: 'tot' }, el('td', { text: 'Total' }), el('td', { text: dhs(r.soc.Irsaliyat.dh) }), el('td', { text: dhs(r.soc.Colya.dh) }), el('td', { text: dhs(r.tot.dh) }))),
+    el('h3', { text: "✅ Livrés aujourd'hui (" + auj.length + ')' }),
+    ...(auj.length ? auj.map(o => el('div', { class: 'lu-p' }, el('span', { text: o.client + ' · ' + (o.ville || '') }), el('em', { class: 'g', text: societeArg(o) }), el('b', { text: dhs(prixArg(o)) }))) : [el('div', { class: 'lu-vide', text: "Pas encore de colis livré aujourd'hui." })]),
+    el('div', { class: 'arg-note', text: "Montants = prix des colis livrés (avant les frais de livraison). Versé / non versé et factures Irsaliyat : à brancher depuis le PC." })));
+  document.body.append(fond);
+}
 const etatStk = o => !o.colis ? ['Confirmé', 'ok'] : /colya/i.test(o.livraison) || /^\d/.test(o.colis) ? ['Colya · ' + (o.livraison || 'En attente').replace(/envoy[ée] [àa] colya/i, 'Envoyé'), 'b'] : ['Irsaliyat · ' + (o.livraison || '').replace(/envoy[ée] [àa] irsaliyat/i, 'Envoyé').replace('En attente de ramassage', 'Attente ramassage'), 'w'];
 async function ouvrirStock() {
   const fond = el('div', { class: 'lu-fond', style: 'position:fixed;z-index:95', onclick: e => { if (e.target === fond) fond.remove(); } });
