@@ -353,7 +353,7 @@
   .emojis button:active { background: var(--line-2); }
   .rec-info { flex: 1; align-self: center; font-weight: 700; color: #ef4444; font-size: 15px; }
   .chat-vide { text-align: center; color: var(--muted); padding: 30px 20px; font-size: 13px; }
-  .toast { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--panel); padding: 10px 16px; border-radius: 10px; font-weight: 700; z-index: 50; max-width: calc(100% - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+  .toast { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--panel); padding: 10px 16px; border-radius: 10px; font-weight: 700; z-index: 130; max-width: calc(100% - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.18); }
   .toast.bad { background: var(--bad); color: #fff; }
   .loadmore { width: 100%; margin-top: 12px; }
 
@@ -422,6 +422,41 @@
   .hist .h.ok { background: var(--ok-soft); color: var(--ok); } .hist .h.bad { background: var(--bad-soft); color: var(--bad); } .hist .h.warn { background: var(--warn-soft); color: var(--warn); }
   .risk-box { border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line)); background: var(--warn-soft); color: var(--warn); border-radius: 9px; padding: 8px 10px; font-size: 12.5px; font-weight: 800; }
   :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+  /* ---------- appels audio + actions sur un message ---------- */
+  .apl-fond { position: fixed; inset: 0; z-index: 120; background: rgba(0,0,0,.66); display: grid; place-items: center; padding: 22px; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+  .apl-pop { width: 100%; max-width: 340px; background: #161a25; color: #e8ebf2; border: 1px solid #2a3042; border-radius: 28px; padding: 26px 18px 22px; text-align: center; box-shadow: 0 30px 60px rgba(0,0,0,.6); position: relative; }
+  .apl-pop.entrant { background: #12231a; border: 2px solid #22c55e; box-shadow: 0 0 0 8px rgba(34,197,94,.12), 0 30px 60px rgba(0,0,0,.6); }
+  .apl-av { width: 92px; height: 92px; border-radius: 50%; margin: 0 auto 14px; display: grid; place-items: center; font-size: 32px; font-weight: 900; color: #fff; }
+  .apl-pop.entrant .apl-av, .apl-pop.sortant .apl-av { animation: apl-onde 1.6s ease-out infinite; }
+  @keyframes apl-onde { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,.45); } 100% { box-shadow: 0 0 0 26px rgba(34,197,94,0); } }
+  .apl-pop b { font-size: 21px; display: block; }
+  .apl-pop small { display: block; color: #9fd3b0; font-size: 13.5px; margin-top: 6px; }
+  .apl-t { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 6px; color: #4ade80; }
+  .apl-btns { display: flex; justify-content: space-around; margin-top: 24px; }
+  .apl-btns button { background: none; border: 0; color: #e8ebf2; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .apl-btns i { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 50%; font-style: normal; font-size: 24px; background: #232838; }
+  .apl-btns .on i { background: #e8ebf2; color: #11141c; }
+  .apl-btns .rouge i { background: #ef4444; } .apl-btns .vert i { background: #22c55e; }
+  .apl-red { position: absolute; top: 10px; left: 12px; background: none; border: 0; color: #9aa3b5; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .apl-mini { position: fixed; left: 10px; right: 10px; top: calc(8px + env(safe-area-inset-top)); z-index: 120; background: #15803d; color: #fff; border-radius: 14px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 800; box-shadow: 0 10px 24px rgba(0,0,0,.3); cursor: pointer; max-width: 520px; margin: 0 auto; }
+  .apl-mini span { flex: 1; font-variant-numeric: tabular-nums; }
+  .apl-mini button { background: #ef4444; color: #fff; border: 0; border-radius: 10px; padding: 6px 12px; font-weight: 800; font-size: 14px; cursor: pointer; }
+  .chat-top .tel { font-size: 20px; }
+  body.en-appel .chat { top: calc(56px + env(safe-area-inset-top)); }
+  body.en-appel .tabs-wrap { padding-top: calc(62px + env(safe-area-inset-top)); }
+  .bulle { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: transform .12s; }
+  .bulle.appui { transform: scale(1.02); box-shadow: 0 0 0 2px #6d7cff; }
+  .m-menu { width: 100%; max-width: 330px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.4); }
+  .m-menu .m-ex { padding: 10px 14px; font-size: 12.5px; color: var(--muted); border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .m-menu button { display: flex; gap: 10px; width: 100%; padding: 13px 16px; background: none; border: 0; border-bottom: 1px solid var(--line-2); color: var(--ink); font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
+  .m-menu button:last-child { border-bottom: 0; }
+  .tr-r { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line-2); font-size: 14.5px; font-weight: 600; cursor: pointer; }
+  .tr-r span { flex: 1; }
+  .tr-ck { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; color: transparent; font-size: 13px; }
+  .tr-r.on .tr-ck { background: #22c55e; border-color: #22c55e; color: #fff; }
+  .tr-go { width: 100%; margin-top: 14px; background: #22c55e; color: #04210f; border: 0; border-radius: 12px; padding: 13px; font: inherit; font-weight: 800; font-size: 15px; cursor: pointer; }
+  .tr-go:disabled { opacity: .5; }
 </style>
 </head>
 <body>
@@ -509,7 +544,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611021906';
+const VERSION = '202611031616';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -818,6 +853,7 @@ function rendreChat() {
   box.replaceChildren(...[
     el('div', { class: 'chat-top' }, el('button', { 'aria-label': 'Retour', text: '‹', onclick: () => { chat.conv = null; rendreChat(); } }),
       el('div', { class: 'c-av', style: 'width:34px;height:34px;font-size:12px;background:' + couleurChat(c), text: initiales(c) }), el('b', { text: nomChat(c) }),
+      el('button', { class: 'tel', 'aria-label': 'Appeler', title: 'Appel audio', text: '📞', onclick: () => c === 'EQUIPE' ? choisirAppel() : appeler(c) }),
       el('button', { 'aria-label': 'Tester le son', title: 'Tester le son', style: 'font-size:18px', text: '🔔', onclick: () => menuTest() }),
       el('button', { 'aria-label': 'Fermer', text: '×', onclick: fermerChat })),
     corps, refBox, bar].filter(Boolean));
@@ -957,7 +993,7 @@ function majMessages() {
     const j = new Date(m.quand).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
     if (j !== jour) { jour = j; bulles.push(el('div', { class: 'jour-sep', text: j })); }
     const moi = m.de === st.agent;
-    bulles.push(el('div', { class: 'bulle ' + (moi ? 'out' : 'in') },
+    bulles.push(appuiLong(el('div', { class: 'bulle ' + (moi ? 'out' : 'in') },
       !moi && c === 'EQUIPE' ? el('span', { class: 'qui', style: 'color:' + (m.de === 'ADMIN' ? 'var(--brand)' : couleurChat(m.de)), text: nomChat(m.de) }) : null,
       m.ref ? el('div', { class: 'r lien', onclick: () => voirCommande(m.ref) }, el('span', { text: '📦 ' + m.ref }), el('b', { text: 'Ouvrir la commande ›' })) : null,
       m.local && m.ftype === 'image' ? el('img', { class: 'ph', src: m.local, alt: 'Photo' }) : null,
@@ -965,7 +1001,7 @@ function majMessages() {
       m.fichier && m.ftype === 'image' ? el('img', { class: 'ph', src: FICHIER_URL(m.fichier), alt: 'Photo', loading: 'lazy', onclick: () => window.open(FICHIER_URL(m.fichier), '_blank') }) : null,
       m.fichier && m.ftype === 'audio' ? lecteurVocal(m.fichier) : null,
       m.texte || null, el('small', {}, new Date(m.quand).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + (m.envoi ? ' 🕓' : m.echec ? ' ⚠️ non envoyé' : ''),
-        moi && !m.envoi && !m.echec ? (() => { const r = lecteurs(m); const tout = r.lu.length === r.total; return el('span', { class: 'ck' + (tout ? ' b' : ''), text: r.lu.length || (c === 'EQUIPE' && false) ? '✓✓' : '✓' }); })() : null)));
+        moi && !m.envoi && !m.echec ? (() => { const r = lecteurs(m); const tout = r.lu.length === r.total; return el('span', { class: 'ck' + (tout ? ' b' : ''), text: r.lu.length || (c === 'EQUIPE' && false) ? '✓✓' : '✓' }); })() : null)), m));
     if (moi && !m.envoi && !m.echec && (c === 'EQUIPE' || m === dernierMoi)) {
       const r = lecteurs(m), tout = r.lu.length === r.total;
       if (c === 'EQUIPE') bulles.push(el('button', { class: 'vu' + (tout ? '' : ' g'), onclick: () => voirLecteurs(m), text: tout ? 'Vu par tout le monde' : r.lu.length ? 'Vu par ' + r.lu.length + ' / ' + r.total + ' · appuyez pour voir' : 'Envoyé · pas encore lu' }));
@@ -983,6 +1019,283 @@ document.body.append(
   el('div', { class: 'chat', id: 'chat', hidden: true }),
 );
 setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerChat(); }, 12000);
+// ---------- Actions sur un message (appui long) : Répondre · Transférer · Partager · Copier ----------
+function appuiLong(n, m) {
+  if (!m || m.envoi) return n;
+  let t = null, x0 = 0, y0 = 0;
+  const stop = () => { clearTimeout(t); t = null; n.classList.remove('appui'); };
+  n.addEventListener('touchstart', e => { const p = e.touches[0]; x0 = p.clientX; y0 = p.clientY; n.classList.add('appui'); t = setTimeout(() => { stop(); try { navigator.vibrate && navigator.vibrate(25); } catch (x) {} menuMessage(m); }, 480); }, { passive: true });
+  n.addEventListener('touchmove', e => { const p = e.touches[0]; if (Math.abs(p.clientX - x0) > 8 || Math.abs(p.clientY - y0) > 8) stop(); }, { passive: true });
+  n.addEventListener('touchend', stop); n.addEventListener('touchcancel', stop);
+  n.addEventListener('contextmenu', e => { e.preventDefault(); stop(); menuMessage(m); });
+  return n;
+}
+function texteMessage(m, lien) {
+  const l = [];
+  if (m.ref) l.push('📦 ' + m.ref);
+  if (m.ftype === 'image') l.push('📷 Photo' + (lien && m.fichier ? ' : ' + FICHIER_URL(m.fichier) : ''));
+  if (m.ftype === 'audio') l.push('🎤 Vocal' + (lien && m.fichier ? ' : ' + FICHIER_URL(m.fichier) : ''));
+  if (m.texte) l.push(m.texte);
+  return l.join('\n');
+}
+function fondCentre() { const f = el('div', { class: 'apl-fond', style: 'z-index:110', onclick: e => { if (e.target === f) f.remove(); } }); document.body.append(f); return f; }
+function menuMessage(m) {
+  const f = fondCentre(), apercu = texteMessage(m).replace(/\s+/g, ' ');
+  const act = (t, fn) => el('button', { text: t, onclick: () => { f.remove(); fn(); } });
+  f.append(el('div', { class: 'm-menu' },
+    el('div', { class: 'm-ex', text: nomChat(m.de) + ' · ' + (apercu || '…') }),
+    act('↩️  Répondre', () => repondreMessage(m)),
+    act('↪️  Transférer à une agente', () => transfererMessage(m)),
+    act('📤  Partager sur WhatsApp', () => { window.open('https://wa.me/?text=' + encodeURIComponent(texteMessage(m, true)), '_blank'); }),
+    navigator.share ? act('📲  Partager ailleurs…', () => { navigator.share({ text: texteMessage(m, true) }).catch(() => {}); }) : null,
+    m.texte || m.ref ? act('📋  Copier', () => copierTexte(texteMessage(m))) : null));
+}
+async function copierTexte(t) {
+  try { await navigator.clipboard.writeText(t); }
+  catch (e) { const a = el('textarea', { style: 'position:fixed;opacity:0' }); a.value = t; document.body.append(a); a.select(); try { document.execCommand('copy'); } catch (x) {} a.remove(); }
+  toast('📋 Copié');
+}
+function repondreMessage(m) {
+  if (m.ref) chat.ref = m.ref;
+  rendreChat();
+  const ta = $('#chat .chat-bar textarea'); if (!ta) return;
+  const ex = (m.texte || (m.ftype === 'image' ? '📷 Photo' : m.ftype === 'audio' ? '🎤 Vocal' : m.ref || '')).replace(/\s+/g, ' ');
+  ta.value = '↩️ ' + nomChat(m.de) + ' : « ' + (ex.length > 70 ? ex.slice(0, 70) + '…' : ex) + ' »\n';
+  ta.dispatchEvent(new Event('input')); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+function transfererMessage(m) {
+  const fond = el('div', { class: 'lu-fond', style: 'position:fixed;z-index:110', onclick: e => { if (e.target === fond) fond.remove(); } });
+  const choix = new Set();
+  const cibles = ['EQUIPE', ...CHAT_GENS.filter(a => a !== st.agent)].filter(a => a !== chat.conv);
+  const go = el('button', { class: 'tr-go', text: 'Choisissez une agente', disabled: true });
+  const lignes = cibles.map(a => {
+    const r = el('div', { class: 'tr-r', onclick: () => { choix.has(a) ? choix.delete(a) : choix.add(a); r.classList.toggle('on', choix.has(a)); go.disabled = !choix.size; go.textContent = choix.size ? '↪️ Envoyer (' + choix.size + ')' : 'Choisissez une agente'; } },
+      el('div', { class: 'c-av', style: 'width:32px;height:32px;font-size:12px;background:' + couleurChat(a), text: initiales(a) }), el('span', { text: nomChat(a) }), el('div', { class: 'tr-ck', text: '✓' }));
+    return r;
+  });
+  go.addEventListener('click', async () => {
+    go.disabled = true; go.textContent = 'Envoi…';
+    const texte = '↪️ Transféré · ' + nomChat(m.de) + (m.texte ? '\n' + m.texte : '');
+    let ok = 0;
+    for (const a of choix) {
+      try { const d = await api('envoyer', { a, texte, ref: m.ref || '', fichier: m.fichier || '', ftype: m.fichier ? m.ftype || '' : '' }); if (d.msg) chat.msgs.push(d.msg); ok++; } catch (e) { toast(e.message, true); }
+    }
+    fond.remove(); if (ok) { sonEnvoi(); toast('↪️ Transféré à ' + ok + (ok > 1 ? ' conversations' : ' conversation')); }
+  });
+  fond.append(el('div', { class: 'lu-sheet' }, el('div', { class: 'lu-grab' }), el('h3', { text: '↪️ Transférer le message' }),
+    el('div', { class: 'lu-vide', text: (texteMessage(m) || '').replace(/\s+/g, ' ').slice(0, 90) }), ...lignes, go));
+  document.body.append(fond);
+}
+
+// ---------- Appels audio dans l'application (WebRTC, d'agente à agente) ----------
+// Les deux téléphones s'échangent leur « adresse » (offre / réponse) via n8n, puis la voix passe en direct.
+const APPEL_API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm-appel';
+const ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+const APL = { since: '', vus: new Set(), pc: null, etat: '', role: '', call: '', avec: '', offre: '', debut: 0, tic: null, sonne: null, timeout: null, coupe: null, mini: false, muet: false, hp: true, t: null, poll: false };
+async function apiAppel(op, x = {}) {
+  const body = new URLSearchParams({ payload: JSON.stringify({ pin: st.pin, op, ...x }) });
+  const r = await fetch(APPEL_API, { method: 'POST', body });
+  return r.json();
+}
+const signal = (a, call, type, data) => apiAppel('send', { a, call, type, data: data ? JSON.stringify(data) : '' }).catch(() => ({ ok: false }));
+async function pollAppel() {
+  if (!st.pin || APL.poll) return; APL.poll = true;
+  try {
+    const d = await apiAppel('poll', { since: APL.since });
+    if (d && d.ok) {
+      // on relit 3 s en arrière (sécurité) ; les doublons sont ignorés
+      APL.since = new Date(new Date(d.maintenant).getTime() - 3000).toISOString();
+      traiterSignaux(d.signaux || [], new Date(d.maintenant).getTime());
+    }
+  } catch (e) {} finally { APL.poll = false; }
+}
+function rythmeAppel() {
+  clearTimeout(APL.t);
+  APL.t = setTimeout(async () => { if (st.pin && (APL.etat || document.visibilityState === 'visible')) await pollAppel(); rythmeAppel(); }, APL.etat ? 1500 : 4000);
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && st.pin) { pollAppel(); rythmeAppel(); } });
+function traiterSignaux(l, maintenant) {
+  for (const s of l) {
+    const k = s.call + '|' + s.type + '|' + s.quand; if (APL.vus.has(k)) continue; APL.vus.add(k);
+    if (s.type === 'offer') {
+      const age = maintenant - new Date(s.quand).getTime();
+      if (age > 40000 || l.some(x => x.call === s.call && x.type === 'bye')) continue; // appel déjà terminé
+      if (APL.etat) { if (s.call !== APL.call) signal(s.de, s.call, 'occupe'); continue; }
+      recevoirAppel(s);
+    } else if (s.call !== APL.call) continue;
+    else if (s.type === 'answer' && APL.etat === 'sortant') connecterReponse(s);
+    else if (s.type === 'refus') finAppel('refus');
+    else if (s.type === 'occupe') finAppel('occupe');
+    else if (s.type === 'bye') finAppel(APL.etat === 'entrant' ? 'manque' : 'bye');
+  }
+}
+async function microAppel() {
+  try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record'; } catch (e) {}
+  if (MICRO && MICRO.getAudioTracks().some(t => t.readyState === 'live')) return MICRO;
+  return (MICRO = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }));
+}
+function creerPC(flux) {
+  const pc = new RTCPeerConnection({ iceServers: ICE });
+  flux.getAudioTracks().forEach(t => { t.enabled = true; pc.addTrack(t, flux); });
+  pc.ontrack = e => { const a = $('#appel-son'); a.srcObject = e.streams[0] || new MediaStream([e.track]); a.play().catch(() => {}); };
+  const etat = () => {
+    const c = pc.connectionState || pc.iceConnectionState;
+    if ((c === 'connected' || c === 'completed') && APL.pc === pc && APL.etat !== 'actif') demarrerAppel();
+    if (c === 'failed') { toast('📞 Connexion impossible (réseau).', true); raccrocher(); }
+    clearTimeout(APL.coupe);
+    if (c === 'disconnected') APL.coupe = setTimeout(() => { if (APL.pc === pc) { toast('📞 Appel coupé (réseau).', true); raccrocher(); } }, 12000);
+  };
+  pc.onconnectionstatechange = etat; pc.oniceconnectionstatechange = etat;
+  APL.pc = pc; return pc;
+}
+// on attend d'avoir toutes les « adresses » réseau avant d'envoyer (max 2,5 s)
+const iceFini = pc => new Promise(ok => {
+  if (pc.iceGatheringState === 'complete') return ok();
+  const t = setTimeout(ok, 2500);
+  pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete') { clearTimeout(t); ok(); } });
+});
+function choisirAppel() {
+  const fond = el('div', { class: 'lu-fond', style: 'position:fixed;z-index:110', onclick: e => { if (e.target === fond) fond.remove(); } });
+  fond.append(el('div', { class: 'lu-sheet' }, el('div', { class: 'lu-grab' }), el('h3', { text: '📞 Appeler…' }),
+    ...CHAT_GENS.filter(a => a !== st.agent).map(a => el('div', { class: 'tr-r', onclick: () => { fond.remove(); appeler(a); } },
+      el('div', { class: 'c-av', style: 'width:32px;height:32px;font-size:12px;background:' + couleurChat(a), text: initiales(a) }), el('span', { text: nomChat(a) }), el('b', { text: '📞' })))));
+  document.body.append(fond);
+}
+async function appeler(a) {
+  if (APL.etat) return;
+  if (!navigator.mediaDevices || !window.RTCPeerConnection) return toast("Les appels ne marchent pas sur ce téléphone.", true);
+  debloquerSon();
+  let flux; try { flux = await microAppel(); } catch (e) { return toast('Autorisez le micro pour appeler.', true); }
+  Object.assign(APL, { call: Date.now().toString(36) + Math.random().toString(36).slice(2, 7), avec: a, etat: 'sortant', role: 'appelant', mini: false, muet: false });
+  afficherAppel(); sonnerie('sortant'); rythmeAppel();
+  try {
+    const pc = creerPC(flux);
+    await pc.setLocalDescription(await pc.createOffer({ offerToReceiveAudio: true }));
+    await iceFini(pc);
+    if (APL.etat !== 'sortant' || APL.pc !== pc) return;
+    const r = await signal(a, APL.call, 'offer', pc.localDescription);
+    if (!r.ok) throw new Error(r.erreur || 'envoi');
+  } catch (e) { toast("L'appel n'est pas parti. Réessayez.", true); return finAppel('erreur'); }
+  const call = APL.call;
+  APL.timeout = setTimeout(() => { if (APL.etat === 'sortant' && APL.call === call) { signal(a, call, 'bye'); finAppel('pas-de-reponse'); } }, 40000);
+}
+function recevoirAppel(s) {
+  Object.assign(APL, { call: s.call, avec: s.de, etat: 'entrant', role: 'appele', offre: s.data, mini: false, muet: false });
+  afficherAppel(); sonnerie('entrant'); rythmeAppel();
+  const call = s.call;
+  APL.timeout = setTimeout(() => { if (APL.etat === 'entrant' && APL.call === call) finAppel('manque'); }, 40000);
+}
+async function repondre() {
+  if (APL.etat !== 'entrant') return;
+  stopSonnerie(); clearTimeout(APL.timeout); debloquerSon();
+  APL.etat = 'connexion'; afficherAppel();
+  try {
+    const flux = await microAppel(); const pc = creerPC(flux);
+    await pc.setRemoteDescription(JSON.parse(APL.offre));
+    await pc.setLocalDescription(await pc.createAnswer());
+    await iceFini(pc);
+    if (APL.pc !== pc) return;
+    const r = await signal(APL.avec, APL.call, 'answer', pc.localDescription);
+    if (!r.ok) throw new Error('envoi');
+  } catch (e) { toast("Impossible de répondre (micro ou réseau).", true); signal(APL.avec, APL.call, 'bye'); return finAppel('erreur'); }
+  attendreConnexion();
+}
+function refuser() { if (APL.etat !== 'entrant') return; signal(APL.avec, APL.call, 'refus'); finAppel('refuse'); }
+async function connecterReponse(s) {
+  clearTimeout(APL.timeout); stopSonnerie();
+  APL.etat = 'connexion'; afficherAppel();
+  try { await APL.pc.setRemoteDescription(JSON.parse(s.data)); } catch (e) { return raccrocher(); }
+  attendreConnexion();
+}
+function attendreConnexion() {
+  const call = APL.call; clearTimeout(APL.timeout);
+  APL.timeout = setTimeout(() => { if (APL.etat === 'connexion' && APL.call === call) { toast('📞 Connexion impossible (réseau). Réessayez en Wi-Fi.', true); raccrocher(); } }, 20000);
+}
+function demarrerAppel() {
+  clearTimeout(APL.timeout); stopSonnerie();
+  APL.etat = 'actif'; APL.debut = Date.now();
+  clearInterval(APL.tic); APL.tic = setInterval(majDureeAppel, 1000);
+  try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
+  afficherAppel();
+}
+function raccrocher() { if (!APL.etat) return; if (APL.avec && APL.call) signal(APL.avec, APL.call, 'bye'); finAppel('fin'); }
+const fmtDuree = s => s < 60 ? s + ' s' : Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0') + ' s';
+const chrono = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+function finAppel(raison) {
+  if (!APL.etat) return;
+  const avec = APL.avec, role = APL.role, duree = APL.debut ? Math.round((Date.now() - APL.debut) / 1000) : 0;
+  clearTimeout(APL.timeout); clearTimeout(APL.coupe); clearInterval(APL.tic); stopSonnerie();
+  try { APL.pc && APL.pc.close(); } catch (e) {}
+  if (MICRO) MICRO.getAudioTracks().forEach(t => t.enabled = true);
+  const a = $('#appel-son'); if (a) { a.pause(); a.srcObject = null; }
+  Object.assign(APL, { pc: null, etat: '', role: '', call: '', avec: '', offre: '', debut: 0, mini: false, muet: false, hp: true });
+  afficherAppel(); rythmeAppel();
+  // c'est celle qui appelle qui écrit l'appel dans la discussion (une seule fois)
+  if (role === 'appelant' && raison !== 'erreur') {
+    const texte = duree ? '📞 Appel · ' + fmtDuree(duree) : raison === 'refus' ? '📞 Appel refusé' : '📞 Appel manqué';
+    api('envoyer', { a: avec, texte, ref: '' }).then(d => { if (d.msg) { chat.msgs.push(d.msg); majMessages(); } }).catch(() => {});
+  }
+  const m = { refus: nomChat(avec) + ' a refusé l’appel', occupe: nomChat(avec) + ' est déjà en appel', 'pas-de-reponse': 'Pas de réponse', manque: 'Appel manqué · ' + nomChat(avec), bye: duree ? 'Appel terminé · ' + fmtDuree(duree) : '' }[raison];
+  if (m) toast('📞 ' + m);
+}
+function sonnerie(mode) {
+  stopSonnerie();
+  const fort = mode === 'entrant';
+  const bip = () => {
+    try {
+      debloquerSon(); const ctx = sonCtx; if (ctx) {
+        const t = ctx.currentTime, v = fort ? 0.32 : 0.1;
+        const notes = fort ? [[880, 0, .2], [660, .24, .2], [880, .6, .2], [660, .84, .2]] : [[425, 0, 1.1]];
+        for (const [fr, d, l] of notes) {
+          const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = fr;
+          g.gain.setValueAtTime(0.0001, t + d); g.gain.exponentialRampToValueAtTime(v, t + d + 0.02); g.gain.setValueAtTime(v, t + d + l - 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + d + l);
+          o.connect(g); g.connect(ctx.destination); o.start(t + d); o.stop(t + d + l + 0.02);
+        }
+      }
+    } catch (e) {}
+    if (fort) try { navigator.vibrate && navigator.vibrate([500, 250, 500]); } catch (e) {}
+  };
+  bip(); APL.sonne = setInterval(bip, fort ? 2000 : 3000);
+}
+function stopSonnerie() { clearInterval(APL.sonne); APL.sonne = null; try { navigator.vibrate && navigator.vibrate(0); } catch (e) {} }
+function majDureeAppel() {
+  if (APL.etat !== 'actif') return;
+  const s = Math.floor((Date.now() - APL.debut) / 1000);
+  const t = $('#apl-t'); if (t) t.textContent = chrono(s);
+  const m = $('#apl-mt'); if (m) m.textContent = '📞 ' + nomChat(APL.avec) + ' · ' + chrono(s);
+}
+function basculerMicro() { APL.muet = !APL.muet; if (MICRO) MICRO.getAudioTracks().forEach(t => t.enabled = !APL.muet); afficherAppel(); }
+async function basculerHp() {
+  APL.hp = !APL.hp; const a = $('#appel-son');
+  // haut-parleur / écouteur : choisi par le téléphone ; ici on monte ou baisse le son de l'appel
+  try { if (a.setSinkId && navigator.mediaDevices.enumerateDevices) { const s = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audiooutput'); const cible = APL.hp ? s.find(d => /speaker|haut/i.test(d.label)) : s.find(d => /earpiece|écouteur|receiver/i.test(d.label)); if (cible) await a.setSinkId(cible.deviceId); } } catch (e) {}
+  a.volume = APL.hp ? 1 : 0.45; afficherAppel();
+}
+function afficherAppel() {
+  let box = $('#appel'); if (!box) return;
+  document.body.classList.toggle('en-appel', !!(APL.etat && APL.mini && APL.etat === 'actif'));
+  if (!APL.etat) return box.replaceChildren();
+  const a = APL.avec, av = el('div', { class: 'apl-av', style: 'background:' + couleurChat(a), text: initiales(a) });
+  const bt = (ic, t, cls, fn) => el('button', { class: cls || '', onclick: fn }, el('i', { text: ic }), t);
+  if (APL.mini && APL.etat === 'actif') {
+    return box.replaceChildren(el('div', { class: 'apl-mini', onclick: () => { APL.mini = false; afficherAppel(); } },
+      el('span', { id: 'apl-mt', text: '📞 ' + nomChat(a) + ' · ' + chrono(Math.floor((Date.now() - APL.debut) / 1000)) }),
+      el('button', { text: '✕', 'aria-label': 'Raccrocher', onclick: e => { e.stopPropagation(); raccrocher(); } })));
+  }
+  let pop;
+  if (APL.etat === 'entrant') pop = el('div', { class: 'apl-pop entrant' }, av, el('b', { text: nomChat(a) }), el('small', { text: '📞 Appel entrant…' }),
+    el('div', { class: 'apl-btns' }, bt('✕', 'Refuser', 'rouge', refuser), bt('📞', 'Répondre', 'vert', repondre)));
+  else if (APL.etat === 'sortant' || APL.etat === 'connexion') pop = el('div', { class: 'apl-pop sortant' }, av, el('b', { text: nomChat(a) }),
+    el('small', { text: APL.etat === 'sortant' ? '📞 Ça sonne…' : '🔄 Connexion…' }),
+    el('div', { class: 'apl-btns' }, bt('✕', APL.etat === 'sortant' ? 'Annuler' : 'Raccrocher', 'rouge', raccrocher)));
+  else pop = el('div', { class: 'apl-pop' }, el('button', { class: 'apl-red', text: '⌄ Réduire', onclick: () => { APL.mini = true; afficherAppel(); } }),
+    av, el('b', { text: nomChat(a) }), el('div', { class: 'apl-t', id: 'apl-t', text: chrono(Math.floor((Date.now() - APL.debut) / 1000)) }),
+    el('div', { class: 'apl-btns' }, bt(APL.muet ? '🔇' : '🎙️', APL.muet ? 'Micro coupé' : 'Micro', APL.muet ? 'on' : '', basculerMicro), bt('✕', 'Raccrocher', 'rouge', raccrocher), bt(APL.hp ? '🔊' : '🔈', 'Haut-parleur', APL.hp ? 'on' : '', basculerHp)));
+  box.replaceChildren(el('div', { class: 'apl-fond' }, pop));
+}
+document.body.append(el('div', { id: 'appel' }), el('audio', { id: 'appel-son', autoplay: true, playsinline: true }));
+window.addEventListener('pagehide', () => { if (APL.etat && APL.avec && APL.call) { try { navigator.sendBeacon(APPEL_API, new URLSearchParams({ payload: JSON.stringify({ pin: st.pin, op: 'send', a: APL.avec, call: APL.call, type: 'bye', data: '' }) })); } catch (e) {} } });
+rythmeAppel();
 // ---------- Annonces de l'admin (sans titre) : Urgent (à confirmer « J'ai compris »), Info, Objectif ----------
 // l'agente peut fermer une annonce, mais elle revient à chaque ouverture de l'application (tant qu'elle est active)
 const ANN = { liste: [], caches: new Set(), ecoutes: new Set(), noeuds: new Map() };
