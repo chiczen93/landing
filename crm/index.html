@@ -580,7 +580,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611031836';
+const VERSION = '202611031841';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1583,6 +1583,21 @@ const dhs = n => Math.round(n).toLocaleString('fr-FR').replace(/ | /g, ' ') +
 async function chargerArgent() {
   if (!st.pin || st.agent !== 'ADMIN') return;
   try { const d = await api('commandes', { filtre: 'TOUS', jours: 30 }); ARG.liste = (d.commandes || []).filter(o => o.colis && !/^[⚠⏳✅]/.test(o.colis)); ARG.vu = Date.now(); rendreArgent(); } catch (e) {}
+  try {
+    const r = await fetch('https://n8n.srv2034083.hstgr.cloud/webhook/crm-factures', { method: 'POST', body: new URLSearchParams({ payload: JSON.stringify({ pin: st.pin }) }) });
+    const d = await r.json(); if (d.ok && d.factures) { ARG.fct = d.factures; rendreArgent(); alerteFactures(); }
+  } catch (e) {}
+}
+// prévenir l'admin : nouvelle facture / facture versée (une seule fois par événement)
+function alerteFactures() {
+  const ev = (ARG.fct && ARG.fct.evenements) || []; if (!ev.length) return;
+  const vu = store.get('fct_vu') || '';
+  const neufs = ev.filter(e => e.quand > vu);
+  store.set('fct_vu', ev[0].quand);
+  if (!vu) return; // première fois : on ne réveille pas l'historique
+  const v = neufs.filter(e => e.t === 'versee'), n = neufs.filter(e => e.t === 'nouvelle');
+  if (v.length) toast('💸 Irsaliyat a versé ' + dhs(v.reduce((t, e) => t + e.montant, 0)) + (v.length > 1 ? ' (' + v.length + ' factures)' : ''));
+  else if (n.length) toast('🧾 Nouvelle facture Irsaliyat · ' + dhs(n.reduce((t, e) => t + e.montant, 0)));
 }
 setInterval(() => { if (document.visibilityState === 'visible') chargerArgent(); }, 600000);
 function calculArgent() {
@@ -1614,7 +1629,19 @@ function rendreArgent() {
       el('div', {}, el('b', { class: 'arg-v', text: dhs(r.auj.dh) }), el('span', { text: "Livré aujourd'hui · " + r.auj.n + ' colis' })),
       el('div', {}, el('b', { class: 'arg-o', text: dhs(r.route.dh) }), el('span', { text: 'En route · ' + r.route.n + ' colis' })),
       el('div', {}, el('b', { text: dhs(r.soc.Irsaliyat.dh) }), el('span', { text: 'Irsaliyat · ' + r.soc.Irsaliyat.n + ' livrés' })),
-      el('div', {}, el('b', { text: dhs(r.soc.Colya.dh) }), el('span', { text: 'Colya (Casa) · ' + r.soc.Colya.n + ' livrés' })))));
+      el('div', {}, el('b', { text: dhs(r.soc.Colya.dh) }), el('span', { text: 'Colya (Casa) · ' + r.soc.Colya.n + ' livrés' }))),
+    blocFactures()));
+}
+function blocFactures() {
+  const f = ARG.fct; if (!f || f.verse === undefined) return null;
+  const att = (f.factures || []).filter(x => !x.verse);
+  return el('div', { class: 'arg-fct' },
+    el('div', { class: 'arg-h', style: 'margin-top:12px' }, '🧾 IRSALIYAT · FACTURES', el('em', { text: f.erreur ? '⚠️ ' + f.erreur : 'lu à ' + heureHM(f.maj) })),
+    el('div', { class: 'arg-g' },
+      el('div', {}, el('b', { class: 'arg-o', text: dhs(f.nonVerse) }), el('span', { text: '⏳ Non versé · ' + att.length + ' facture' + (att.length > 1 ? 's' : '') })),
+      el('div', {}, el('b', { text: f.livreNonFacture + ' colis' }), el('span', { text: 'Livrés pas encore facturés' })),
+      el('div', {}, el('b', { class: 'arg-v', text: dhs(f.verse) }), el('span', { text: 'Total versé' })),
+      el('div', {}, el('b', { text: String(f.nbFactures || (f.factures || []).length) }), el('span', { text: 'Factures · ' + f.livreFacture + ' colis' }))));
 }
 function voirArgent() {
   const r = calculArgent();
@@ -1625,9 +1652,11 @@ function voirArgent() {
   fond.append(el('div', { class: 'lu-sheet', style: 'max-height:88%' }, el('div', { class: 'lu-grab' }), el('h3', { text: '💰 Argent livré · 7 derniers jours' }),
     el('table', { class: 'arg-t' }, el('tr', {}, el('th', { text: 'Jour' }), el('th', { text: 'Irsaliyat' }), el('th', { text: 'Colya' }), el('th', { text: 'Total' })), ...lignes,
       el('tr', { class: 'tot' }, el('td', { text: 'Total' }), el('td', { text: dhs(r.soc.Irsaliyat.dh) }), el('td', { text: dhs(r.soc.Colya.dh) }), el('td', { text: dhs(r.tot.dh) }))),
+    ...(ARG.fct && ARG.fct.factures ? [el('h3', { text: '🧾 Factures Irsaliyat' }), ...ARG.fct.factures.slice(0, 15).map(x => el('div', { class: 'lu-p' },
+      el('span', {}, el('b', { text: x.date.slice(8, 10) + '/' + x.date.slice(5, 7) + ' · ' }), x.colis + ' colis'), el('b', { text: dhs(x.montant) }), el('em', { class: x.verse ? '' : 'g', style: x.verse ? 'color:#16a34a' : 'color:#d97706', text: x.verse ? '✓ versé' : '⏳ en attente' })))] : []),
     el('h3', { text: "✅ Livrés aujourd'hui (" + auj.length + ')' }),
     ...(auj.length ? auj.map(o => el('div', { class: 'lu-p' }, el('span', { text: o.client + ' · ' + (o.ville || '') }), el('em', { class: 'g', text: societeArg(o) }), el('b', { text: dhs(prixArg(o)) }))) : [el('div', { class: 'lu-vide', text: "Pas encore de colis livré aujourd'hui." })]),
-    el('div', { class: 'arg-note', text: "Montants = prix des colis livrés (avant les frais de livraison). Versé / non versé et factures Irsaliyat : à brancher depuis le PC." })));
+    el('div', { class: 'arg-note', text: "Montants = prix des colis livrés (avant les frais de livraison). Factures Irsaliyat lues chaque heure sur irsaliyat.ma." })));
   document.body.append(fond);
 }
 const etatStk = o => !o.colis ? ['Confirmé', 'ok'] : /colya/i.test(o.livraison) || /^\d/.test(o.colis) ? ['Colya · ' + (o.livraison || 'En attente').replace(/envoy[ée] [àa] colya/i, 'Envoyé'), 'b'] : ['Irsaliyat · ' + (o.livraison || '').replace(/envoy[ée] [àa] irsaliyat/i, 'Envoyé').replace('En attente de ramassage', 'Attente ramassage'), 'w'];
