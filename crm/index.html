@@ -460,6 +460,12 @@
 
   /* bandeau « messages non lus » : reste en haut tant que ce n'est pas lu (sans montrer le contenu) */
   .nl-ban { position: fixed; left: 10px; right: 10px; top: calc(8px + env(safe-area-inset-top)); z-index: 65; background: #14301f; color: #e8ebf2; border: 1.5px solid #22c55e; border-radius: 16px; box-shadow: 0 14px 30px rgba(0,0,0,.45); max-width: 520px; margin: 0 auto; overflow: hidden; animation: ban-in .25s ease-out; }
+  /* bouge toutes les 3 s (petite secousse) + halo vert qui respire, pour attirer l'œil */
+  .nl-ban { animation: ban-in .25s ease-out, nl-secoue 3s ease-in-out .6s infinite, nl-halo 1.5s ease-in-out infinite; }
+  @keyframes nl-secoue { 0%, 18%, 100% { transform: translateX(0) rotate(0); } 3% { transform: translateX(-7px) rotate(-1.2deg); } 6% { transform: translateX(7px) rotate(1.2deg); } 9% { transform: translateX(-5px) rotate(-.8deg); } 12% { transform: translateX(5px) rotate(.8deg); } 15% { transform: translateX(-2px); } }
+  @keyframes nl-halo { 0%, 100% { box-shadow: 0 14px 30px rgba(0,0,0,.45), 0 0 0 0 rgba(34,197,94,.55); } 50% { box-shadow: 0 14px 30px rgba(0,0,0,.45), 0 0 0 7px rgba(34,197,94,0); } }
+  .nl-go { animation: nl-go 1.5s ease-in-out infinite; }
+  @keyframes nl-go { 50% { transform: scale(1.08); } }
   .nl-un { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; }
   .nl-dot { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,.25); flex: none; animation: nl-pulse 1.4s ease-in-out infinite; }
   @keyframes nl-pulse { 50% { box-shadow: 0 0 0 7px rgba(34,197,94,.08); } }
@@ -558,7 +564,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611031643';
+const VERSION = '202611031646';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
