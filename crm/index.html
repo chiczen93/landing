@@ -457,6 +457,20 @@
   .tr-r.on .tr-ck { background: #22c55e; border-color: #22c55e; color: #fff; }
   .tr-go { width: 100%; margin-top: 14px; background: #22c55e; color: #04210f; border: 0; border-radius: 12px; padding: 13px; font: inherit; font-weight: 800; font-size: 15px; cursor: pointer; }
   .tr-go:disabled { opacity: .5; }
+
+  /* bandeau « messages non lus » : reste en haut tant que ce n'est pas lu (sans montrer le contenu) */
+  .nl-ban { position: fixed; left: 10px; right: 10px; top: calc(8px + env(safe-area-inset-top)); z-index: 65; background: #14301f; color: #e8ebf2; border: 1.5px solid #22c55e; border-radius: 16px; box-shadow: 0 14px 30px rgba(0,0,0,.45); max-width: 520px; margin: 0 auto; overflow: hidden; animation: ban-in .25s ease-out; }
+  .nl-un { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; }
+  .nl-dot { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,.25); flex: none; animation: nl-pulse 1.4s ease-in-out infinite; }
+  @keyframes nl-pulse { 50% { box-shadow: 0 0 0 7px rgba(34,197,94,.08); } }
+  .nl-av { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 900; color: #fff; flex: none; }
+  .nl-x { flex: 1; min-width: 0; } .nl-x b { display: block; font-size: 14px; } .nl-x span { display: block; font-size: 12.5px; color: #cfe9d8; }
+  .nl-go { background: #22c55e; color: #04210f; font-weight: 800; font-size: 13px; border-radius: 10px; padding: 8px 11px; flex: none; }
+  .nl-h { display: flex; align-items: center; gap: 8px; padding: 9px 12px; font-size: 13.5px; font-weight: 800; border-bottom: 1px solid #1f4a30; }
+  .nl-h em, .nl-nb { margin-left: auto; font-style: normal; background: #22c55e; color: #04210f; border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 800; }
+  .nl-l { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid #1a3d28; cursor: pointer; } .nl-l:last-child { border-bottom: 0; }
+  .nl-l .nl-av { width: 30px; height: 30px; font-size: 11px; } .nl-l b { flex: 1; font-size: 13.5px; }
+  body.avec-nl .tabs-wrap { padding-top: calc(var(--nlh, 70px) + 16px + env(safe-area-inset-top)); }
 </style>
 </head>
 <body>
@@ -544,7 +558,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611031616';
+const VERSION = '202611031643';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -730,6 +744,28 @@ function majBadgeChat() {
   const n = ['EQUIPE', ...CHAT_GENS].reduce((t, c) => t + nonLus(c), 0);
   const b = $('#fab-chat .b'); b.hidden = !n; b.textContent = n > 99 ? '99+' : n;
   $('#fab-chat').classList.toggle('alerte', n > 0);
+  majBandeauNL();
+}
+// ---------- Bandeau « messages non lus » en haut de l'écran ----------
+// Reste affiché tant que la conversation n'est pas ouverte (lue). On ne montre pas le contenu : il faut ouvrir pour lire.
+function majBandeauNL() {
+  const l = ['EQUIPE', ...CHAT_GENS.filter(a => a !== st.agent)].map(c => [c, st.pin ? nonLus(c) : 0]).filter(([c, n]) => n > 0 && !(chat.ouvert && chat.conv === c));
+  let ban = $('#nl-ban');
+  if (!l.length) { if (ban) ban.remove(); document.body.classList.remove('avec-nl'); return; }
+  if (!ban) { ban = el('div', { class: 'nl-ban', id: 'nl-ban' }); document.body.append(ban); }
+  const av = c => el('div', { class: 'nl-av', style: 'background:' + couleurChat(c), text: initiales(c) });
+  const msgs = n => n + (n > 1 ? ' nouveaux messages' : ' nouveau message');
+  if (l.length === 1) {
+    const [c, n] = l[0];
+    ban.replaceChildren(el('div', { class: 'nl-un', onclick: () => ouvrirChat(c) }, el('div', { class: 'nl-dot' }), av(c),
+      el('div', { class: 'nl-x' }, el('b', { text: nomChat(c) }), el('span', { text: '💬 ' + msgs(n) })), el('div', { class: 'nl-go', text: 'Lire ›' })));
+  } else {
+    const tot = l.reduce((t, [, n]) => t + n, 0);
+    ban.replaceChildren(el('div', { class: 'nl-h' }, el('div', { class: 'nl-dot' }), '💬 Messages non lus', el('em', { text: tot })),
+      ...l.map(([c, n]) => el('div', { class: 'nl-l', onclick: () => ouvrirChat(c) }, av(c), el('b', { text: nomChat(c) }), el('span', { class: 'nl-nb', text: n }))));
+  }
+  document.body.classList.add('avec-nl');
+  document.body.style.setProperty('--nlh', ban.offsetHeight + 'px');
 }
 // nouveaux messages reçus : son « double bip » + bandeau en haut (sauf si la conversation est déjà ouverte)
 let chatVus = null;
@@ -749,18 +785,7 @@ function signalerMessages() {
   if (!neufs.length) return;
   store.set('chat_vu_' + st.agent, neufs.reduce((x, m) => m.quand > x ? m.quand : x, store.get('chat_vu_' + st.agent) || ''));
   sonMessage();
-  const autres = neufs.filter(m => !(chat.ouvert && chat.conv === convDe(m)));
-  if (!autres.length) return;
-  const m = autres[autres.length - 1];
-  const piece = m.ftype === 'image' ? '📷 Photo' : m.ftype === 'audio' ? '🎤 Message vocal' : '';
-  const txt = [m.ref ? '📦 ' + m.ref : '', piece, m.texte].filter(Boolean).join(' — ');
-  const c = convDe(m);
-  const ban = el('div', { class: 'ban-msg', onclick: () => { ban.remove(); ouvrirChat(c); } },
-    el('b', { text: '💬 ' + nomChat(m.de) + (c === 'EQUIPE' ? ' · Équipe' : '') + (autres.length > 1 ? '  (+' + (autres.length - 1) + ')' : '') }),
-    el('span', { text: txt || 'Nouveau message' }));
-  document.querySelectorAll('.ban-msg').forEach(x => x.remove());
-  document.body.append(ban);
-  setTimeout(() => ban.classList.add('sort'), 4500); setTimeout(() => ban.remove(), 5000);
+  majBandeauNL();
 }
 // Son « double bip » joué par un élément <audio> (plus fiable sur iPhone que le son web) :
 // fichier WAV fabriqué ici, débloqué au premier toucher de l'écran puis rejoué à chaque message.
@@ -799,7 +824,7 @@ async function chargerChat() {
 }
 function heureCourte(q) { const d = new Date(q); const auj = new Date().toDateString() === d.toDateString(); return auj ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }); }
 function ouvrirChat(conv, ref) { chat.ouvert = true; chat.conv = conv || null; if (ref !== undefined) chat.ref = ref; $('#chat').hidden = false; document.body.style.overflow = 'hidden'; rendreChat(); ajusterChat(); chargerChat(); }
-function fermerChat() { if (enreg) try { enreg.stop(); } catch (e) {} chat.ouvert = false; chat.ref = ''; $('#chat').hidden = true; document.body.style.overflow = ''; }
+function fermerChat() { if (enreg) try { enreg.stop(); } catch (e) {} chat.ouvert = false; chat.ref = ''; $('#chat').hidden = true; document.body.style.overflow = ''; majBandeauNL(); }
 function rendreChat() {
   const box = $('#chat');
   const refBox = chat.ref ? el('div', { class: 'chat-ref' }, el('span', { text: '📦 ' + chat.ref }), el('button', { class: 'x', text: '×', onclick: () => { chat.ref = ''; rendreChat(); } })) : null;
