@@ -580,7 +580,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611031841';
+const VERSION = '202611032031';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1641,7 +1641,19 @@ function blocFactures() {
       el('div', {}, el('b', { class: 'arg-o', text: dhs(f.nonVerse) }), el('span', { text: '⏳ Non versé · ' + att.length + ' facture' + (att.length > 1 ? 's' : '') })),
       el('div', {}, el('b', { text: f.livreNonFacture + ' colis' }), el('span', { text: 'Livrés pas encore facturés' })),
       el('div', {}, el('b', { class: 'arg-v', text: dhs(f.verse) }), el('span', { text: 'Total versé' })),
-      el('div', {}, el('b', { text: String(f.nbFactures || (f.factures || []).length) }), el('span', { text: 'Factures · ' + f.livreFacture + ' colis' }))));
+      el('div', {}, el('b', { text: String(f.nbFactures || (f.factures || []).length) }), el('span', { text: 'Factures · ' + f.livreFacture + ' colis' }))),
+    blocColya(f.colya));
+}
+// Colya (Casablanca) : lu chaque heure par l'API vendeurs de Colya
+function blocColya(c) {
+  if (!c || !c.livreFacture) return null;
+  return el('div', {},
+    el('div', { class: 'arg-h', style: 'margin-top:12px' }, '🏙️ COLYA · CASA', el('em', { text: c.erreur ? '⚠️ ' + c.erreur : 'lu à ' + heureHM(c.maj) })),
+    el('div', { class: 'arg-g' },
+      el('div', {}, el('b', { class: 'arg-o', text: dhs(c.livreNonFacture.dh) }), el('span', { text: '⏳ Livrés pas encore facturés · ' + c.livreNonFacture.n })),
+      el('div', {}, el('b', { class: 'arg-v', text: dhs(c.livreFacture.dh + (c.livrePaye ? c.livrePaye.dh : 0)) }), el('span', { text: '✓ Livrés facturés · ' + (c.livreFacture.n + (c.livrePaye ? c.livrePaye.n : 0)) + ' colis' })),
+      el('div', {}, el('b', { text: dhs(c.semaine.dh) }), el('span', { text: 'Livrés cette semaine · ' + c.semaine.n })),
+      el('div', {}, el('b', { text: dhs(c.enCours.dh) }), el('span', { text: 'En cours · ' + c.enCours.n + ' colis' }))));
 }
 function voirArgent() {
   const r = calculArgent();
