@@ -580,7 +580,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611032031';
+const VERSION = '202611040750';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -626,6 +626,7 @@ const TABS = [
   { id: 'ok', t: 'Confirmées · à expédier', c: 'ok', f: o => !o.colis && o.statut === 'CONFIRMER' },
   { id: 'ko', t: 'Annulées', c: 'bad', f: o => !o.colis && ['ANNULER', 'DOUBLE'].includes(o.statut) },
   { groupe: 'Livraison' },
+  { id: 'l-ra', t: '🚚 À rappeler', c: 'warn', f: o => !!o.colis && colisARappeler().has(o.colis) },
   { id: 'l-pr', t: 'Client injoignable', c: 'warn', f: o => !!o.colis && gLiv(o) === 'pr' },
   { id: 'l-an', t: 'Refusées', c: 'bad', f: o => !!o.colis && gLiv(o) === 'an' },
   { id: 'l-rp', t: 'Reportées', c: 'info', f: o => !!o.colis && gLiv(o) === 'rp' },
@@ -679,7 +680,7 @@ async function login(pin) {
     $('#f-agent').hidden = false; $('#f-jours').hidden = false;
     $('#f-agent').replaceChildren(el('option', { value: 'TOUS', text: 'Toutes les agentes' }), el('option', { value: 'LIBRE', text: 'Non attribuées' }), ...AGENTES.map(a => el('option', { value: a, text: nomPropre(a) })), el('option', { value: 'NO APPEL', text: 'No appel' }));
   }
-  $('#fab-chat').hidden = false; lireLus(); chargerChat(); chargerAlertes(); chargerAnnonces(); signalPresence(); chargerPresence(); chargerStock(); chargerArgent();
+  $('#fab-chat').hidden = false; lireLus(); chargerChat(); chargerAlertes(); chargerAnnonces(); signalPresence(); chargerPresence(); setTimeout(() => { chargerStock(); chargerArgent(); }, 2500);
   charger();
   api('villes').then(d => { st.villes = d.villes; $('#villes').replaceChildren(...d.villes.map(v => el('option', { value: v }))); }).catch(() => {});
   chargerStats();
@@ -1158,7 +1159,7 @@ async function pollAppel() {
 }
 function rythmeAppel() {
   clearTimeout(APL.t);
-  APL.t = setTimeout(async () => { if (st.pin && (APL.etat || document.visibilityState === 'visible')) await pollAppel(); rythmeAppel(); }, APL.etat ? 1500 : 4000);
+  APL.t = setTimeout(async () => { if (st.pin && (APL.etat || document.visibilityState === 'visible')) await pollAppel(); rythmeAppel(); }, APL.etat ? 1500 : 6000);
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && st.pin) { pollAppel(); rythmeAppel(); } });
 function traiterSignaux(l, maintenant) {
@@ -1563,10 +1564,17 @@ function repartirStk(liste) {
   }
   return [...mod.values()].sort((a, b) => b.pcs - a.pcs);
 }
+// admin : liste « 30 jours » lue une seule fois toutes les 2 min, partagée par Stock et Argent
+const C30 = { p: null, t: 0 };
+function commandes30() {
+  if (!C30.p || Date.now() - C30.t > 110000) { C30.t = Date.now(); C30.p = api('commandes', { filtre: 'TOUS', jours: 30 }).then(d => d.commandes || []).catch(e => { C30.p = null; throw e; }); }
+  return C30.p;
+}
+const dans7j = o => { const t = Date.parse(String(o.date || '').replace(' ', 'T')); return !t || Date.now() - t < 7 * 86400000; };
 async function chargerStock() {
   if (!st.pin || st.agent !== 'ADMIN') return;
   $('#btn-stock').hidden = false;
-  try { const d = await api('commandes', { filtre: 'TOUS', jours: 7 }); STK.liste = (d.commandes || []).filter(enAttenteStk); STK.vu = Date.now(); majBadgeStock(); } catch (e) {}
+  try { const l = await commandes30(); STK.liste = l.filter(dans7j).filter(enAttenteStk); STK.vu = Date.now(); majBadgeStock(); } catch (e) {}
 }
 function majBadgeStock() { const b = $('#btn-stock .b'); if (!b) return; b.hidden = !STK.liste.length; b.textContent = STK.liste.length; }
 setInterval(() => { if (document.visibilityState === 'visible') chargerStock(); }, 120000);
@@ -1582,7 +1590,7 @@ const finiArg = o => /retour|retourn|refus|annul/i.test(String(o.livraison || ''
 const dhs = n => Math.round(n).toLocaleString('fr-FR').replace(/ | /g, ' ') + ' DH';
 async function chargerArgent() {
   if (!st.pin || st.agent !== 'ADMIN') return;
-  try { const d = await api('commandes', { filtre: 'TOUS', jours: 30 }); ARG.liste = (d.commandes || []).filter(o => o.colis && !/^[⚠⏳✅]/.test(o.colis)); ARG.vu = Date.now(); rendreArgent(); } catch (e) {}
+  try { const l = await commandes30(); ARG.liste = l.filter(o => o.colis && !/^[⚠⏳✅]/.test(o.colis)); ARG.vu = Date.now(); rendreArgent(); } catch (e) {}
   try {
     const r = await fetch('https://n8n.srv2034083.hstgr.cloud/webhook/crm-factures', { method: 'POST', body: new URLSearchParams({ payload: JSON.stringify({ pin: st.pin }) }) });
     const d = await r.json(); if (d.ok && d.factures) { ARG.fct = d.factures; rendreArgent(); alerteFactures(); }
@@ -1787,6 +1795,8 @@ function traiteLiv(o) {
 const appeleLiv = o => valideLiv(o, lireMap('liv_appel_')[o.colis] || 0);
 const aRappeler = g => g === 'pasrep' || g === 'annule';
 const enAttenteLiv = () => ALR.items.filter(o => aRappeler(o.g) && o.agent === st.agent && !traiteLiv(o));
+// colis comptés par le camion (admin : toutes les agentes ; agente : les siens)
+const colisARappeler = () => new Set((st.agent === 'ADMIN' ? ALR.items.filter(o => aRappeler(o.g) && !traiteLiv(o)) : enAttenteLiv()).map(o => o.colis));
 const telLiv = o => String(o.tel || '').replace(/\D/g, '').slice(-9);
 const MSG_SORTI = 'السلام عليكم {c}، معاك Zena Shop. الطلب ديالك ({p}) خرج اليوم مع الليفرور وغادي يتاصل بيك. خلي التيليفون ديالك مشعول عافاك 🙏';
 const waLiv = (o, modele) => 'https://wa.me/212' + telLiv(o) + '?text=' + encodeURIComponent(modele.replace('{c}', o.client || '').replace('{p}', String(o.produit || '').split(' — ')[0]));
@@ -2058,7 +2068,10 @@ document.body.append(el('button', { class: 'fab-camion', id: 'fab-camion', hidde
   if (chat.ouvert) fermerChat();
   if (st.view !== 'orders') { const b = document.querySelector('#views button[data-view="orders"]'); if (b) b.click(); }
   const q = $('#q'); if (q && q.value) { q.value = ''; st.q = ''; }
-  st.tab = 'l-pr'; st.page = 1; rendre(); window.scrollTo({ top: 0, behavior: 'smooth' });
+  st.tab = 'l-ra'; st.page = 1; rendre(); window.scrollTo({ top: 0, behavior: 'smooth' });
+  // admin : si la période affichée est trop courte (ex. « Aujourd'hui »), on charge 30 jours pour voir tous ces colis
+  const manque = [...colisARappeler()].some(c => !st.commandes.some(o => o.colis === c));
+  if (manque && st.role === 'admin' && $('#f-jours').value !== '30') { $('#f-jours').value = '30'; toast('🚚 Période : 30 jours'); charger(); }
 } }, '🚚', el('span', { class: 'b' })));
 
 document.addEventListener('visibilitychange', () => { if (st.pin && document.visibilityState === 'visible') chargerChat(); });
