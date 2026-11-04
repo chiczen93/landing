@@ -580,7 +580,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611040750';
+const VERSION = '202611040802';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1853,6 +1853,7 @@ const debutRetard = o => Math.min(o.inj1 ? tLiv(o.inj1) : Infinity, o.g === 'pas
 const societe = o => /^CL-IRY/i.test(o.colis || '') ? 'Irsaliyat' : 'Colya';
 function retards() {
   if (!st.agent) return [];
+  if (st.agent === 'ADMIN' && ANL.adminFerme) return []; // l'admin les a fermées : elles reviennent à la prochaine ouverture de l'application
   const now = Date.now();
   return ALR.items.filter(o => ['pasrep', 'rp', 'sorti'].includes(o.g) && (o.agent === st.agent || st.agent === 'ADMIN')).filter(o => {
     const t = debutRetard(o); if (!isFinite(t) || now - t < 3 * 86400000) return false;
@@ -1884,6 +1885,13 @@ function montrerRetard(o, n) {
     el('div', { class: 'alr-2' }, el('a', { class: 'alr-b gr', href: 'tel:0' + telLiv(o) }, '📞 Appeler'), el('a', { class: 'alr-b wa', href: waLiv(o, (GROUPES.find(g => g.id === 'pr') || {}).msg || MSG_DEFAUT), target: '_blank', rel: 'noopener' }, 'WhatsApp')),
     el('div', { class: 'alr-q', text: 'هاد الكوليس هادي ' + Math.floor((Date.now() - t0) / 86400000) + ' أيام والليفرور ما لقاش الكليان، وباقي ما تليفراش. واش نلغيوه؟' }),
     el('div', { class: 'alr-2' }, oui, non));
+  // l'admin seulement : fermer sans choisir (les agentes doivent répondre)
+  if (st.agent === 'ADMIN') {
+    const fermer = () => { ANL.adminFerme = true; fin(); };
+    carte.style.position = 'relative';
+    carte.append(el('button', { 'aria-label': 'Fermer', title: 'Fermer sans choisir', onclick: fermer, style: 'position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;border:0;background:#2a1418;color:#ffb4b4;font-size:20px;cursor:pointer' }, '✕'));
+    fond.addEventListener('click', e => { if (e.target === fond) fermer(); });
+  }
   fond.append(carte); document.body.append(fond);
 }
 function montrerAnnulHajiba(a, n) {
