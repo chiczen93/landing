@@ -581,7 +581,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611072021';
+const VERSION = '202611072025';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -707,6 +707,7 @@ async function charger(silencieux) {
     const cible = jourVoulu === null ? null : new Date(Date.now() - jourVoulu * 86400000).toISOString().slice(0, 10);
     st.commandes = cible ? d.commandes.filter(o => jourDe(o.date) === cible) : d.commandes; st.at = Date.now();
     rendre(); rendreKpis();
+    if (st.tab === 'l-ra') completerRappels();
     signalerNouvelles();
     if (!st.pushOk) { st.pushOk = true; abonnerPush(); }
   } catch (e) { if (!silencieux) toast(e.message, true); }
@@ -2070,6 +2071,18 @@ function finCarrousel() {
   CAR.dots.replaceChildren(); CAR.titre.replaceChildren(el('b', { text: '📵 ' + n + ' / ' + n + ' faits' }));
   for (const b of CAR.fond.querySelectorAll('.car-fl, .car-pied')) b.remove();
 }
+// colis « à rappeler » absents de la liste affichée (période courte, filtre agente, limite…) : on les ajoute depuis la liste 30 jours
+async function completerRappels(avecToast) {
+  const manque = () => { const vus = new Set(st.commandes.map(o => o.colis).filter(Boolean)); return [...colisARappeler()].filter(c => !vus.has(c)); };
+  if (!manque().length) return;
+  if (avecToast) toast('🚚 Chargement des colis à rappeler…');
+  try {
+    const liste = await commandes30();
+    const m = new Set(manque());
+    const ajout = liste.filter(o => o.colis && m.has(o.colis));
+    if (ajout.length) { st.commandes = st.commandes.concat(ajout); rendre(); }
+  } catch (e) {}
+}
 // icône camion : clients injoignables à rappeler (l'admin voit tous ceux pas encore traités)
 function majCamion() {
   const b = $('#fab-camion'); if (!b) return;
@@ -2082,9 +2095,7 @@ document.body.append(el('button', { class: 'fab-camion', id: 'fab-camion', hidde
   if (st.view !== 'orders') { const b = document.querySelector('#views button[data-view="orders"]'); if (b) b.click(); }
   const q = $('#q'); if (q && q.value) { q.value = ''; st.q = ''; }
   st.tab = 'l-ra'; st.page = 1; rendre(); window.scrollTo({ top: 0, behavior: 'smooth' });
-  // admin : si la période affichée est trop courte (ex. « Aujourd'hui »), on charge 30 jours pour voir tous ces colis
-  const manque = [...colisARappeler()].some(c => !st.commandes.some(o => o.colis === c));
-  if (manque && st.role === 'admin' && $('#f-jours').value !== '30') { $('#f-jours').value = '30'; toast('🚚 Période : 30 jours'); charger(); }
+  completerRappels(true);
 } }, '🚚', el('span', { class: 'b' })));
 
 document.addEventListener('visibilitychange', () => { if (st.pin && document.visibilityState === 'visible') chargerChat(); });
