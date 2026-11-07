@@ -464,6 +464,7 @@
   .nl-ban { animation: ban-in .25s ease-out, nl-secoue 3s ease-in-out .6s infinite, nl-halo 1.5s ease-in-out infinite; }
   @keyframes nl-secoue { 0%, 18%, 100% { transform: translateX(0) rotate(0); } 3% { transform: translateX(-7px) rotate(-1.2deg); } 6% { transform: translateX(7px) rotate(1.2deg); } 9% { transform: translateX(-5px) rotate(-.8deg); } 12% { transform: translateX(5px) rotate(.8deg); } 15% { transform: translateX(-2px); } }
   @keyframes nl-halo { 0%, 100% { box-shadow: 0 14px 30px rgba(0,0,0,.45), 0 0 0 0 rgba(34,197,94,.55); } 50% { box-shadow: 0 14px 30px rgba(0,0,0,.45), 0 0 0 7px rgba(34,197,94,0); } }
+  .nl-fermer { flex: none; width: 30px; height: 30px; margin-left: 6px; border-radius: 50%; border: 0; background: rgba(255,255,255,.12); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; display: grid; place-items: center; }
   .nl-go { animation: nl-go 1.5s ease-in-out infinite; }
   @keyframes nl-go { 50% { transform: scale(1.08); } }
   .nl-un { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; }
@@ -580,7 +581,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611072010';
+const VERSION = '202611072021';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -774,17 +775,21 @@ function majBadgeChat() {
 function majBandeauNL() {
   const l = ['EQUIPE', ...CHAT_GENS.filter(a => a !== st.agent)].map(c => [c, st.pin ? nonLus(c) : 0]).filter(([c, n]) => n > 0 && !(chat.ouvert && chat.conv === c));
   let ban = $('#nl-ban');
-  if (!l.length) { if (ban) ban.remove(); document.body.classList.remove('avec-nl'); return; }
+  // l'admin peut fermer le bandeau (✕) : il revient seulement à l'arrivée d'un nouveau message
+  const admin = st.agent === 'ADMIN';
+  const dernierNL = admin ? chat.msgs.filter(m => m.de !== st.agent && l.some(([c]) => c === convDe(m)) && m.quand > (chat.lus[convDe(m)] || '')).reduce((x, m) => m.quand > x ? m.quand : x, '') : '';
+  if (!l.length || (admin && chat.nlFerme && dernierNL <= chat.nlFerme)) { if (ban) ban.remove(); document.body.classList.remove('avec-nl'); return; }
   if (!ban) { ban = el('div', { class: 'nl-ban', id: 'nl-ban' }); document.body.append(ban); }
+  const croix = () => admin ? el('button', { class: 'nl-fermer', title: 'Fermer', text: '✕', onclick: e => { e.stopPropagation(); chat.nlFerme = dernierNL; majBandeauNL(); } }) : '';
   const av = c => el('div', { class: 'nl-av', style: 'background:' + couleurChat(c), text: initiales(c) });
   const msgs = n => n + (n > 1 ? ' nouveaux messages' : ' nouveau message');
   if (l.length === 1) {
     const [c, n] = l[0];
     ban.replaceChildren(el('div', { class: 'nl-un', onclick: () => ouvrirChat(c) }, el('div', { class: 'nl-dot' }), av(c),
-      el('div', { class: 'nl-x' }, el('b', { text: nomChat(c) }), el('span', { text: '💬 ' + msgs(n) })), el('div', { class: 'nl-go', text: 'Lire ›' })));
+      el('div', { class: 'nl-x' }, el('b', { text: nomChat(c) }), el('span', { text: '💬 ' + msgs(n) })), el('div', { class: 'nl-go', text: 'Lire ›' }), croix()));
   } else {
     const tot = l.reduce((t, [, n]) => t + n, 0);
-    ban.replaceChildren(el('div', { class: 'nl-h' }, el('div', { class: 'nl-dot' }), '💬 Messages non lus', el('em', { text: tot })),
+    ban.replaceChildren(el('div', { class: 'nl-h' }, el('div', { class: 'nl-dot' }), '💬 Messages non lus', el('em', { text: tot }), croix()),
       ...l.map(([c, n]) => el('div', { class: 'nl-l', onclick: () => ouvrirChat(c) }, av(c), el('b', { text: nomChat(c) }), el('span', { class: 'nl-nb', text: n }))));
   }
   document.body.classList.add('avec-nl');
