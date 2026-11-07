@@ -581,7 +581,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611072039';
+const VERSION = '202611072101';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -681,7 +681,7 @@ async function login(pin) {
     $('#f-agent').hidden = false; $('#f-jours').hidden = false;
     $('#f-agent').replaceChildren(el('option', { value: 'TOUS', text: 'Toutes les agentes' }), el('option', { value: 'LIBRE', text: 'Non attribuées' }), ...AGENTES.map(a => el('option', { value: a, text: nomPropre(a) })), el('option', { value: 'NO APPEL', text: 'No appel' }));
   }
-  $('#fab-chat').hidden = false; lireLus(); chargerChat(); chargerAlertes(); chargerAnnonces(); signalPresence(); chargerPresence(); setTimeout(() => { chargerStock(); chargerArgent(); }, 2500);
+  $('#fab-chat').hidden = false; lireLus(); chargerChat(); chargerAlertes(); chargerAnnonces(); signalPresence().then(chargerPresence); setTimeout(() => { chargerStock(); chargerArgent(); }, 2500);
   charger();
   api('villes').then(d => { st.villes = d.villes; $('#villes').replaceChildren(...d.villes.map(v => el('option', { value: v }))); }).catch(() => {});
   chargerStats();
@@ -1491,11 +1491,12 @@ setInterval(signalPresence, 60000);
 document.addEventListener('visibilitychange', () => { document.visibilityState === 'visible' ? (signalPresence(), chargerPresence()) : finPresence(); });
 window.addEventListener('pagehide', finPresence);
 async function chargerPresence() {
-  if (!st.pin || st.agent !== 'ADMIN') return;
+  if (!st.pin || !st.agent) return;
   try { const d = await api('presence', { op: 'liste' }); PRES.liste = d.agentes || []; PRES.decal = Date.now() - Date.parse(d.maintenant); rendrePresence(); } catch (e) {}
 }
 setInterval(() => { if (document.visibilityState === 'visible') chargerPresence(); }, 30000);
 function etatPresence(a) {
+  if (a.agent === st.agent) return { c: 'g', t: 'En ligne' };   // soi-même : l'application est ouverte
   if (!a.vu) return { c: 'n', t: 'jamais' };
   const ms = Date.now() - PRES.decal - Date.parse(a.vu), min = Math.floor(ms / 60000);
   if (!a.sortie && ms < 150000) return { c: 'g', t: 'En ligne' };
@@ -1509,12 +1510,14 @@ function avatarPres(a, e, taille) {
 }
 function rendrePresence() {
   const box = $('#presence'); if (!box) return;
-  box.hidden = st.agent !== 'ADMIN' || !PRES.liste.length; if (box.hidden) return;
+  // l'admin : tout + détail ; les agentes : seulement les agentes (pas l'admin), sans le détail
+  const admin = st.agent === 'ADMIN';
+  box.hidden = !st.agent || !PRES.liste.length; if (box.hidden) return;
   const etats = PRES.liste.map(a => [a, etatPresence(a)]);
   const nOn = etats.filter(([, e]) => e.c === 'g').length;
-  box.replaceChildren(el('button', { class: 'pres-in', type: 'button', onclick: voirPresence },
-    el('div', { class: 'pres-h' }, el('span', { text: 'AGENTES' }), el('b', { class: nOn ? '' : 'z', text: '● ' + nOn + ' en ligne / ' + PRES.liste.length })),
-    el('div', { class: 'pres-l' }, ...etats.map(([a, e]) => el('div', { class: 'pres-a' + (e.c === 'n' ? ' off' : '') }, avatarPres(a, e), el('span', { text: nomPropre(a.agent) }), el('small', { class: e.c, text: e.t }))))));
+  box.replaceChildren(el('button', { class: 'pres-in', type: 'button', onclick: admin ? voirPresence : null, style: admin ? '' : 'cursor:default' },
+    el('div', { class: 'pres-h' }, el('span', { text: admin ? 'AGENTES' : "L'ÉQUIPE" }), el('b', { class: nOn ? '' : 'z', text: '● ' + nOn + ' en ligne / ' + PRES.liste.length })),
+    el('div', { class: 'pres-l' }, ...etats.map(([a, e]) => el('div', { class: 'pres-a' + (e.c === 'n' ? ' off' : '') }, avatarPres(a, e), el('span', { text: a.agent === st.agent ? 'Moi' : nomPropre(a.agent) }), el('small', { class: e.c, text: e.t }))))));
 }
 function voirPresence() {
   const fond = el('div', { class: 'lu-fond', style: 'position:fixed;z-index:95', onclick: e => { if (e.target === fond) fond.remove(); } });
