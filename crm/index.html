@@ -481,6 +481,27 @@
 
   /* ---------- carte « argent » (admin) ---------- */
   .arg { margin: 0 0 10px; }
+  .mod { margin: 0 0 10px; }
+  .mod-in { background: linear-gradient(135deg, rgba(109,93,252,.10), var(--panel)); border: 1.5px solid #6d5dfc; border-radius: 16px; padding: 12px 14px; }
+  .mod-h { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 13px; color: #a5a0ff; letter-spacing: .4px; }
+  .mod-h em { font-style: normal; color: var(--muted); font-size: 11.5px; font-weight: 600; }
+  .mod-seg { display: flex; background: rgba(0,0,0,.25); border-radius: 12px; padding: 4px; margin: 10px 0; }
+  .mod-seg button { flex: 1; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; padding: 8px; border-radius: 9px; cursor: pointer; }
+  .mod-seg button[aria-pressed="true"] { background: var(--line); color: var(--ink); }
+  .mod-m { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: rgba(255,255,255,.04); border: 0; border-radius: 13px; padding: 10px 11px; margin-bottom: 7px; cursor: pointer; }
+  .mod-r { display: flex; align-items: center; gap: 8px; }
+  .mod-k { width: 22px; height: 22px; border-radius: 7px; background: var(--line); display: grid; place-items: center; font-size: 11.5px; font-weight: 800; flex: none; }
+  .mod-n { flex: 1; font-weight: 700; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mod-v { font-weight: 800; font-size: 14px; white-space: nowrap; }
+  .mod-bar { height: 6px; background: var(--line); border-radius: 9px; margin: 7px 0 4px; overflow: hidden; }
+  .mod-bar i { display: block; height: 100%; border-radius: 9px; }
+  .mod-s { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--muted); }
+  .mod-c { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+  .mod-c span { font-size: 11px; padding: 3px 8px; border-radius: 999px; background: rgba(239,68,68,.16); color: #f26b6b; font-weight: 700; }
+  .mod-t { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 12px; }
+  .mod-t th { text-align: left; color: var(--muted); font-weight: 600; font-size: 11.5px; padding: 4px 2px; }
+  .mod-t td { padding: 6px 2px; border-top: 1px solid var(--line); }
+  .mod-t td:not(:first-child), .mod-t th:not(:first-child) { text-align: right; }
   .arg-in { width: 100%; text-align: left; font: inherit; color: var(--ink); cursor: pointer; background: linear-gradient(135deg, rgba(249,115,22,.10), var(--panel)); border: 1.5px solid #f97316; border-radius: 16px; padding: 12px 14px; }
   .arg-h { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 800; color: #f97316; letter-spacing: .03em; }
   .arg-h em { margin-left: auto; font-style: normal; font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0; }
@@ -532,6 +553,7 @@
       <div class="pwa-bar" id="pwa-bar" hidden></div>
       <div class="pres" id="presence" hidden></div>
       <div class="arg" id="argent" hidden></div>
+      <div class="mod" id="modeles" hidden></div>
       <div class="seg" id="views" role="group" aria-label="Vue">
         <button data-view="orders" aria-pressed="true">Commandes</button>
         <button data-view="perf" aria-pressed="false">Performance</button>
@@ -581,7 +603,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611072101';
+const VERSION = '202611072105';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1599,11 +1621,92 @@ const finiArg = o => /retour|retourn|refus|annul/i.test(String(o.livraison || ''
 const dhs = n => Math.round(n).toLocaleString('fr-FR').replace(/ | /g, ' ') + ' DH';
 async function chargerArgent() {
   if (!st.pin || st.agent !== 'ADMIN') return;
-  try { const l = await commandes30(); ARG.liste = l.filter(o => o.colis && !/^[⚠⏳✅]/.test(o.colis)); ARG.vu = Date.now(); rendreArgent(); } catch (e) {}
+  try { const l = await commandes30(); ARG.liste = l.filter(o => o.colis && !/^[⚠⏳✅]/.test(o.colis)); ARG.vu = Date.now(); rendreArgent(); rendreModeles(); } catch (e) {}
   try {
     const r = await fetch('https://n8n.srv2034083.hstgr.cloud/webhook/crm-factures', { method: 'POST', body: new URLSearchParams({ payload: JSON.stringify({ pin: st.pin }) }) });
     const d = await r.json(); if (d.ok && d.factures) { ARG.fct = d.factures; rendreArgent(); alerteFactures(); }
   } catch (e) {}
+}
+// ---------- Modèles (admin) : les plus livrés / les plus retournés + raisons, 30 jours, Irsaliyat + Colya ----------
+const MOD = { tab: 'liv' };
+const RAISONS = [
+  ['💰 Prix', /prix|cher|ghali|غالي/i], ['📏 Taille / couleur', /taille|couleur|mesure|مقاس|لون/i], ['📍 Adresse', /adresse|mauvaise ville|loin|عنوان/i],
+  ["🙅 Pas commandé / changé d'avis", /pas command|chang[ée] d.avis|ما طلبت|ما طلباتش/i], ['🛍️ Acheté ailleurs', /ailleurs|d[ée]j[àa] achet/i], ['⏳ Délai', /d[ée]lai|retard|tard/i],
+  ['📵 Injoignable', /r[ée]pond|injoign|[ée]teint|joignable|bo[iî]te vocale|ferm[ée]|messagerie/i], ['❌ Refusé', /refus/i], ['❌ Annulé', /annul/i],
+];
+function raisonRetour(o) {
+  const notes = String(o.notes || '').split('\n').filter(l => / · Note · (Livreur|Rappel report)/.test(l)).map(l => l.replace(/^.*? · Note · /, ''));
+  for (const txt of [notes.slice(-2).join(' '), o.livraison || '']) {
+    const r = RAISONS.find(([, re]) => re.test(txt)); if (r) return r[0];
+  }
+  return '↩️ Retour';
+}
+const etatMod = o => { const g = gLiv(o); return g === 'ok' ? 'ok' : ['an', 'rt', 'rr'].includes(g) ? 'ko' : 'cours'; };
+function calculModeles() {
+  const m = new Map();
+  for (const o of ARG.liste) {
+    if (/doublon/i.test(o.livraison || '')) continue;
+    const p = lireProduit(o.produit), e = etatMod(o), dh = prixArg(o);
+    if (!m.has(p.modele)) m.set(p.modele, { modele: p.modele, n: 0, ok: 0, ko: 0, cours: 0, dhOk: 0, dhKo: 0, raisons: {}, items: [] });
+    const x = m.get(p.modele);
+    x.n++; x[e]++; x.items.push({ o, p, e });
+    if (e === 'ok') x.dhOk += dh;
+    if (e === 'ko') { x.dhKo += dh; const r = raisonRetour(o); x.raisons[r] = (x.raisons[r] || 0) + 1; }
+  }
+  const l = [...m.values()];
+  for (const x of l) { x.fini = x.ok + x.ko; x.taux = x.fini ? x.ok / x.fini : 0; x.tauxKo = x.fini ? x.ko / x.fini : 0; }
+  return l;
+}
+const pctM = v => Math.round(v * 100) + ' %';
+const chipsRaisons = x => el('div', { class: 'mod-c' }, ...Object.entries(x.raisons).sort((a, b) => b[1] - a[1]).map(([r, n]) => el('span', { text: r + ' · ' + n })));
+function ligneModele(x, i, tab) {
+  const liv = tab === 'liv', v = liv ? x.taux : x.tauxKo;
+  const coul = liv ? (v >= .7 ? '#22c55e' : v >= .5 ? '#84cc16' : '#f59e0b') : (v >= .35 ? '#ef4444' : v >= .2 ? '#f97316' : '#f59e0b');
+  return el('button', { class: 'mod-m', type: 'button', onclick: () => voirModele(x) },
+    el('div', { class: 'mod-r' }, el('div', { class: 'mod-k', text: i + 1 }), el('div', { class: 'mod-n', text: x.modele }),
+      el('div', { class: 'mod-v', style: 'color:' + (liv ? '#22c55e' : '#ef4444'), text: liv ? x.ok + ' livrés' : pctM(x.tauxKo) + ' retour' })),
+    el('div', { class: 'mod-bar' }, el('i', { style: 'width:' + Math.max(3, v * 100) + '%;background:' + coul })),
+    el('div', { class: 'mod-s' },
+      el('span', { text: liv ? x.n + ' expédiés · ' + pctM(x.taux) + ' livrés' + (x.cours ? ' · ' + x.cours + ' en cours' : '') : x.ko + ' retours / annulés sur ' + x.fini + (x.cours ? ' · ' + x.cours + ' en cours' : '') }),
+      el('span', { text: liv ? dhs(x.dhOk) : '-' + dhs(x.dhKo) })),
+    liv ? null : chipsRaisons(x));
+}
+function rendreModeles() {
+  const box = $('#modeles'); if (!box) return;
+  box.hidden = st.agent !== 'ADMIN' || !ARG.vu; if (box.hidden) return;
+  const l = calculModeles();
+  const liste = MOD.tab === 'liv'
+    ? l.filter(x => x.ok > 0).sort((a, b) => b.ok - a.ok || b.taux - a.taux)
+    : l.filter(x => x.ko > 0 && x.fini >= 3).sort((a, b) => b.tauxKo - a.tauxKo || b.ko - a.ko);
+  const tab = (id, t) => el('button', { type: 'button', 'aria-pressed': String(MOD.tab === id), onclick: () => { MOD.tab = id; MOD.tout = false; rendreModeles(); } }, t);
+  const max = MOD.tout ? liste.length : 5;
+  box.replaceChildren(el('div', { class: 'mod-in' },
+    el('div', { class: 'mod-h' }, '📊 MODÈLES · 30 JOURS', el('em', { text: 'Irsaliyat + Colya' })),
+    el('div', { class: 'mod-seg' }, tab('liv', '✅ Les plus livrés'), tab('ret', '↩️ Retours')),
+    ...(liste.length ? liste.slice(0, max).map((x, i) => ligneModele(x, i, MOD.tab)) : [el('div', { class: 'mod-s', text: 'Pas encore assez de colis terminés.' })]),
+    liste.length > 5 ? el('button', { class: 'mod-seg', type: 'button', style: 'width:100%;justify-content:center;border:0;color:var(--muted);font:inherit;font-size:13px;font-weight:700;padding:9px;cursor:pointer', onclick: () => { MOD.tout = !MOD.tout; rendreModeles(); } }, MOD.tout ? 'Voir moins' : 'Voir les ' + liste.length + ' modèles') : null,
+    el('div', { class: 'mod-s', style: 'margin-top:4px', text: '👆 Touchez un modèle : détail par taille, couleur et agente' })));
+}
+function voirModele(x) {
+  const fond = el('div', { class: 'lu-fond', style: 'position:fixed;z-index:95', onclick: e => { if (e.target === fond) fond.remove(); } });
+  const table = (titre, cle) => {
+    const g = new Map();
+    for (const it of x.items) for (const k of [].concat(cle(it)).filter(Boolean)) {
+      if (!g.has(k)) g.set(k, { n: 0, ok: 0, ko: 0 }); const r = g.get(k); r.n++; if (it.e === 'ok') r.ok++; if (it.e === 'ko') r.ko++;
+    }
+    const rows = [...g.entries()].sort((a, b) => b[1].n - a[1].n);
+    return [el('h4', { style: 'margin:10px 0 2px;font-size:14px', text: titre }),
+      el('table', { class: 'mod-t' }, el('tr', {}, el('th', { text: '' }), el('th', { text: 'Exp.' }), el('th', { text: 'Livrés' }), el('th', { text: 'Retours' }), el('th', { text: '% livré' })),
+        ...rows.map(([k, r]) => el('tr', {}, el('td', { text: k }), el('td', { text: r.n }), el('td', { style: 'color:#22c55e', text: r.ok }), el('td', { style: 'color:#ef4444', text: r.ko }), el('td', { text: r.ok + r.ko ? pctM(r.ok / (r.ok + r.ko)) : '—' }))))];
+  };
+  fond.append(el('div', { class: 'lu-sheet', style: 'max-height:88%' }, el('div', { class: 'lu-grab' }),
+    el('h3', { text: '📊 ' + x.modele }),
+    el('div', { class: 'mod-s', style: 'font-size:13px', text: x.n + ' expédiés · ' + x.ok + ' livrés · ' + x.ko + ' retours / annulés · ' + x.cours + ' en cours' + (x.fini ? ' · ' + pctM(x.taux) + ' livrés' : '') }),
+    Object.keys(x.raisons).length ? [el('h4', { style: 'margin:12px 0 0;font-size:14px', text: 'Raisons des retours' }), chipsRaisons(x)] : null,
+    ...table('📏 Par taille', it => it.p.taille),
+    ...table('🎨 Par couleur', it => it.p.coul.length ? it.p.coul : 'Autre'),
+    ...table('👩 Par agente', it => it.o.agent ? nomPropre(it.o.agent) : '—')));
+  document.body.append(fond);
 }
 // prévenir l'admin : nouvelle facture / facture versée (une seule fois par événement)
 function alerteFactures() {
