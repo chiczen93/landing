@@ -581,7 +581,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611072025';
+const VERSION = '202611072035';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1844,6 +1844,8 @@ function verifierAlertes() {
   if (p.length) return montrerCarrousel(p);
   const r = retards();
   if (r.length) return montrerRetard(r[0], r.length);
+  const rp = reportesAFaire();
+  if (rp.length) return montrerReporte(rp[0], rp.length);
   if (ALR.file.length) return montrerAlerte(ALR.file.shift());
 }
 setInterval(verifierAlertes, 15000);
@@ -1898,6 +1900,54 @@ function montrerRetard(o, n) {
     carte.append(el('button', { 'aria-label': 'Fermer', title: 'Fermer sans choisir', onclick: fermer, style: 'position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;border:0;background:#2a1418;color:#ffb4b4;font-size:20px;cursor:pointer' }, '✕'));
     fond.addEventListener('click', e => { if (e.target === fond) fermer(); });
   }
+  fond.append(carte); document.body.append(fond);
+}
+// ---------- Colis « Reporté » (livraison) : rappel au milieu de l'écran pour l'agente, une fois par jour ----------
+// l'agente appelle la cliente puis écrit ce qu'elle a dit (note « Rappel reporté ») ; le rappel revient le lendemain si c'est toujours reporté
+const jourLocal = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const rpFaitAuj = o => {
+  const auj = jourLocal(Date.now());
+  if ((lireMap('rp_faits_')[o.colis] || '') === auj) return true;
+  return String(o.notes || '').split('\n').some(l => { const m = l.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}) · [A-Z]+ · Note · Rappel report/); return m && jourLocal(tLiv(m[1])) === auj; });
+};
+function reportesAFaire() {
+  if (!st.agent || st.agent === 'ADMIN' || !st.commandes) return [];
+  return st.commandes.filter(o => o.colis && o.agent === st.agent && gLiv(o) === 'rp' && !rpFaitAuj(o))
+    .sort((a, b) => (tLiv(a.dliv) || 0) - (tLiv(b.dliv) || 0));
+}
+function montrerReporte(o, n) {
+  ALR.ouvert = true; jouerSon(SON_PASREP);
+  const prix = String(o.total || '').replace('درهم', 'DH').trim();
+  const fond = el('div', { class: 'alr-fond' }), carte = el('div', { class: 'alr' });
+  const fin = () => { fond.remove(); ALR.ouvert = false; setTimeout(verifierAlertes, 400); };
+  let choix = '';
+  const CHOIX = ['غادي تستلم اليوم', 'غادي تستلم غدا', 'عطات تاريخ آخر', 'ما جاوباتش', 'بغات تلغي'];
+  const puces = el('div', { style: 'display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 8px' }, ...CHOIX.map(c => el('button', { class: 'alr-b gr', style: 'flex:none;padding:8px 11px;font-size:13px', onclick: e => { choix = c; for (const b of puces.children) b.style.outline = ''; e.currentTarget.style.outline = '2px solid #f59e0b'; } }, c)));
+  const ta = el('textarea', { rows: 2, placeholder: 'شنو قالت الكليانة؟ (التاريخ، الوقت…)', style: 'width:100%;box-sizing:border-box;border-radius:12px;border:1px solid var(--line);background:#0f1320;color:inherit;padding:10px;font:inherit;font-size:14px;resize:none' });
+  const ok = el('button', { class: 'alr-b', style: 'background:#f59e0b;color:#1a1200;width:100%;margin-top:10px', onclick: async () => {
+    const texte = [choix, ta.value.trim()].filter(Boolean).join(' — ');
+    if (!texte) return toast('اختاري شنو قالت الكليانة ولا كتبي ملاحظة', true);
+    ok.disabled = true;
+    try {
+      if (o.row) {
+        const d = await api('maj', { row: o.row, id: o.id, champs: {}, note: { type: 'note', texte: 'Rappel reporté - ' + texte } });
+        if (d && d.notes !== undefined) o.notes = d.notes;
+      }
+      const m = lireMap('rp_faits_'); m[o.colis] = jourLocal(Date.now()); ecrireMap('rp_faits_', m);
+      toast('✓ تسجلات'); rendre(); fin();
+    } catch (e) { toast(e.message, true); ok.disabled = false; }
+  } }, '✓ تاصلت · سجلي');
+  carte.append(el('div', { class: 'alr-ic', style: 'background:#3a2a10' }, '📅'),
+    el('span', { class: 'alr-tag', style: 'background:#f59e0b;color:#1a1200', text: '📅 Reporté' + (n > 1 ? ' · 1/' + n : '') }),
+    el('div', { class: 'alr-cl', text: (o.client || 'Client') + (prix ? ' · ' + prix : '') }),
+    el('div', { class: 'alr-pr', text: [String(o.produit || '').split(' — ').slice(0, 3).join(' — '), o.ville, o.tel].filter(Boolean).join(' · ') }),
+    el('div', { class: 'alr-tl' },
+      el('div', {}, el('span', { text: '🚚 État' }), el('b', { text: (o.livraison || 'Reporté') + ' · ' + societe(o) })),
+      o.dliv ? el('div', {}, el('span', { text: '🕒 Depuis' }), el('b', { text: dateCourte2(tLiv(o.dliv)) })) : el('div', {}),
+      o.remarque ? el('div', {}, el('span', { text: '📝 Remarque' }), el('b', { text: String(o.remarque).slice(0, 60) })) : el('div', {})),
+    el('div', { class: 'alr-q', text: 'هاد الكوليس مأجل. عيطي للكليانة وتأكدي معاها النهار لي غادي تستلم فيه، باش الليفرور يلقاها.' }),
+    el('div', { class: 'alr-2' }, el('a', { class: 'alr-b gr', href: 'tel:0' + telLiv(o) }, '📞 Appeler'), el('a', { class: 'alr-b wa', href: waLiv(o, (GROUPES.find(g => g.id === 'rp') || {}).msg || MSG_DEFAUT), target: '_blank', rel: 'noopener' }, 'WhatsApp')),
+    puces, ta, ok);
   fond.append(carte); document.body.append(fond);
 }
 function montrerAnnulHajiba(a, n) {
