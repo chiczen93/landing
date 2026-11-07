@@ -481,6 +481,9 @@
 
   /* ---------- carte « argent » (admin) ---------- */
   .arg { margin: 0 0 10px; }
+  .pli-h { width: 100%; background: none; border: 0; padding: 0; font: inherit; cursor: pointer; text-align: left; }
+  .pli-fl { font-style: normal; color: var(--muted); font-size: 14px; margin-left: 8px; }
+  .pli-sum { color: var(--ink) !important; font-size: 14px !important; font-weight: 800 !important; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mod { margin: 0 0 10px; }
   .mod-in { background: linear-gradient(135deg, rgba(109,93,252,.10), var(--panel)); border: 1.5px solid #6d5dfc; border-radius: 16px; padding: 12px 14px; }
   .mod-h { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 13px; color: #a5a0ff; letter-spacing: .4px; }
@@ -603,7 +606,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611072105';
+const VERSION = '202611072135';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1675,13 +1678,18 @@ function rendreModeles() {
   const box = $('#modeles'); if (!box) return;
   box.hidden = st.agent !== 'ADMIN' || !ARG.vu; if (box.hidden) return;
   const l = calculModeles();
+  const ouvert = store.get('pli_mod') === '1';
+  const top = l.filter(x => x.ok > 0).sort((a, b) => b.ok - a.ok)[0];
+  const tete = el('button', { class: 'pli-h mod-h', type: 'button', onclick: () => { store.set('pli_mod', ouvert ? '0' : '1'); rendreModeles(); } },
+    '📊 MODÈLES · 30 JOURS', el('span', { style: 'display:flex;align-items:center;min-width:0' }, el('em', ouvert ? { text: 'Irsaliyat + Colya' } : { class: 'pli-sum', text: top ? '🥇 ' + top.modele : '' }), el('i', { class: 'pli-fl', text: ouvert ? '▴' : '▾' })));
+  if (!ouvert) { box.replaceChildren(el('div', { class: 'mod-in' }, tete)); return; }
   const liste = MOD.tab === 'liv'
     ? l.filter(x => x.ok > 0).sort((a, b) => b.ok - a.ok || b.taux - a.taux)
     : l.filter(x => x.ko > 0 && x.fini >= 3).sort((a, b) => b.tauxKo - a.tauxKo || b.ko - a.ko);
   const tab = (id, t) => el('button', { type: 'button', 'aria-pressed': String(MOD.tab === id), onclick: () => { MOD.tab = id; MOD.tout = false; rendreModeles(); } }, t);
   const max = MOD.tout ? liste.length : 5;
   box.replaceChildren(el('div', { class: 'mod-in' },
-    el('div', { class: 'mod-h' }, '📊 MODÈLES · 30 JOURS', el('em', { text: 'Irsaliyat + Colya' })),
+    tete,
     el('div', { class: 'mod-seg' }, tab('liv', '✅ Les plus livrés'), tab('ret', '↩️ Retours')),
     ...(liste.length ? liste.slice(0, max).map((x, i) => ligneModele(x, i, MOD.tab)) : [el('div', { class: 'mod-s', text: 'Pas encore assez de colis terminés.' })]),
     liste.length > 5 ? el('button', { class: 'mod-seg', type: 'button', style: 'width:100%;justify-content:center;border:0;color:var(--muted);font:inherit;font-size:13px;font-weight:700;padding:9px;cursor:pointer', onclick: () => { MOD.tout = !MOD.tout; rendreModeles(); } }, MOD.tout ? 'Voir moins' : 'Voir les ' + liste.length + ' modèles') : null,
@@ -1741,8 +1749,11 @@ function rendreArgent() {
   const box = $('#argent'); if (!box) return;
   box.hidden = st.agent !== 'ADMIN' || !ARG.vu; if (box.hidden) return;
   const r = calculArgent();
-  box.replaceChildren(el('button', { class: 'arg-in', type: 'button', onclick: voirArgent },
-    el('div', { class: 'arg-h' }, '💰 ARGENT LIVRÉ · 7 JOURS', el('em', { text: 'mis à jour ' + heureHM(new Date(ARG.vu).toISOString()) })),
+  const ouvert = store.get('pli_arg') === '1';
+  const tete = el('button', { class: 'pli-h arg-h', type: 'button', onclick: () => { store.set('pli_arg', ouvert ? '0' : '1'); rendreArgent(); } },
+    '💰 ARGENT LIVRÉ · 7 JOURS', el('em', ouvert ? { text: 'mis à jour ' + heureHM(new Date(ARG.vu).toISOString()) } : { class: 'pli-sum', text: dhs(r.tot.dh) }), el('i', { class: 'pli-fl', text: ouvert ? '▴' : '▾' }));
+  if (!ouvert) { box.replaceChildren(el('div', { class: 'arg-in' }, tete)); return; }
+  box.replaceChildren(el('div', { class: 'arg-in' }, tete, el('div', { style: 'cursor:pointer', onclick: voirArgent },
     el('div', { class: 'arg-big' }, dhs(r.tot.dh).replace(' DH', ' '), el('small', { text: 'DH' })),
     el('div', { class: 'arg-l', text: r.tot.n + ' colis livrés · à recevoir des sociétés de livraison' }),
     el('div', { class: 'arg-g' },
@@ -1750,7 +1761,7 @@ function rendreArgent() {
       el('div', {}, el('b', { class: 'arg-o', text: dhs(r.route.dh) }), el('span', { text: 'En route · ' + r.route.n + ' colis' })),
       el('div', {}, el('b', { text: dhs(r.soc.Irsaliyat.dh) }), el('span', { text: 'Irsaliyat · ' + r.soc.Irsaliyat.n + ' livrés' })),
       el('div', {}, el('b', { text: dhs(r.soc.Colya.dh) }), el('span', { text: 'Colya (Casa) · ' + r.soc.Colya.n + ' livrés' }))),
-    blocFactures()));
+    blocFactures())));
 }
 function blocFactures() {
   const f = ARG.fct; if (!f || f.verse === undefined) return null;
