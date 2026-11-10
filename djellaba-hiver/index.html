@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>جلابة الشتا بالقب — دفا وأناقة | Zena Shop</title>
-<meta name="description" content="جلابة بالقب والسنسلة، ثوب دياكونال دافي وناعم. 8 ألوان، المقاسات L · XL · XXL. القطعة 250 درهم، جوج قطع 400 درهم. التوصيل فابور والخلاص عند الاستلام.">
+<meta name="description" content="جلابة بالقب والسنسلة، ثوب دياكونال دافي وناعم. 8 ألوان، المقاسات M · L · XL · XXL. القطعة 250 درهم، جوج قطع 400 درهم. التوصيل فابور والخلاص عند الاستلام.">
 <meta property="og:title" content="جلابة الشتا بالقب — دفا وأناقة">
 <meta property="og:image" content="img/bordeaux.webp">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Amiri:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="preload" as="image" href="img/bordeaux.webp">
 <script>
 /* ⚙️ Réglages de la page */
@@ -18,11 +18,11 @@ window.PAGE = {
   pixelsTikTok: ['D7BCPGJC77U8CCU0I4N0', 'D67QF8RC77U07ECR785G'],
   webhook: 'https://n8n.srv2034083.hstgr.cloud/webhook/commande-landing',
   offres: [ { qty: 1, prix: 250, label: 'قطعة وحدة', fr: '1 pièce' }, { qty: 2, prix: 400, label: 'جوج قطع', fr: '2 pièces', badge: 'اقتصدي 100 درهم' } ],
-  tailles: ['L', 'XL', 'XXL'],
+  tailles: ['M', 'L', 'XL', 'XXL'],
   couleurs: [
     { id: 'bordeaux', ar: 'بوردو', fr: 'Bordeaux', hex: '#7d1d33' },
     { id: 'noir', ar: 'كحل', fr: 'Noir', hex: '#141414' },
-    { id: 'marine', ar: 'زرق ليل', fr: 'Bleu marine', hex: '#1f2a44' },
+    { id: 'marine', ar: 'بلومارين', fr: 'Bleu marine', hex: '#1f2a44' },
     { id: 'vert', ar: 'خضر زيتي', fr: 'Vert kaki', hex: '#3d4a2c' },
     { id: 'chocolat', ar: 'قهوي', fr: 'Chocolat', hex: '#4a2a1e' },
     { id: 'camel', ar: 'كاميل', fr: 'Camel', hex: '#a8693a' },
@@ -42,12 +42,12 @@ PAGE.pixelsTikTok.forEach(function(id){ttq.load(id);});ttq.page();ttq.track('Vie
 :root{--ink:#1d1715;--muted:#6e625c;--line:#ebe2d9;--bg:#fbf8f4;--card:#fff;--soft:#f4ece3;--accent:#7d1d33;--accent2:#a8693a;--ok:#1f7a4d;--radius:16px}
 *{box-sizing:border-box}html{scroll-behavior:smooth}
 html,body{overflow-x:clip}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:Tajawal,"Segoe UI",Tahoma,Arial,sans-serif;font-size:16.5px;line-height:1.75;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Cairo,"Segoe UI",Tahoma,Arial,sans-serif;font-size:16.5px;line-height:1.75;-webkit-font-smoothing:antialiased}
 img{max-width:100%;display:block}
 .bar{background:var(--accent);color:#fff;text-align:center;font-size:14px;padding:8px 12px;font-weight:700}
 .wrap{max-width:1080px;margin:0 auto;padding:0 16px}
 header.top{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
-.logo{font-family:Amiri,serif;font-weight:700;font-size:24px;letter-spacing:.02em;color:var(--accent)}
+.logo{font-weight:800;font-size:22px;letter-spacing:.01em;color:var(--accent)}
 .top a{font-weight:800;color:var(--ink);text-decoration:none;font-size:15px;border:1.5px solid var(--ink);border-radius:999px;padding:5px 14px}
 .hero{display:grid;grid-template-columns:1.05fr 1fr;gap:36px;padding:6px 0 40px;align-items:start}
 .hero>*{min-width:0}
@@ -104,15 +104,13 @@ form.order h2{font-size:20px;margin:0 0 6px}
 .btn:disabled{opacity:.6;cursor:wait}
 .note{font-size:13.5px;color:var(--muted);text-align:center;margin-top:8px}
 .hp{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;clip:rect(0 0 0 0)}
-.thanks{display:none;text-align:center;padding:26px 10px;border:1.5px solid var(--ok);border-radius:var(--radius);background:#fff}
-.thanks .ok{width:58px;height:58px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:28px;margin:0 auto 10px}
 /* Sections */
 section{padding:46px 0;border-top:1px solid var(--line)}
 section h2{font-size:clamp(23px,3.2vw,30px);margin:0 0 14px;line-height:1.35}
 .story{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:center}
 .story p{margin:0 0 12px;color:#3a302c;font-size:17.5px}
 .story img{border-radius:var(--radius)}
-.quote{font-family:Amiri,serif;font-size:clamp(22px,3vw,28px);color:var(--accent);line-height:1.6;margin:0 0 16px}
+.quote{font-weight:700;font-size:clamp(21px,3vw,27px);color:var(--accent);line-height:1.6;margin:0 0 16px}
 .benefits{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .benefits li{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px;font-weight:500}
 .benefits li b{display:block;margin-bottom:3px;font-size:16.5px}
@@ -193,11 +191,6 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
         <div class="err" id="errForm" style="text-align:center"></div>
         <p class="note">ما كتخلصي والو دابا · الفريق ديالنا غادي يعيط ليك باش يأكد الطلب</p>
       </form>
-      <div class="thanks" id="thanks" role="status">
-        <div class="ok">✓</div>
-        <h2 style="margin:0 0 6px">شكراً، الطلب ديالك توصلنا 🤍</h2>
-        <p style="color:var(--muted);margin:0">غادي نعيطو ليك قريب باش نأكدو معاك الطلب. خلي التيليفون قريب منك.</p>
-      </div>
     </div>
   </div>
 
@@ -234,6 +227,7 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
     <h2>دليل المقاسات</h2>
     <table class="guide">
       <tr><th>المقاس</th><th>كيناسب</th><th>الوزن تقريباً</th></tr>
+      <tr><td dir="ltr">M</td><td>36 – 38</td><td>50 – 60 كلغ</td></tr>
       <tr><td dir="ltr">L</td><td>40 – 42</td><td>60 – 75 كلغ</td></tr>
       <tr><td dir="ltr">XL</td><td>44 – 46</td><td>75 – 90 كلغ</td></tr>
       <tr><td dir="ltr">XXL</td><td>48 – 50</td><td>90 – 105 كلغ</td></tr>
@@ -289,7 +283,7 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
   document.getElementById('couleurs').innerHTML = pastilles('couleur', P.couleurs[0].id);
   document.getElementById('couleurs2').innerHTML = pastilles('couleur2', P.couleurs[1].id);
   document.getElementById('sizes').innerHTML = P.tailles.map(function (t, i) {
-    return '<label><input type="radio" name="taille" value="' + t + '"' + (i === 1 ? ' checked' : '') + '><span>' + t + '</span></label>';
+    return '<label><input type="radio" name="taille" value="' + t + '"' + (t === 'XL' ? ' checked' : '') + '><span>' + t + '</span></label>';
   }).join('');
   document.getElementById('offers').innerHTML = P.offres.map(function (o, i) {
     return '<label class="offer">' + (o.badge ? '<span class="tag">' + o.badge + '</span>' : '') +
@@ -347,11 +341,10 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
     document.getElementById('errForm').textContent = '';
     fetch(P.webhook, { method: 'POST', body: data }).then(function (r) {
       if (!r.ok) throw new Error('http ' + r.status);
-      try { fbq('track', 'Purchase', { value: o.prix, currency: 'MAD', content_name: P.produit, num_items: o.qty }, { eventID: eventId }); } catch (e) {}
-      try { ttq.track('CompletePayment', { value: o.prix, currency: 'MAD', event_id: eventId }); } catch (e) {}
-      f.style.display = 'none'; document.getElementById('thanks').style.display = 'block';
-      document.getElementById('sticky').classList.remove('show');
-      document.getElementById('thanks').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // page de remerciement (le Purchase y est envoyé avec le même eventID) ; replace = le retour arrière ne revient pas au produit
+      var cmd = { nom: nom.split(' ')[0], taille: taille, couleurs: couleur('couleur').ar + (o.qty > 1 ? ' + ' + couleur('couleur2').ar : ''), qte: o.label, prix: o.prix, qty: o.qty, img: couleur('couleur').id, ev: eventId, tel: t };
+      try { sessionStorage.setItem('djl_cmd', JSON.stringify(cmd)); } catch (e) {}
+      location.replace('merci.html?ev=' + encodeURIComponent(eventId) + '&v=' + o.prix + '&q=' + o.qty);
     }).catch(function () {
       btn.disabled = false; btn.firstChild.nodeValue = 'اطلبي دابا — '; maj();
       document.getElementById('errForm').textContent = 'وقع مشكل فالإرسال. تأكدي من الأنترنيت وعاودي.';
