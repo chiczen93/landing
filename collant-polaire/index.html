@@ -82,6 +82,8 @@ form.order h2{font-size:19px;margin:0 0 4px}
 .choix input{position:absolute;opacity:0}
 .choix span{display:inline-flex;align-items:center;gap:8px;min-width:56px;justify-content:center;padding:8px 13px;border:1.5px solid var(--line);border-radius:10px;font-weight:800;cursor:pointer}
 .choix span i{width:18px;height:18px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.tailles{display:grid!important;grid-template-columns:repeat(5,1fr);gap:7px!important}
+.tailles span{width:100%;min-width:0!important;padding:9px 4px!important}
 .choix input:checked+span{border-color:var(--ink);background:var(--ink);color:#fff}
 .choix input:focus-visible+span{outline:2px solid var(--accent2);outline-offset:2px}
 .offers{display:grid;gap:9px}
@@ -174,16 +176,10 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
 
       <form class="order" id="commande" novalidate>
         <h2>دخلي المعلومات ديالك ونتاصلو بيك</h2>
-        <span class="lbl">اللون <em id="nomCouleur"></em></span>
-        <div class="choix" id="couleurs"></div>
         <span class="lbl">المقاس <em>شوفي الجدول تحت</em></span>
-        <div class="choix" id="sizes" dir="ltr" style="justify-content:flex-end"></div>
+        <div class="choix tailles" id="sizes"></div>
         <span class="lbl">الكمية</span>
         <div class="offers" id="offers"></div>
-        <div id="second">
-          <span class="lbl">لون الكولون الثاني</span>
-          <div class="choix" id="couleurs2"></div>
-        </div>
         <div class="field"><input name="nom" autocomplete="name" placeholder="الاسم الكامل *" required><div class="err" data-for="nom"></div></div>
         <div class="field"><input name="telephone" type="tel" inputmode="tel" autocomplete="tel" placeholder="رقم الهاتف * (06 / 07)" required dir="rtl"><div class="err" data-for="telephone"></div></div>
         <div class="field"><input name="ville" autocomplete="address-level2" placeholder="المدينة *" required><div class="err" data-for="ville"></div></div>
@@ -285,7 +281,6 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
       <div>
         <h2>لبسيه مع كلشي</h2>
         <p>مع صاية قصيرة وبوط، مع روب ديال الخدمة، ولا مع فيست وتريكو… لوك أنيق وانتي دافية النهار كامل.</p>
-        <p>لونين: <b>نود</b> كيبان بحال الجلد، و<b>كحل</b> للوك كلاسيكي.</p>
       </div>
       <img src="img/looks.webp" alt="لوكات بالكولون فالشتا" loading="lazy" width="800" height="806">
     </div>
@@ -306,7 +301,6 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
 
   <section>
     <h2>أسئلة كتطرح بزاف</h2>
-    <details><summary>شمن لون نختار؟</summary><p>«نود» كيبان بحال الجلد، كيعطي لوك الرجلين عريانين. «كحل» للوك كلاسيكي وكيمشي مع كلشي.</p></details>
     <details><summary>واش فيه البوليير حتى فالرجلين؟</summary><p>لا، الرجلين رقاق وكيتنفسو باش ما تعرقيش فالصباط.</p></details>
     <details><summary>كيفاش نغسلو؟</summary><p>بالما البارد، مقلوب، فبرنامج خفيف بلا أدوكسيسون، ونشريه ممدود ولا فسخونية خفيفة.</p></details>
     <details><summary>كيفاش كنخلص؟</summary><p>كاش للموزع ملي يوصلك الطلب. ما كتخلصي حتى درهم قبل.</p></details>
@@ -343,15 +337,13 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
   function couleursHtml(nom, defaut) {
     return P.couleurs.map(function (c) { return '<label><input type="radio" name="' + nom + '" value="' + c.id + '"' + (c.id === defaut ? ' checked' : '') + '><span><i style="background:' + c.hex + '"></i>' + c.ar + '</span></label>'; }).join('');
   }
-  document.getElementById('couleurs').innerHTML = couleursHtml('couleur', P.couleurs[0].id);
-  document.getElementById('couleurs2').innerHTML = couleursHtml('couleur2', P.couleurs[1].id);
   document.getElementById('sizes').innerHTML = P.tailles.map(function (t) {
     return '<label><input type="radio" name="taille" value="' + t + '"' + (t === 'L' ? ' checked' : '') + '><span>' + t + '</span></label>';
   }).join('');
   document.getElementById('offers').innerHTML = P.offres.map(function (o, i) {
     return '<label class="offer">' + (o.badge ? '<span class="tag">' + o.badge + '</span>' : '') +
       '<input type="radio" name="offre" value="' + i + '"' + (i === P.offres.length - 1 ? ' checked' : '') + '>' +
-      '<span class="t">' + o.label + (o.qty > 1 ? '<small>الوحدة كتجيك بـ ' + (o.prix / o.qty).toFixed(1).replace('.0', '') + ' درهم · تقدري تختاري جوج ألوان</small>' : '') + '</span><span class="p">' + o.prix + ' درهم</span></label>';
+      '<span class="t">' + o.label + (o.qty > 1 ? '<small>الوحدة كتجيك بـ ' + (o.prix / o.qty).toFixed(1).replace('.0', '') + ' درهم</small>' : '') + '</span><span class="p">' + o.prix + ' درهم</span></label>';
   }).join('');
 
   function couleur(n) { var v = (f.querySelector('input[name=' + n + ']:checked') || {}).value; return P.couleurs.filter(function (c) { return c.id === v; })[0] || P.couleurs[0]; }
@@ -359,8 +351,6 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
   function maj() {
     var o = offre();
     document.getElementById('btnPrix').textContent = o.prix;
-    document.getElementById('nomCouleur').textContent = couleur('couleur').ar;
-    document.getElementById('second').style.display = o.qty > 1 ? 'block' : 'none';
   }
   f.addEventListener('change', maj); maj();
 
@@ -385,12 +375,10 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
     if (!ok) { var e1 = f.querySelector('.err:not(:empty)'); if (e1) e1.previousElementSibling.focus(); return; }
     if (f.site.value) return;
     var o = offre(), taille = (f.querySelector('input[name=taille]:checked') || {}).value || '';
-    var c1 = couleur('couleur'), c2 = couleur('couleur2');
-    var couleursFr = c1.fr + (o.qty > 1 ? ' + ' + c2.fr : '');
     var adresse = f.adresse.value.trim();
     var eventId = 'lp' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     var data = new URLSearchParams({
-      produit: P.produit, taille: taille + ' — ' + couleursFr, quantite: o.fr, prix: String(o.prix),
+      produit: P.produit, taille: taille, quantite: o.fr, prix: String(o.prix),
       nom: nom, telephone: t, ville: adresse ? ville + ' - ' + adresse : ville, note: '',
       page: location.pathname, event_id: eventId,
       pixels: P.pixelMeta, fbp: cookie('_fbp'), fbc: cookie('_fbc') || fbcUrl(), url: location.href
@@ -405,7 +393,7 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
       try { fbq('track', 'Purchase', { value: o.prix, currency: 'MAD', content_name: P.produit, num_items: o.qty }, { eventID: eventId }); } catch (e) {}
       try { ttq.track('CompletePayment', { value: o.prix, currency: 'MAD', event_id: eventId }); } catch (e) {}
       document.getElementById('thTitre').textContent = 'شكراً ' + nom.split(' ')[0] + '، الطلب ديالك توصلنا 🤍';
-      document.getElementById('thRecap').textContent = o.label + ' · ' + c1.ar + (o.qty > 1 ? ' + ' + c2.ar : '') + ' · المقاس ' + taille + ' · ' + o.prix + ' درهم';
+      document.getElementById('thRecap').textContent = o.label + ' · المقاس ' + taille + ' · ' + o.prix + ' درهم';
       f.style.display = 'none'; document.getElementById('thanks').style.display = 'block';
       document.getElementById('sticky').classList.remove('show');
       document.getElementById('thanks').scrollIntoView({ behavior: 'smooth', block: 'center' });
