@@ -103,9 +103,6 @@ form.order h2{font-size:19px;margin:0 0 4px}
 .btn:disabled{opacity:.6;cursor:wait}
 .note{font-size:13.5px;color:var(--muted);text-align:center;margin-top:8px}
 .hp{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;clip:rect(0 0 0 0)}
-.thanks{display:none;text-align:center;padding:26px 14px;border:1.5px solid var(--ok);border-radius:var(--radius);background:#fff}
-.thanks .ok{width:62px;height:62px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:30px;margin:0 auto 10px}
-.thanks ol{text-align:right;margin:14px 0 0;padding:0 18px 0 0;color:var(--muted);font-size:15px}
 section{padding:44px 0;border-top:1px solid var(--line)}
 section h2{font-size:clamp(23px,3.2vw,30px);margin:0 0 10px;line-height:1.35}
 section .intro{color:var(--muted);margin:0 0 16px;font-size:17px}
@@ -189,13 +186,6 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
         <div class="err" id="errForm" style="text-align:center"></div>
         <p class="note">ما كتخلصي والو دابا · غادي نعيطو ليك باش نأكدو الطلب</p>
       </form>
-      <div class="thanks" id="thanks" role="status">
-        <div class="ok">✓</div>
-        <h2 style="margin:0 0 4px" id="thTitre">شكراً، الطلب ديالك توصلنا 🤍</h2>
-        <p style="color:var(--muted);margin:0" id="thRecap"></p>
-        <ol><li>غادي نعيطو ليك خلال ساعات باش نأكدو المقاس والعنوان.</li><li>كيوصلك الطلب من 24 حتى 72 ساعة.</li><li>كتخلصي عند الاستلام.</li></ol>
-        <p style="font-weight:800;margin:12px 0 0">📞 خلي التيليفون قريب منك وجاوبي على المكالمة ديالنا</p>
-      </div>
     </div>
   </div>
 
@@ -391,13 +381,9 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
     document.getElementById('errForm').textContent = '';
     fetch(P.webhook, { method: 'POST', body: data }).then(function (r) {
       if (!r.ok) throw new Error('http ' + r.status);
-      try { fbq('track', 'Purchase', { value: o.prix, currency: 'MAD', content_name: P.produit, num_items: o.qty }, { eventID: eventId }); } catch (e) {}
-      try { ttq.track('CompletePayment', { value: o.prix, currency: 'MAD', content_type: 'product', contents: [{ content_id: 'collant-polaire', content_name: P.produit, quantity: o.qty, price: o.prix }] }, { event_id: eventId }); } catch (e) {}
-      document.getElementById('thTitre').textContent = 'شكراً ' + nom.split(' ')[0] + '، الطلب ديالك توصلنا 🤍';
-      document.getElementById('thRecap').textContent = o.label + ' · المقاس ' + taille + ' · ' + o.prix + ' درهم';
-      f.style.display = 'none'; document.getElementById('thanks').style.display = 'block';
-      document.getElementById('sticky').classList.remove('show');
-      document.getElementById('thanks').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // page de remerciement (Purchase / CompletePayment envoyés là-bas avec le même event_id) ; replace = pas de retour au produit
+      try { sessionStorage.setItem('clp_cmd', JSON.stringify({ nom: nom.split(' ')[0], taille: taille, qte: o.label, qty: o.qty, prix: o.prix, tel: t })); } catch (e) {}
+      location.replace('merci.html?ev=' + encodeURIComponent(eventId) + '&v=' + o.prix + '&q=' + o.qty);
     }).catch(function () {
       btn.disabled = false; btn.firstChild.nodeValue = 'اطلبي دابا — '; maj();
       document.getElementById('errForm').textContent = 'وقع مشكل فالإرسال. تأكدي من الأنترنيت وعاودي.';
