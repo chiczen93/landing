@@ -619,7 +619,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611112350';
+const VERSION = '202611112358';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1966,6 +1966,8 @@ async function chargerAlertes() {
     traiterAlertes();
   } catch (e) {} finally { ALR.charge = false; }
 }
+const SUIVI_OFF = new Set((() => { try { return JSON.parse(store.get('suivi_off') || '[]'); } catch (e) { return []; } })());
+const SUIVI_VUS = new Set();
 function traiterAlertes() {
   const moi = st.agent, admin = moi === 'ADMIN', suivi = moi === 'HAJIBA';
   const vus = store.get('liv_vus_' + moi) ? lireMap('liv_vus_') : null;
@@ -1977,6 +1979,11 @@ function traiterAlertes() {
     else if (o.g === 'sorti' && o.agent === moi) ALR.file.push({ t: 'sorti', o });
   }
   if (livres.length > 3) ALR.file.unshift({ t: 'livres', l: livres }); else for (const o of livres) ALR.file.unshift({ t: 'livre', o });
+  // Hajiba (suivi) : clients des autres agentes déjà traités par l'agente (note écrite) : on lui montre la note, elle peut retirer avec ✕
+  if (suivi) for (const o of ALR.items) {
+    if (!aRappeler(o.g) || o.agent === moi || !traiteLiv(o) || SUIVI_OFF.has(o.colis + '|' + o.g) || SUIVI_VUS.has(o.colis + '|' + o.g)) continue;
+    SUIVI_VUS.add(o.colis + '|' + o.g); ALR.file.push({ t: 'info', o });
+  }
   ecrireMap('liv_vus_', nouveau);
   majCamion(); verifierAlertes();
 }
@@ -2151,8 +2158,11 @@ function montrerAlerte(a) {
     jouerSon(SON_PASREP);
     carte.classList.add('rouge');
     carte.append(el('div', { class: 'alr-ic', style: 'background:#3a1418' }, '📵'), el('span', { class: 'alr-tag', style: 'background:#3a1418;color:#ff9a9a', text: o.g === 'annule' ? '❌ ' + (o.livraison || 'Annulé') : 'Le livreur n\'a pas pu joindre' }),
-      el('div', { class: 'alr-cl', text: o.client + ' · ' + prix + qui }), el('div', { class: 'alr-pr', text: ligne + ' · ' + o.tel }),
-      boutonsContact((GROUPES.find(g => g.id === 'pr') || {}).msg || MSG_DEFAUT), ok());
+      el('div', { class: 'alr-cl', text: o.client + ' · ' + prix }), el('div', { class: 'alr-pr', text: ligne + ' · ' + o.tel }),
+      o.agent ? el('div', { style: 'margin:8px 0' }, el('span', { class: 'alr-tag', style: 'background:#1f2a44;color:#9db7ff', text: '👤 ' + nomPropre(o.agent) })) : null,
+      (d => d ? el('div', { class: 'alr-note', style: 'text-align:left;background:#10261f;border:1px solid #1f5a45;color:#e9edf5' }, el('b', { style: 'display:block;color:#5fd6a4;font-size:12px', text: '📝 Note de ' + nomPropre(d[2]) + ' · ' + dateCourte2(tLiv(d[1])) }), d[3] || '—') : null)(lignesLivreur(o).pop()),
+      boutonsContact((GROUPES.find(g => g.id === 'pr') || {}).msg || MSG_DEFAUT),
+      el('div', { class: 'alr-2' }, ok(), el('button', { class: 'alr-b', style: 'background:#3a1418;color:#ff9a9a', onclick: () => { SUIVI_OFF.add(o.colis + '|' + o.g); try { store.set('suivi_off', JSON.stringify([...SUIVI_OFF].slice(-400))); } catch (e) {} fermerAlerte(fond); } }, '✕ Retirer')));
   } else {
     // client injoignable de l'agente : carrousel bloquant
     ALR.ouvert = false; if (CAR.ouvert) ajouterSlides([o]); else montrerCarrousel([o]); return;
