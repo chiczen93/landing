@@ -265,6 +265,10 @@
   .ann-info { background: #fdf1d8; color: #3b2c0b; } .ann-info .ann-tg { background: #f5b622; color: #3b2c0b; }
   .ann-objectif { background: #dfeafc; color: #13284a; } .ann-objectif .ann-tg { background: #3b82f6; }
   .ann-img { display: block; max-width: 100%; max-height: 340px; border-radius: 10px; margin-top: 8px; cursor: zoom-in; object-fit: contain; background: rgba(0,0,0,.15); }
+  .suivi-box { margin-top: 10px; background: #10261f; border: 1px solid #1f5a45; border-radius: 10px; padding: 9px 10px; }
+  .suivi-box .lh { font-size: 12px; font-weight: 700; color: #5fd6a4; text-transform: uppercase; letter-spacing: .3px; }
+  .suivi-box .ln { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; font-size: 13px; }
+  .suivi-box .ln a { color: inherit; text-decoration: none; background: rgba(255,255,255,.1); border-radius: 8px; padding: 5px 9px; font-weight: 600; }
   .ann-voc { margin-top: 6px; } .ann-voc .vocal .vit { background: rgba(255,255,255,.7); color: inherit; border-color: rgba(0,0,0,.15); }
   .ann-vocbox .saisie.rec { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 26px; padding: 4px 6px; }
   .ann-vocbox .p-ic { width: 40px; height: 40px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; flex: none; border-radius: 50%; color: #ef4444; }
@@ -615,7 +619,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611112245';
+const VERSION = '202611112340';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -2567,6 +2571,16 @@ function blocLivreur(o) {
     tel.length === 9 ? el('div', { class: 'ln' }, el('a', { href: 'tel:0' + tel }, '📞 0' + tel), el('a', { href: 'https://wa.me/212' + tel, target: '_blank', rel: 'noopener' }, '💬 WhatsApp')) : null,
     ...notes.slice(0, 5).map(n => el('div', { class: 'lm' }, el('small', { text: fmt(n.q) + (n.r && n.r !== 'Livreur' ? ' · ' + n.r : '') }), el('b', { text: '« ' + n.t + ' »' }))));
 }
+const SUIVI_IRY = { nom: 'Nouhaila', tel: '0700113434' };
+function blocSuivi(o) {
+  if (!['ADMIN', 'HAJIBA'].includes(st.agent) || !o.colis) return null;
+  const t9 = SUIVI_IRY.tel.replace(/\D/g, '').slice(-9);
+  const msg = ['السلام عليكم ' + SUIVI_IRY.nom + '، معاك Zena Shop.', 'بخصوص الكولي: ' + o.colis,
+    '👤 ' + (o.client || '—') + (o.tel ? ' · ' + o.tel : ''), o.ville ? '📍 ' + o.ville : null, o.livraison ? '📌 الحالة: ' + o.livraison : null,
+    'واش ممكن تتبعوه معنا؟'].filter(Boolean).join('\n');
+  return el('div', { class: 'suivi-box' }, el('div', { class: 'lh', text: '🎧 Suivi Irsaliyat · ' + SUIVI_IRY.nom }),
+    el('div', { class: 'ln' }, el('a', { href: 'tel:' + SUIVI_IRY.tel }, '📞 ' + SUIVI_IRY.tel), el('a', { href: 'https://wa.me/212' + t9 + '?text=' + encodeURIComponent(msg), target: '_blank', rel: 'noopener' }, '💬 WhatsApp')));
+}
 function carte(o) {
   const key = (o.id || o.colis) + '|' + o.row;
   const gl = o.colis ? GROUPES.find(g => g.f(o.livraison || '')) : null;
@@ -2658,7 +2672,7 @@ function carte(o) {
     el('div', { class: 'row1' }, el('div', { class: 'name', text: o.client || '—' }), el('div', { class: 'date' + (enRetard ? ' late' : ''), text: quand.t })),
     chips, boiteDbl, gl ? null : boiteRisque, ligneHist,
     el('div', { class: 'prod' }, o.produit || '—', o.total ? el('b', { text: '  ·  ' + o.total.replace('درهم', 'DH') }) : null),
-    meta, blocLivreur(o), gl && (gl.id === 'pr' || gl.id === 'an') ? boiteSituation(o) : null, blocNotes,
+    meta, blocLivreur(o), blocSuivi(o), gl && (gl.id === 'pr' || gl.id === 'an') ? boiteSituation(o) : null, blocNotes,
     contact, estCasa(o) ? el('a', { class: 'btn-casa', href: 'https://wa.me/?text=' + encodeURIComponent(msgSuiviCasa(o)), target: '_blank', rel: 'noopener' }, '📤 Suivi Casa') : null,
     gl ? el('div', { class: 'acts' }, el('button', { class: 'act', onclick: () => ouvrirChat(null, [o.client, o.produit, o.colis, o.livraison, o.tel].filter(Boolean).join(' · ')) }, '💬 Équipe')) : acts,
     gl ? null : el('button', { class: 'more', onclick: () => { ouvert ? st.ouvert.delete(key) : st.ouvert.add(key); rerender(); } }, icone('edit'), ouvert ? 'Fermer' : 'Modifier ville, adresse, produit'),
