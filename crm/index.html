@@ -614,7 +614,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611112330';
+const VERSION = '202611112345';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -642,7 +642,8 @@ const nomPropre = a => a ? a.charAt(0) + a.slice(1).toLowerCase() : '';
 // Statuts de livraison (Irsaliyat / Colya). Les messages WhatsApp aux clients restent en darija.
 const GROUPES = [
   { id: 'pr', t: 'Injoignable', c: 'warn', f: s => /r[ée]pond|injoign|joignable|bo[iî]te vocale|ferm[ée]/i.test(s), msg: 'السلام عليكم {c}، معاك Zena Shop. الليفرور حاول يتاصل بيك باش يسلم ليك الطلب ديالك ({p}) وما جاوبتيش. واش نقولو ليه يدوز عندك اليوم؟' },
-  { id: 'an', t: 'Refusées', c: 'bad', f: s => /annul|refus/i.test(s), msg: 'السلام عليكم {c}، معاك Zena Shop. شفنا الطلب ديالك ({p}) تلغى. واش كاين شي مشكل نقدرو نعاونوك فيه؟ إلا مازال بغيتيه نعاودو نصيفطوه ليك.' },
+  { id: 'rf', t: 'Refusées', c: 'bad', f: s => /refus/i.test(s), msg: 'السلام عليكم {c}، معاك Zena Shop. شفنا الطلب ديالك ({p}) تم رفضو عند التسليم. واش كاين شي مشكل نقدرو نعاونوك فيه؟ إلا مازال بغيتيه نعاودو نصيفطوه ليك.' },
+  { id: 'an', t: 'Annulées', c: 'bad', f: s => /annul/i.test(s), msg: 'السلام عليكم {c}، معاك Zena Shop. شفنا الطلب ديالك ({p}) تلغى. واش كاين شي مشكل نقدرو نعاونوك فيه؟ إلا مازال بغيتيه نعاودو نصيفطوه ليك.' },
   { id: 'rp', t: 'Reportées', c: 'info', f: s => /report|int[ée]ress|programm|rendez/i.test(s), msg: 'السلام عليكم {c}، معاك Zena Shop بخصوص الطلب ديالك ({p}). فوقاش يناسبك نصيفطو ليك الليفرور؟' },
   { id: 'rr', t: 'Retours reçus', c: '', f: s => /retour livr[ée] au client/i.test(s) || /^retourn[ée]$/i.test(s), msg: '' },
   { id: 'rt', t: 'Retours en route', c: 'bad', f: s => /retour|retourn/i.test(s), msg: '' },
@@ -662,7 +663,8 @@ const TABS = [
   { groupe: 'Livraison' },
   { id: 'l-ra', t: '🚚 À rappeler', c: 'warn', f: o => !!o.colis && colisARappeler().has(o.colis) },
   { id: 'l-pr', t: 'Client injoignable', c: 'warn', f: o => !!o.colis && gLiv(o) === 'pr' },
-  { id: 'l-an', t: 'Refusées', c: 'bad', f: o => !!o.colis && gLiv(o) === 'an' },
+  { id: 'l-an', t: 'Annulées', c: 'bad', f: o => !!o.colis && gLiv(o) === 'an' },
+  { id: 'l-rf', t: 'Refusées', c: 'bad', f: o => !!o.colis && gLiv(o) === 'rf' },
   { id: 'l-rp', t: 'Reportées', c: 'info', f: o => !!o.colis && gLiv(o) === 'rp' },
   { id: 'l-rd', t: 'En cours', c: 'info', f: o => !!o.colis && gLiv(o) === 'rd' },
   { id: 'l-rt', t: 'Retours en route', c: 'bad', f: o => !!o.colis && gLiv(o) === 'rt' },
@@ -1652,7 +1654,7 @@ function raisonRetour(o) {
   }
   return '↩️ Retour';
 }
-const etatMod = o => { const g = gLiv(o); return g === 'ok' ? 'ok' : ['an', 'rt', 'rr'].includes(g) ? 'ko' : 'cours'; };
+const etatMod = o => { const g = gLiv(o); return g === 'ok' ? 'ok' : ['an', 'rf', 'rt', 'rr'].includes(g) ? 'ko' : 'cours'; };
 function calculModeles() {
   const m = new Map();
   for (const o of ARG.liste) {
@@ -2556,7 +2558,7 @@ function carte(o) {
   const libre = !o.agent && !o.colis;
   const ton = gl ? gl.c : statut ? TON[statut] : 'info';
   const quand = gl ? depuis(o.dliv || o.date) : depuis(o.date);
-  const enRetard = gl && (['pr', 'an', 'rp', 'rd'].includes(gl.id) && quand.h > 48 || gl.id === 'rt' && quand.h > 168);
+  const enRetard = gl && (['pr', 'an', 'rf', 'rp', 'rd'].includes(gl.id) && quand.h > 48 || gl.id === 'rt' && quand.h > 168);
 
   const chips = el('div', { class: 'chips' },
     gl ? el('span', { class: 'pill ' + tonLivraison(o.livraison), text: o.livraison || 'Expédiée' })
@@ -2637,7 +2639,7 @@ function carte(o) {
     el('div', { class: 'row1' }, el('div', { class: 'name', text: o.client || '—' }), el('div', { class: 'date' + (enRetard ? ' late' : ''), text: quand.t })),
     chips, boiteDbl, gl ? null : boiteRisque, ligneHist,
     el('div', { class: 'prod' }, o.produit || '—', o.total ? el('b', { text: '  ·  ' + o.total.replace('درهم', 'DH') }) : null),
-    meta, blocLivreur(o), gl && (gl.id === 'pr' || (gl.id === 'an' && !/refus/i.test(o.livraison || ''))) ? boiteSituation(o) : null, blocNotes,
+    meta, blocLivreur(o), gl && (gl.id === 'pr' || gl.id === 'an') ? boiteSituation(o) : null, blocNotes,
     contact, estCasa(o) ? el('a', { class: 'btn-casa', href: 'https://wa.me/?text=' + encodeURIComponent(msgSuiviCasa(o)), target: '_blank', rel: 'noopener' }, '📤 Suivi Casa') : null,
     gl ? el('div', { class: 'acts' }, el('button', { class: 'act', onclick: () => ouvrirChat(null, [o.client, o.produit, o.colis, o.livraison, o.tel].filter(Boolean).join(' · ')) }, '💬 Équipe')) : acts,
     gl ? null : el('button', { class: 'more', onclick: () => { ouvert ? st.ouvert.delete(key) : st.ouvert.add(key); rerender(); } }, icone('edit'), ouvert ? 'Fermer' : 'Modifier ville, adresse, produit'),
@@ -2678,7 +2680,7 @@ function rendreKpis() {
     const dbl = cmds.filter(o => o.statut === 'DOUBLE').length;
     // livraison : livrés / colis terminés (livrés + retours + annulés / refusés) de la période
     const g = st.commandes.filter(o => o.colis).map(gLiv);
-    const livres = g.filter(x => x === 'ok').length, finis = g.filter(x => ['ok', 'rr', 'rt', 'an'].includes(x)).length;
+    const livres = g.filter(x => x === 'ok').length, finis = g.filter(x => ['ok', 'rr', 'rt', 'an', 'rf'].includes(x)).length;
     $('#kpis').replaceChildren(
       el('div', { class: 'kpi' }, el('span', { text: 'Commandes · ' + lab }), el('b', { text: fmt(cmds.length) })),
       el('div', { class: 'kpi' }, el('span', { text: 'Confirmées · ' + lab }), el('b', { text: fmt(conf) })),
