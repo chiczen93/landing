@@ -264,6 +264,7 @@
   .ann-urgent { background: #fbe1e1; color: #3b1a1a; } .ann-urgent .ann-tg { background: #ef5350; } .ann-urgent .ann-ok { background: #ef5350; color: #fff; }
   .ann-info { background: #fdf1d8; color: #3b2c0b; } .ann-info .ann-tg { background: #f5b622; color: #3b2c0b; }
   .ann-objectif { background: #dfeafc; color: #13284a; } .ann-objectif .ann-tg { background: #3b82f6; }
+  .ann-img { display: block; max-width: 100%; max-height: 340px; border-radius: 10px; margin-top: 8px; cursor: zoom-in; object-fit: contain; background: rgba(0,0,0,.15); }
   .ann-voc { margin-top: 6px; } .ann-voc .vocal .vit { background: rgba(255,255,255,.7); color: inherit; border-color: rgba(0,0,0,.15); }
   .ann-vocbox .saisie.rec { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 26px; padding: 4px 6px; }
   .ann-vocbox .p-ic { width: 40px; height: 40px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; flex: none; border-radius: 50%; color: #ef4444; }
@@ -614,7 +615,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611112345';
+const VERSION = '202611112245';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1405,7 +1406,7 @@ function rendreAnnonces() {
   const aLire = ANN.liste.filter(a => a.active && !ANN.caches.has(a.id) && !(a.fichier && dejaLue(a) && !ANN.ecoutes.has(a.id)));
   const noeuds = new Map();
   box.replaceChildren(...aLire.map(a => {
-    const cle = a.id + '|' + a.type + '|' + a.texte + '|' + a.fichier;
+    const cle = a.id + '|' + a.type + '|' + a.texte + '|' + a.fichier + '|' + (a.image || '');
     const ex = ANN.noeuds.get(a.id);
     if (ex && ex.cle === cle) { noeuds.set(a.id, ex); return ex.n; }
     const T = ANN_TYPES[a.type] || ANN_TYPES.info;
@@ -1420,6 +1421,7 @@ function rendreAnnonces() {
       el('div', { class: 'ann-ic', text: a.fichier ? '🎤' : T.ic }), ferme,
       el('div', { class: 'ann-c' }, el('span', { class: 'ann-tg', text: T.t }), el('div', { class: 'ann-d', text: '📅 ' + dateCourte(a.quand) + ' · Admin' }),
         a.texte ? el('div', { class: 'ann-tx', dir: 'auto', text: a.texte }) : null,
+        a.image ? el('img', { class: 'ann-img', src: FICHIER_URL(a.image), alt: 'Image', loading: 'lazy', onclick: () => window.open(FICHIER_URL(a.image), '_blank') }) : null,
         a.fichier ? el('div', { class: 'ann-voc' }, lecteurVocal(a.fichier, null, ecoute)) : null,
         a.fichier && !ANN.ecoutes.has(a.id) ? aide : null,
         a.type === 'urgent' || a.fichier ? ok : null));
@@ -1430,7 +1432,7 @@ function rendreAnnonces() {
 }
 // écran admin : publier / modifier / supprimer, et qui a lu
 function ouvrirAnnonces(edit) {
-  const f = { id: edit ? edit.id : '', type: edit ? edit.type : 'info', cible: edit && edit.cible !== 'TOUS' ? edit.cible.split(',') : ['TOUS'], jours: 3, notif: true, fichier: edit ? edit.fichier || '' : '', local: '', envoi: false };
+  const f = { id: edit ? edit.id : '', type: edit ? edit.type : 'info', cible: edit && edit.cible !== 'TOUS' ? edit.cible.split(',') : ['TOUS'], jours: 3, notif: true, fichier: edit ? edit.fichier || '' : '', local: '', envoi: false, image: edit ? edit.image || '' : '', imgLocal: '', imgEnvoi: false };
   let rec = null;
   const fermer = () => { if (rec && rec.state === 'recording') { rec.annule = true; rec.stop(); } fond.remove(); };
   const fond = el('div', { class: 'lu-fond', style: 'position:fixed;z-index:95', onclick: e => { if (e.target === fond) fermer(); } });
@@ -1469,6 +1471,22 @@ function ouvrirAnnonces(edit) {
     r.start(); rendreVoc();
   };
   rendreVoc();
+  const imgBox = el('div', { class: 'ann-vocbox' });
+  const inpImg = el('input', { type: 'file', accept: 'image/*', hidden: true });
+  inpImg.addEventListener('change', async () => {
+    const fi = inpImg.files && inpImg.files[0]; inpImg.value = ''; if (!fi) return;
+    f.imgEnvoi = true; rendreImg();
+    try { const blob = await compresserImage(fi); const ff = await envoyerFichier('image', 'image/jpeg', await enB64(blob)); f.imgLocal = URL.createObjectURL(blob); f.image = ff; }
+    catch (e) { toast(e.message, true); }
+    f.imgEnvoi = false; rendreImg();
+  });
+  const rendreImg = () => {
+    if (f.imgEnvoi) return imgBox.replaceChildren(el('div', { class: 'ann-d', text: '⏳ Envoi de l\'image…' }));
+    if (f.image) return imgBox.replaceChildren(el('div', { style: 'display:flex;align-items:center;gap:8px' }, el('img', { class: 'ann-img', style: 'margin:0;max-height:140px;flex:1;min-width:0', src: f.imgLocal || FICHIER_URL(f.image), alt: 'Image' }),
+      el('button', { class: 'p-ic rouge', type: 'button', 'aria-label': 'Supprimer l\'image', onclick: () => { f.image = ''; f.imgLocal = ''; rendreImg(); } }, svgIc('poubelle'))));
+    imgBox.replaceChildren(el('button', { class: 'alr-o', type: 'button', style: 'color:var(--ink);border-color:var(--line)', text: '🖼 Ajouter une image', onclick: () => inpImg.click() }), inpImg);
+  };
+  rendreImg();
   const puce = (txt, on, clic, cls = '') => el('button', { class: 'alr-o ' + cls + (on ? ' on' : ''), style: 'color:var(--ink);border-color:var(--line)', text: txt, onclick: clic });
   const ta = el('textarea', { class: 'alr-ta', rows: 4, dir: 'auto', placeholder: 'Écrire le message pour les agentes…', style: 'background:var(--bg);color:var(--ink);border-color:var(--line)' });
   ta.value = edit ? edit.texte : '';
@@ -1480,10 +1498,10 @@ function ouvrirAnnonces(edit) {
     const notif = puce((f.notif ? '✓ ' : '') + '🔔 Envoyer aussi une notification', f.notif, () => { f.notif = !f.notif; rendre(); });
     const go = el('button', { class: 'alr-b ok', onclick: async () => {
       if (rec && rec.state === 'recording') return toast('Terminez d\'abord le vocal.', true);
-      if (f.envoi) return toast('Le vocal est en cours d\'envoi, patientez…', true);
-      const texte = ta.value.trim(); if (!texte && !f.fichier) return toast('Écrivez un message ou enregistrez un vocal.', true);
+      if (f.envoi || f.imgEnvoi) return toast('Un fichier est en cours d\'envoi, patientez…', true);
+      const texte = ta.value.trim(); if (!texte && !f.fichier && !f.image) return toast('Écrivez un message, ajoutez une image ou un vocal.', true);
       go.disabled = true;
-      try { await api('annonces', { op: 'publier', id: f.id, type: f.type, cible: f.cible, texte, fichier: f.fichier, jours: f.jours, notif: f.notif }); toast(f.id ? 'Annonce modifiée' : 'Annonce publiée'); fond.remove(); chargerAnnonces().then(() => ouvrirAnnonces()); }
+      try { await api('annonces', { op: 'publier', id: f.id, type: f.type, cible: f.cible, texte, fichier: f.fichier, image: f.image, jours: f.jours, notif: f.notif }); toast(f.id ? 'Annonce modifiée' : 'Annonce publiée'); fond.remove(); chargerAnnonces().then(() => ouvrirAnnonces()); }
       catch (e) { toast(e.message, true); go.disabled = false; }
     } }, f.id ? '✏️ Enregistrer la modification' : "📢 Publier l'annonce");
     const liste = ANN.liste.filter(a => a.active).map(a => {
@@ -1492,6 +1510,7 @@ function ouvrirAnnonces(edit) {
       return el('div', { class: 'ann ann-' + (ANN_TYPES[a.type] ? a.type : 'info'), style: 'display:block' },
         el('span', { class: 'ann-tg', text: T.t }), el('div', { class: 'ann-d', text: '📅 ' + dateCourte(a.quand) + ' · ' + (a.cible === 'TOUS' ? 'Toutes' : gens.map(nomPropre).join(', ')) }),
         a.texte ? el('div', { class: 'ann-tx', dir: 'auto', text: a.texte }) : null,
+        a.image ? el('img', { class: 'ann-img', src: FICHIER_URL(a.image), alt: 'Image', loading: 'lazy', onclick: () => window.open(FICHIER_URL(a.image), '_blank') }) : null,
         a.fichier ? el('div', { class: 'ann-voc' }, lecteurVocal(a.fichier)) : null,
         el('div', { class: 'ann-lus' }, el('b', { text: 'Lu par ' + gens.filter(g => a.lues.some(l => l.agent === g)).length + ' / ' + gens.length }),
           ...gens.map(g => { const l = a.lues.find(x => x.agent === g); return el('div', {}, el('span', { text: nomPropre(g) }), el('span', { class: l ? 'v' : 'n', text: l ? '✓ ' + new Date(l.quand).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 'pas encore' })); })),
@@ -1500,7 +1519,7 @@ function ouvrirAnnonces(edit) {
     });
     sheet.replaceChildren(el('div', { class: 'lu-grab' }), el('h3', { text: f.id ? '✏️ Modifier l\'annonce' : '📢 Nouvelle annonce' }),
       el('div', { class: 'ann-lab', text: 'TYPE' }), types, el('div', { class: 'ann-lab', text: 'POUR QUI' }), qui,
-      el('div', { class: 'ann-lab', text: 'MESSAGE' }), ta, el('div', { class: 'ann-lab', text: 'MESSAGE VOCAL (facultatif)' }), voc, el('div', { class: 'ann-lab', text: 'AFFICHER PENDANT' }), duree, notif, go,
+      el('div', { class: 'ann-lab', text: 'MESSAGE' }), ta, el('div', { class: 'ann-lab', text: 'IMAGE (facultatif)' }), imgBox, el('div', { class: 'ann-lab', text: 'MESSAGE VOCAL (facultatif)' }), voc, el('div', { class: 'ann-lab', text: 'AFFICHER PENDANT' }), duree, notif, go,
       liste.length ? el('h3', { style: 'margin-top:18px', text: '📋 Annonces en cours' }) : null, ...liste);
   };
   const sheet = el('div', { class: 'lu-sheet', style: 'max-height:88%' });
