@@ -619,7 +619,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611112340';
+const VERSION = '202611112350';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1975,8 +1975,6 @@ function traiterAlertes() {
     if (!vus || vus[o.colis] === o.g) continue;
     if (o.g === 'livre' && (o.agent === moi || admin)) livres.push(o);
     else if (o.g === 'sorti' && o.agent === moi) ALR.file.push({ t: 'sorti', o });
-    // injoignables / annulés des autres agentes : seulement Hajiba (suivi), plus l'admin
-    else if (aRappeler(o.g) && o.agent !== moi && suivi) ALR.file.push({ t: 'info', o });
   }
   if (livres.length > 3) ALR.file.unshift({ t: 'livres', l: livres }); else for (const o of livres) ALR.file.unshift({ t: 'livre', o });
   ecrireMap('liv_vus_', nouveau);
