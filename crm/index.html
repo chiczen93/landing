@@ -517,6 +517,14 @@
   .arg-t th { text-align: right; font-size: 11px; color: var(--muted); font-weight: 700; padding: 6px 4px; border-bottom: 1px solid var(--line); } .arg-t th:first-child, .arg-t td:first-child { text-align: left; }
   .arg-t td { text-align: right; padding: 7px 4px; border-bottom: 1px solid var(--line-2); } .arg-t tr.tot td { font-weight: 800; border-bottom: 0; }
   .arg-note { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
+
+.liv-box{margin-top:10px;background:#3a1418;border:1px solid #7a2a31;border-radius:10px;padding:9px 10px}
+.liv-box .lh{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#ff9a9a;text-transform:uppercase;letter-spacing:.3px}
+.liv-box .ln{display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap;font-size:13px}
+.liv-box .ln a{color:inherit;text-decoration:none;background:rgba(255,255,255,.1);border-radius:8px;padding:5px 9px;font-weight:600}
+.liv-box .lm{margin-top:7px;font-size:13.5px;line-height:1.35}
+.liv-box .lm small{display:block;font-size:11px;opacity:.7}
+.liv-box .lm b{font-weight:600}
 </style>
 </head>
 <body>
@@ -606,7 +614,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611072135';
+const VERSION = '202611112330';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -2527,6 +2535,17 @@ function msgSuiviCasa(o) {
     o.colis ? '🚚 Colis: ' + o.colis : null,
     '📌 ' + etat].filter(Boolean).join('\n');
 }
+function blocLivreur(o) {
+  const l = o.liv; if (!l) return null;
+  const tel = String(l.tel || '').replace(/\D/g, '').slice(-9);
+  const fmt = q => { const x = new Date(String(q || '').replace(' ', 'T')); return isNaN(x) ? '' : x.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) + ' · ' + x.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); };
+  const notes = (l.notes || []).slice().reverse();
+  if (!tel && !notes.length) return null;
+  return el('div', { class: 'liv-box' },
+    el('div', { class: 'lh' }, el('span', { text: '🚚 Livreur' + (l.nom ? ' · ' + l.nom : '') }), l.appels ? el('small', { text: l.appels + ' appel' + (l.appels > 1 ? 's' : '') }) : null),
+    tel.length === 9 ? el('div', { class: 'ln' }, el('a', { href: 'tel:0' + tel }, '📞 0' + tel), el('a', { href: 'https://wa.me/212' + tel, target: '_blank', rel: 'noopener' }, '💬 WhatsApp')) : null,
+    ...notes.slice(0, 5).map(n => el('div', { class: 'lm' }, el('small', { text: fmt(n.q) + (n.r && n.r !== 'Livreur' ? ' · ' + n.r : '') }), el('b', { text: '« ' + n.t + ' »' }))));
+}
 function carte(o) {
   const key = (o.id || o.colis) + '|' + o.row;
   const gl = o.colis ? GROUPES.find(g => g.f(o.livraison || '')) : null;
@@ -2618,7 +2637,7 @@ function carte(o) {
     el('div', { class: 'row1' }, el('div', { class: 'name', text: o.client || '—' }), el('div', { class: 'date' + (enRetard ? ' late' : ''), text: quand.t })),
     chips, boiteDbl, gl ? null : boiteRisque, ligneHist,
     el('div', { class: 'prod' }, o.produit || '—', o.total ? el('b', { text: '  ·  ' + o.total.replace('درهم', 'DH') }) : null),
-    meta, gl && (gl.id === 'pr' || (gl.id === 'an' && !/refus/i.test(o.livraison || ''))) ? boiteSituation(o) : null, blocNotes,
+    meta, blocLivreur(o), gl && (gl.id === 'pr' || (gl.id === 'an' && !/refus/i.test(o.livraison || ''))) ? boiteSituation(o) : null, blocNotes,
     contact, estCasa(o) ? el('a', { class: 'btn-casa', href: 'https://wa.me/?text=' + encodeURIComponent(msgSuiviCasa(o)), target: '_blank', rel: 'noopener' }, '📤 Suivi Casa') : null,
     gl ? el('div', { class: 'acts' }, el('button', { class: 'act', onclick: () => ouvrirChat(null, [o.client, o.produit, o.colis, o.livraison, o.tel].filter(Boolean).join(' · ')) }, '💬 Équipe')) : acts,
     gl ? null : el('button', { class: 'more', onclick: () => { ouvert ? st.ouvert.delete(key) : st.ouvert.add(key); rerender(); } }, icone('edit'), ouvert ? 'Fermer' : 'Modifier ville, adresse, produit'),
