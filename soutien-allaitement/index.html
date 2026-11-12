@@ -19,7 +19,7 @@ window.PAGE = {
   webhook: 'https://n8n.srv2034083.hstgr.cloud/webhook/commande-landing',
   offres: [ { qty: 1, prix: 149, label: 'وحدة', fr: '1 pièce' }, { qty: 3, prix: 249, label: 'جوج + وحدة فابور', fr: '3 pièces (2 + 1 offerte)', badge: 'الأكثر طلباً' } ],
   tailles: ['M', 'L', 'XL', 'XXL'],
-  couleurs: [ { id: 'rose', ar: 'وردي', fr: 'Rose', hex: '#c9a0a6', img: 'rose' }, { id: 'beige', ar: 'بيج', fr: 'Beige', hex: '#e0c7a0', img: 'beige' }, { id: 'noir', ar: 'أسود', fr: 'Noir', hex: '#1a1a1a', img: 'noirflat' } ],
+  couleurs: [ { id: 'rose', ar: 'وردي', fr: 'Rose', hex: '#c9a0a6', img: 'rose' }, { id: 'beige', ar: 'بيج', fr: 'Beige', hex: '#e0c7a0', img: 'beige' }, { id: 'noir', ar: 'أسود', fr: 'Noir', hex: '#1a1a1a', img: 'noirflat' }, { id: 'blanc', ar: 'أبيض', fr: 'Blanc', hex: '#ffffff', img: '' } ],
   images: [
     { src: 'hero', alt: 'سوتيان الرضاعة' },
     { src: 'allaite', alt: 'مشبك الرضاعة بيد وحدة' },
@@ -261,7 +261,7 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
 
   <section>
     <h2>ختاري اللون لي كيعجبك</h2>
-    <p class="intro">3 ألوان: وردي، بيج وأسود. تقدري تخلطي بيناتهم فعرض 3 قطع.</p>
+    <p class="intro">4 ألوان: وردي، بيج، أسود وأبيض. تقدري تخلطي بيناتهم فعرض 3 قطع.</p>
     <div class="feat">
       <img src="img/rose.webp" alt="وردي" loading="lazy" width="600" height="900" style="border-radius:14px">
       <img src="img/beige.webp" alt="بيج" loading="lazy" width="600" height="900" style="border-radius:14px">
@@ -344,7 +344,7 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
   function maj() { document.getElementById('btnPrix').textContent = offre().prix; }
   f.addEventListener('change', function (e) {
     if (e.target.name === 'offre') pieces();
-    if (e.target.classList.contains('rc')) { var c = P.couleurs.filter(function (x) { return x.id === e.target.value; })[0]; if (c) montrer(c.img, c.ar, null); }
+    if (e.target.classList.contains('rc')) { var c = P.couleurs.filter(function (x) { return x.id === e.target.value; })[0]; if (c && c.img) montrer(c.img, c.ar, null); }
     maj();
   });
   pieces(); maj();
