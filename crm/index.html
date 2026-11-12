@@ -4,15 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0e1117" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f6f1ea">
 <title>Zena CRM</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/favicon-64.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Zena CRM">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,8 +19,8 @@
 <style>
   /* Layout: compact header, KPI strip, sticky pipeline tabs (confirmation | livraison), order cards; admin adds a performance view */
   :root {
-    --bg: #f5f6f8; --panel: #ffffff; --panel-2: #f8f9fb; --ink: #111827; --ink-2: #374151; --muted: #6b7280; --line: #e5e7eb; --line-2: #eef0f3;
-    --brand: #3651d4; --brand-ink: #ffffff; --brand-soft: #eef1ff;
+    --bg: #f6f1ea; --panel: #ffffff; --panel-2: #fbf7f2; --ink: #2b1e24; --ink-2: #4a3a41; --muted: #7a6a70; --line: #e8dfd6; --line-2: #f0e9e1;
+    --brand: #d9467a; --brand-ink: #ffffff; --brand-soft: #fcebf2;
     --ok: #0f7b55; --ok-soft: #e8f6f0; --bad: #c2362b; --bad-soft: #fdeeec;
     --warn: #b45309; --warn-soft: #fdf3e6; --info: #1d5fd1; --info-soft: #eaf1fd;
     --wa: #128c4a;
@@ -30,7 +29,7 @@
     --font: "Manrope", "Cairo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     color-scheme: light;
   }
-  @media (prefers-color-scheme: dark) {
+  @media not all {
     :root {
       --bg: #0e1117; --panel: #161a22; --panel-2: #1b2029; --ink: #eef0f4; --ink-2: #cbd0d9; --muted: #8b93a3; --line: #262c37; --line-2: #1f242e;
       --brand: #8199ff; --brand-ink: #0b1030; --brand-soft: #1c2340;
@@ -265,10 +264,10 @@
   .ann-info { background: #fdf1d8; color: #3b2c0b; } .ann-info .ann-tg { background: #f5b622; color: #3b2c0b; }
   .ann-objectif { background: #dfeafc; color: #13284a; } .ann-objectif .ann-tg { background: #3b82f6; }
   .ann-img { display: block; max-width: 100%; max-height: 340px; border-radius: 10px; margin-top: 8px; cursor: zoom-in; object-fit: contain; background: rgba(0,0,0,.15); }
-  .suivi-box { margin-top: 10px; background: #10261f; border: 1px solid #1f5a45; border-radius: 10px; padding: 9px 10px; }
-  .suivi-box .lh { font-size: 12px; font-weight: 700; color: #5fd6a4; text-transform: uppercase; letter-spacing: .3px; }
+  .suivi-box { margin-top: 10px; background: var(--ok-soft); border: 1px solid var(--ok); border-radius: 10px; padding: 9px 10px; }
+  .suivi-box .lh { font-size: 12px; font-weight: 700; color: var(--ok); text-transform: uppercase; letter-spacing: .3px; }
   .suivi-box .ln { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; font-size: 13px; }
-  .suivi-box .ln a { color: inherit; text-decoration: none; background: rgba(255,255,255,.1); border-radius: 8px; padding: 5px 9px; font-weight: 600; }
+  .suivi-box .ln a { color: inherit; text-decoration: none; background: rgba(0,0,0,.07); border-radius: 8px; padding: 5px 9px; font-weight: 600; }
   .ann-voc { margin-top: 6px; } .ann-voc .vocal .vit { background: rgba(255,255,255,.7); color: inherit; border-color: rgba(0,0,0,.15); }
   .ann-vocbox .saisie.rec { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 26px; padding: 4px 6px; }
   .ann-vocbox .p-ic { width: 40px; height: 40px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; flex: none; border-radius: 50%; color: #ef4444; }
@@ -523,10 +522,10 @@
   .arg-t td { text-align: right; padding: 7px 4px; border-bottom: 1px solid var(--line-2); } .arg-t tr.tot td { font-weight: 800; border-bottom: 0; }
   .arg-note { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
 
-.liv-box{margin-top:10px;background:#3a1418;border:1px solid #7a2a31;border-radius:10px;padding:9px 10px}
-.liv-box .lh{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#ff9a9a;text-transform:uppercase;letter-spacing:.3px}
+.liv-box{margin-top:10px;background:var(--bad-soft);border:1px solid var(--bad);border-radius:10px;padding:9px 10px}
+.liv-box .lh{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--bad);text-transform:uppercase;letter-spacing:.3px}
 .liv-box .ln{display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap;font-size:13px}
-.liv-box .ln a{color:inherit;text-decoration:none;background:rgba(255,255,255,.1);border-radius:8px;padding:5px 9px;font-weight:600}
+.liv-box .ln a{color:inherit;text-decoration:none;background:rgba(0,0,0,.07);border-radius:8px;padding:5px 9px;font-weight:600}
 .liv-box .lm{margin-top:7px;font-size:13.5px;line-height:1.35}
 .liv-box .lm small{display:block;font-size:11px;opacity:.7}
 .liv-box .lm b{font-weight:600}
@@ -619,7 +618,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611112358';
+const VERSION = '202611121930';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
