@@ -196,6 +196,7 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
         <div class="field"><input name="telephone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Téléphone * (06 / 07)" required dir="ltr"><div class="err" data-for="telephone"></div></div>
         <div class="field"><input name="ville" autocomplete="address-level2" placeholder="Ville *" required><div class="err" data-for="ville"></div></div>
         <div class="field"><input name="adresse" autocomplete="street-address" placeholder="Adresse (facultatif)"></div>
+        <div class="field"><input name="note" autocomplete="off" placeholder="Note (facultatif)"></div>
         <input class="hp" name="site" tabindex="-1" autocomplete="off" aria-hidden="true">
         <button class="btn" id="btn" type="submit">Commander — <span id="btnPrix">249</span> DH</button>
         <div class="err" id="errForm" style="text-align:center"></div>
@@ -377,7 +378,7 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
     var eventId = 'lp' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     var data = new URLSearchParams({
       produit: P.produit, taille: taille, quantite: o.fr, prix: String(o.prix),
-      nom: nom, telephone: t, ville: adresse ? ville + ' - ' + adresse : ville, note: '',
+      nom: nom, telephone: t, ville: adresse ? ville + ' - ' + adresse : ville, note: f.note.value.trim(),
       page: location.pathname, event_id: eventId,
       pixels: P.pixelMeta, fbp: cookie('_fbp'), fbc: cookie('_fbc') || fbcUrl(), url: location.href,
       tt_pixel: P.pixelsTikTok[0], ttp: cookie('_ttp'), ttclid: new URLSearchParams(location.search).get('ttclid') || cookie('ttclid') || ''
