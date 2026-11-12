@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>Merci, votre commande est bien reçue | Shapewear</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script>
 /* Purchase envoyé ici (même eventID que la Conversions API → pas de doublon), une seule fois par commande */
 (function () {
@@ -52,10 +52,18 @@ ol li small{color:var(--muted);font-size:14px;line-height:1.6;display:block}
 .tip{margin-top:20px;background:var(--accent);color:#fff;border-radius:16px;padding:16px;text-align:center;font-weight:700;line-height:1.7}
 .tip small{display:block;font-weight:500;opacity:.9;margin-top:2px}
 footer{text-align:center;color:var(--muted);font-size:13.5px;padding:24px 0 10px}
+
+:root{--ink:#f4f4f1;--muted:#a3a3ab;--line:#2b2b33;--bg:#0e0e11;--soft:#1f1f26;--accent:#c8f13a}
+body{font-family:Archivo,"Segoe UI",Arial,sans-serif}
+.bar,.tip{background:var(--accent);color:#0e0e11}
+.logo{color:#fff;text-transform:uppercase;letter-spacing:2px;font-weight:900}
+.ok{background:var(--accent);color:#0e0e11}
+h1{text-transform:uppercase;font-weight:900}
+.card,ol li{background:#17171c;border-color:var(--line);border-radius:8px}
 </style>
 </head>
 <body>
-<div class="bar">🚚 Livraison gratuite · 💵 Paiement à la livraison</div>
+<div class="bar">🚚 Livraison partout au Maroc · 💵 Paiement à la livraison</div>
 <main class="wrap">
   <div class="logo">Shapewear</div>
   <div class="ok">✓</div>
@@ -63,13 +71,13 @@ footer{text-align:center;color:var(--muted);font-size:13.5px;padding:24px 0 10px
   <p class="sub">Votre soutien-gorge sera bientôt en route.</p>
 
   <div class="card" id="recap" hidden>
-    <img id="rImg" src="img/hero-t.webp" alt="">
+    <img id="rImg" src="img/blanc-t.webp" alt="">
     <div>
       <b>Legging tie-dye effet push-up</b>
       <ul>
         <li>Taille : <span id="rTaille" dir="ltr"></span> · <span id="rQte"></span></li>
       </ul>
-      <div class="tot">Total : <span id="rPrix"></span> DH · livraison gratuite</div>
+      <div class="tot">Total : <span id="rPrix"></span> DH · paiement à la livraison</div>
     </div>
   </div>
 
