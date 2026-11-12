@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>شكراً، الطلب ديالك توصلنا | ZenaBaldi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+/* Purchase envoyé ici (même eventID que la Conversions API → pas de doublon), une seule fois par commande */
+(function () {
+  var q = new URLSearchParams(location.search), ev = q.get('ev') || '', v = Number(q.get('v')) || 0, n = Number(q.get('q')) || 1;
+  var cle = 'clp_px_' + ev, deja = false;
+  try { deja = !!sessionStorage.getItem(cle); sessionStorage.setItem(cle, '1'); } catch (e) {}
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+  var cmd = {}; try { cmd = JSON.parse(sessionStorage.getItem('clp_cmd') || '{}'); } catch (e) {}
+  var ph = cmd.tel ? '212' + String(cmd.tel).replace(/^0/, '') : '';
+  fbq('init', '1718145662760876', ph ? { ph: ph, country: 'ma' } : {});
+  fbq('track', 'PageView');
+  if (ev && !deja) fbq('track', 'Purchase', { value: v, currency: 'MAD', content_name: 'Soutien-gorge allaitement coton', num_items: n }, { eventID: ev });
+  !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+  ['D7BCPGJC77U8CCU0I4N0'].forEach(function (id) { ttq.load(id); }); ttq.page();
+  if (ph) ttq.identify({ phone_number: '+' + ph });
+  if (ev && !deja) ttq.track('CompletePayment', { value: v, currency: 'MAD', content_type: 'product', contents: [{ content_id: 'soutien-allaitement', content_name: 'Soutien-gorge allaitement coton', quantity: n, price: v }] }, { event_id: ev });
+  }(window,document,'ttq');
+})();
+</script>
+<style>
+:root{--ink:#1d1715;--muted:#6e625c;--line:#ece4ea;--bg:#fcf9fb;--soft:#f5edf2;--accent:#8a3b5a;--ok:#1f7a4d}
+*{box-sizing:border-box}
+html,body{overflow-x:clip}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Cairo,"Segoe UI",Tahoma,Arial,sans-serif;font-size:16.5px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.bar{background:var(--accent);color:#fff;text-align:center;font-size:14px;padding:8px 12px;font-weight:700}
+.wrap{max-width:560px;margin:0 auto;padding:22px 16px 40px}
+.logo{font-weight:800;font-size:22px;color:var(--accent);text-align:center;margin-bottom:18px}
+.ok{width:72px;height:72px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:36px;margin:0 auto 12px;animation:pop .5s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+h1{font-size:clamp(25px,6vw,32px);line-height:1.35;text-align:center;margin:0 0 6px;font-weight:800}
+.sub{text-align:center;color:var(--muted);margin:0 0 22px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;gap:14px;align-items:center}
+.card img{width:84px;height:110px;object-fit:cover;border-radius:12px;background:var(--soft);flex:none}
+.card b{display:block;font-size:17px}
+.card ul{list-style:none;margin:4px 0 0;padding:0;color:var(--muted);font-size:14.5px;line-height:1.7}
+.card .tot{color:var(--ink);font-weight:800;font-size:17px;margin-top:4px}
+h2{font-size:19px;margin:26px 0 10px}
+ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ol li{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+ol li span{flex:none;width:30px;height:30px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-weight:800;color:var(--accent)}
+ol li b{display:block}
+ol li small{color:var(--muted);font-size:14px;line-height:1.6;display:block}
+.tip{margin-top:20px;background:var(--accent);color:#fff;border-radius:16px;padding:16px;text-align:center;font-weight:700;line-height:1.7}
+.tip small{display:block;font-weight:500;opacity:.9;margin-top:2px}
+footer{text-align:center;color:var(--muted);font-size:13.5px;padding:24px 0 10px}
+</style>
+</head>
+<body>
+<div class="bar">🚚 التوصيل فابور · 💵 الخلاص عند الاستلام</div>
+<main class="wrap">
+  <div class="logo">ZenaBaldi</div>
+  <div class="ok">✓</div>
+  <h1 id="titre">شكراً، الطلب ديالك توصلنا 🤍</h1>
+  <p class="sub">السوتيان ديالك غادي فالطريق ليك قريب.</p>
+
+  <div class="card" id="recap" hidden>
+    <img id="rImg" src="img/hero-t.webp" alt="">
+    <div>
+      <b>سوتيان الرضاعة قطن</b>
+      <ul>
+        <li>المقاس: <span id="rTaille" dir="ltr"></span> · <span id="rQte"></span></li>
+      </ul>
+      <div class="tot">المجموع: <span id="rPrix"></span> درهم · التوصيل فابور</div>
+    </div>
+  </div>
+
+  <h2>شنو غادي يوقع دابا؟</h2>
+  <ol>
+    <li><span>1</span><div><b>غادي نعيطو ليك</b><small>واحد من الفريق ديالنا غادي يتاصل بيك خلال ساعات باش يأكد معاك المقاس والعنوان.</small></div></li>
+    <li><span>2</span><div><b>كنصيفطو الطلب</b><small>من بعد التأكيد، كيوصلك الطلب من 24 حتى 72 ساعة على حساب المدينة.</small></div></li>
+    <li><span>3</span><div><b>كتخلصي عند الاستلام</b><small>كتشوفي الطلب بعينيك وكتخلصي الموزع كاش. ما كتخلصي حتى درهم قبل.</small></div></li>
+  </ol>
+
+  <div class="tip">📞 خلي التيليفون قريب منك وجاوبي على المكالمة ديالنا
+    <small>بلا تأكيد بالتيليفون ما نقدروش نصيفطو الطلب</small></div>
+</main>
+<footer>© ZenaBaldi · الخلاص عند الاستلام فجميع مدن المغرب</footer>
+<script>
+(function () {
+  var c = {}; try { c = JSON.parse(sessionStorage.getItem('clp_cmd') || '{}'); } catch (e) {}
+  if (c.nom) document.getElementById('titre').textContent = 'شكراً ' + c.nom + '، الطلب ديالك توصلنا 🤍';
+  if (c.prix) {
+    document.getElementById('rTaille').textContent = c.taille || '';
+    document.getElementById('rQte').textContent = c.qte || '';
+    document.getElementById('rPrix').textContent = c.prix;
+    document.getElementById('recap').hidden = false;
+  }
+  // pas de retour vers la page produit : le bouton « retour » reste sur cette page
+  try { history.pushState(null, '', location.href); window.addEventListener('popstate', function () { history.pushState(null, '', location.href); }); } catch (e) {}
+})();
+</script>
+</body>
+</html>
