@@ -27,15 +27,14 @@ window.PAGE = {
   couleurs: [
     { id: 'blanc', ar: 'أبيض', fr: 'Blanc', img: 'blanc' },
     { id: 'rose', ar: 'وردي', fr: 'Rose', img: 'rose' },
-    { id: 'roseclair', ar: 'وردي فاتح', fr: 'Rose clair', img: 'rose2' },
     { id: 'mauve', ar: 'موف', fr: 'Mauve', img: 'mauve' },
     { id: 'rouge', ar: 'أحمر', fr: 'Rouge', img: 'rouge' },
     { id: 'vert', ar: 'أخضر', fr: 'Vert', img: 'vert' }
   ],
   images: [
     { src: 'rose', alt: 'طقم أرنب وردي' }, { src: 'rouge', alt: 'طقم أرنب أحمر' }, { src: 'blanc', alt: 'طقم أرنب أبيض' },
-    { src: 'rose2', alt: 'طقم أرنب وردي فاتح' }, { src: 'vert', alt: 'طقم أرنب أخضر' }, { src: 'mauve', alt: 'طقم أرنب موف' },
-    { src: 'dos', alt: 'الطقم من الخلف' }, { src: 'stock', alt: 'الألوان المتوفرة' }
+    { src: 'mauve', alt: 'طقم أرنب موف' }, { src: 'vert', alt: 'طقم أرنب أخضر' },
+    { src: 'cote', alt: 'طقم أرنب وردي من الجانب' }, { src: 'dos', alt: 'الطقم من الخلف' }
   ]
 };
 /* Meta Pixel + TikTok Pixel */
@@ -207,7 +206,7 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
   var P = window.PAGE, f = document.getElementById('commande');
   document.getElementById('logo').textContent = P.marque; document.getElementById('logo2').textContent = P.marque;
   var main = document.getElementById('mainImg'), thumbs = document.getElementById('thumbs');
-  function montrer(src, alt, b) { main.src = 'img/' + src + '.webp'; main.alt = alt; main.style.objectFit = src === 'mauve' ? 'contain' : ''; [].forEach.call(thumbs.children, function (x) { x.setAttribute('aria-current', String(x === b)); }); }
+  function montrer(src, alt, b) { main.src = 'img/' + src + '.webp'; main.alt = alt; main.style.objectFit = ''; [].forEach.call(thumbs.children, function (x) { x.setAttribute('aria-current', String(x === b)); }); }
   P.images.forEach(function (im, i) {
     var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', im.alt); b.setAttribute('aria-current', String(i === 0));
     b.innerHTML = '<img src="img/' + im.src + '-t.webp" alt="" loading="lazy">';
