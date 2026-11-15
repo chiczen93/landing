@@ -65,7 +65,7 @@ header.top{display:flex;align-items:center;justify-content:space-between;padding
 .chip{position:absolute;top:14px;right:14px;background:#fff;color:var(--accent);font-weight:800;font-size:13.5px;border-radius:999px;padding:3px 14px;box-shadow:0 6px 18px -8px rgba(120,40,70,.4)}
 .thumbs{display:flex;gap:8px;margin-top:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
 .thumbs::-webkit-scrollbar{display:none}
-.thumbs button{flex:0 0 60px;height:76px;border:2px solid transparent;border-radius:12px;padding:0;overflow:hidden;cursor:pointer;background:var(--soft)}
+.thumbs button{display:block;flex:0 0 60px;height:76px;border:2px solid transparent;border-radius:12px;padding:0;overflow:hidden;cursor:pointer;background:var(--soft)}
 .thumbs button[aria-current=true]{border-color:var(--accent)}
 .thumbs img{width:100%;height:100%;object-fit:cover}
 .kicker{color:var(--gold);font-weight:800;font-size:15px}
@@ -112,7 +112,7 @@ section .intro{color:var(--muted);margin:0 0 18px;font-size:17px;text-align:cent
 .feat span{display:block;font-size:28px}
 .feat small{display:block;color:var(--muted);font-weight:500;font-size:14px;margin-top:2px}
 .strip{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:20px}.strip>div{width:calc(20% - 8px)}
-.strip button{border:2px solid transparent;border-radius:12px;padding:0;overflow:hidden;background:var(--soft);cursor:pointer;aspect-ratio:3/4}
+.strip button{display:block;width:100%;border:2px solid transparent;border-radius:12px;padding:0;overflow:hidden;background:var(--soft);cursor:pointer;aspect-ratio:3/4}
 .strip img{width:100%;height:100%;object-fit:cover}
 .strip p{margin:4px 0 0;font-size:13px;font-weight:700;text-align:center;color:var(--muted)}
 .badges{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
@@ -206,15 +206,15 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
   var P = window.PAGE, f = document.getElementById('commande');
   document.getElementById('logo').textContent = P.marque; document.getElementById('logo2').textContent = P.marque;
   var main = document.getElementById('mainImg'), thumbs = document.getElementById('thumbs');
-  function montrer(src, alt, b) { main.src = 'img/' + src + '.webp'; main.alt = alt; main.style.objectFit = ''; [].forEach.call(thumbs.children, function (x) { x.setAttribute('aria-current', String(x === b)); }); }
+  function montrer(src, alt, b) { main.src = 'img/' + src + '.webp?v=3'; main.alt = alt; main.style.objectFit = ''; [].forEach.call(thumbs.children, function (x) { x.setAttribute('aria-current', String(x === b)); }); }
   P.images.forEach(function (im, i) {
     var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', im.alt); b.setAttribute('aria-current', String(i === 0));
-    b.innerHTML = '<img src="img/' + im.src + '-t.webp" alt="" loading="lazy">';
+    b.innerHTML = '<img src="img/' + im.src + '-t.webp?v=3" alt="" loading="lazy">';
     b.onclick = function () { montrer(im.src, im.alt, b); };
     thumbs.appendChild(b);
   });
   document.getElementById('strip').innerHTML = P.couleurs.map(function (c) {
-    return '<div><button type="button" data-i="' + c.img + '" aria-label="' + c.ar + '"><img src="img/' + c.img + '-t.webp" alt="' + c.ar + '" loading="lazy"></button><p>' + c.ar + '</p></div>';
+    return '<div><button type="button" data-i="' + c.img + '" aria-label="' + c.ar + '"><img src="img/' + c.img + '-t.webp?v=3" alt="' + c.ar + '" loading="lazy"></button><p>' + c.ar + '</p></div>';
   }).join('');
   document.getElementById('strip').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return; montrer(b.getAttribute('data-i'), '', null); main.scrollIntoView({ behavior: 'smooth', block: 'center' });
