@@ -207,6 +207,9 @@ summary::after{color:var(--accent)}
 .final .btn{background:#0e0e11;color:var(--accent);box-shadow:none}
 .sticky{background:rgba(14,14,17,.96);border-top-color:var(--line)}
 .sticky a{background:var(--accent);color:#0e0e11;border-radius:6px;text-transform:uppercase;font-weight:900}
+@keyframes tahtaz{0%,58%,100%{transform:translateX(0) rotate(0)}62%{transform:translateX(-5px) rotate(-1deg)}66%{transform:translateX(5px) rotate(1deg)}70%{transform:translateX(-5px) rotate(-1deg)}74%{transform:translateX(5px) rotate(1deg)}78%{transform:translateX(-3px)}82%{transform:translateX(3px)}86%{transform:translateX(0)}}
+.btn:not(:disabled),.sticky a{animation:tahtaz 2.6s ease-in-out infinite;transform-origin:center}
+@media (prefers-reduced-motion:reduce){.btn,.sticky a{animation:none}}
 </style>
 </head>
 <body>
