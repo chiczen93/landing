@@ -626,7 +626,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611151535';
+const VERSION = '202611160025';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1955,6 +1955,8 @@ const finCycleLiv = t => { const d = new Date(t); return new Date(d.getFullYear(
 const valideLiv = (o, t) => !!t && t >= tLiv(o.dliv) && Date.now() < finCycleLiv(t);
 const lignesLivreur = o => String(o.notes || '').split('\n').map(l => l.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}) · ([A-Z]+) · Note · Livreur\s*-?\s*(.*)$/)).filter(Boolean);
 function traiteLiv(o) {
+  // colis annulé chez la société : une fois la situation écrite (après le statut), elle ne revient plus jamais
+  if (o.g === 'annule') { const t0 = tLiv(o.dliv), tf = lireMap('liv_faits_')[o.colis] || 0; if ((tf && tf >= t0) || lignesLivreur(o).some(m => tLiv(m[1]) >= t0)) return true; }
   if (valideLiv(o, lireMap('liv_faits_')[o.colis] || 0)) return true;
   return lignesLivreur(o).some(m => valideLiv(o, tLiv(m[1])));
 }
