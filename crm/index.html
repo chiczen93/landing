@@ -252,6 +252,10 @@
   .bulle { max-width: 80%; padding: 8px 11px; border-radius: 14px; font-size: 14px; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; }
   #annonces { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
   #annonces:empty { display: none; }
+  .ann-pop { position: fixed; inset: 0; z-index: 99999; background: rgba(0,0,0,.62); display: grid; place-items: center; padding: 20px; }
+  .ann-pop-c { flex-direction: column; align-items: center; text-align: center; width: 100%; max-width: 420px; max-height: 85vh; overflow-y: auto; padding: 22px 18px; margin: 0; }
+  .ann-pop-c .ann-img { max-width: 100%; border-radius: 10px; margin-top: 8px; }
+  .ann-pop-ok { width: 100%; height: 48px; margin-top: 16px; border: 0; border-radius: 12px; background: #22c55e; color: #04210f; font-size: 17px; font-weight: 800; cursor: pointer; }
   .ann { position: relative; display: flex; gap: 10px; border-radius: 16px; padding: 12px; margin-bottom: 10px; }
   #annonces .ann { margin-bottom: 0; }
   .ann-ic { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,.9); display: grid; place-items: center; font-size: 18px; flex: none; }
@@ -626,7 +630,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611160025';
+const VERSION = '202611160945';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1399,7 +1403,7 @@ window.addEventListener('pagehide', () => { if (APL.etat && APL.avec && APL.call
 rythmeAppel();
 // ---------- Annonces de l'admin (sans titre) : Urgent (à confirmer « J'ai compris »), Info, Objectif ----------
 // l'agente peut fermer une annonce, mais elle revient à chaque ouverture de l'application (tant qu'elle est active)
-const ANN = { liste: [], caches: new Set(), ecoutes: new Set(), noeuds: new Map() };
+const ANN = { liste: [], caches: new Set(), ecoutes: new Set(), noeuds: new Map(), popFait: new Set() };
 const ANN_TYPES = { urgent: { t: '🔥 URGENT', ic: '⚠️' }, info: { t: '📢 INFO', ic: '📢' }, objectif: { t: '🎯 OBJECTIF', ic: '🎯' } };
 const ANN_GENS = ['HAJIBA', 'BTISSAM', 'GHIZLANE', 'SAMIRA', 'ILHAM', 'HOUDA'];
 const dateCourte = q => { const d = new Date(q); return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); };
@@ -1414,7 +1418,7 @@ function rendreAnnonces() {
   // une annonce avec vocal : impossible de la fermer avant d'avoir écouté le vocal jusqu'au bout ;
   // une fois écoutée, elle ne revient plus jamais (les annonces écrites, elles, reviennent à chaque ouverture)
   const dejaLue = a => a.lues.some(l => l.agent === st.agent);
-  const aLire = ANN.liste.filter(a => a.active && !ANN.caches.has(a.id) && !(a.fichier && dejaLue(a) && !ANN.ecoutes.has(a.id)));
+  const aLire = ANN.liste.filter(a => a.active && dejaLue(a) && !ANN.caches.has(a.id) && !(a.fichier && dejaLue(a) && !ANN.ecoutes.has(a.id)));
   const noeuds = new Map();
   box.replaceChildren(...aLire.map(a => {
     const cle = a.id + '|' + a.type + '|' + a.texte + '|' + a.fichier + '|' + (a.image || '');
@@ -1440,6 +1444,31 @@ function rendreAnnonces() {
     return n;
   }));
   ANN.noeuds = noeuds;
+  popupAnnonce();
+}
+// annonce non lue : fenêtre au milieu de l'écran, elle reste jusqu'à OK (puis passe dans la liste du haut)
+function popupAnnonce() {
+  if (st.agent === 'ADMIN' || document.getElementById('ann-pop')) return;
+  const a = ANN.liste.find(x => x.active && !x.lues.some(l => l.agent === st.agent) && !ANN.popFait.has(x.id)); if (!a) return;
+  const T = ANN_TYPES[a.type] || ANN_TYPES.info;
+  const fond = el('div', { id: 'ann-pop', class: 'ann-pop' });
+  const ok = el('button', { class: 'ann-pop-ok', onclick: async () => {
+    ok.disabled = true; ANN.popFait.add(a.id);
+    try { await api('annonces', { op: 'lue', id: a.id }); } catch (e) {}
+    if (!a.lues.some(l => l.agent === st.agent)) a.lues.push({ agent: st.agent, quand: new Date().toISOString() });
+    fond.remove(); rendreAnnonces();
+  } }, 'OK');
+  const aide = el('div', { class: 'ann-aide', text: '🎧 Écoutez le vocal jusqu\'à la fin' });
+  const ecoute = () => { ok.hidden = false; aide.remove(); };
+  if (a.fichier) ok.hidden = true;
+  fond.append(el('div', { class: 'ann ann-' + (ANN_TYPES[a.type] ? a.type : 'info') + ' ann-pop-c' },
+    el('div', { class: 'ann-ic', text: a.fichier ? '🎤' : T.ic }),
+    el('span', { class: 'ann-tg', text: T.t }), el('div', { class: 'ann-d', text: '📅 ' + dateCourte(a.quand) + ' · Admin' }),
+    a.texte ? el('div', { class: 'ann-tx', dir: 'auto', text: a.texte }) : null,
+    a.image ? el('img', { class: 'ann-img', src: FICHIER_URL(a.image), alt: 'Image' }) : null,
+    a.fichier ? el('div', { class: 'ann-voc' }, lecteurVocal(a.fichier, null, ecoute)) : null,
+    a.fichier ? aide : null, ok));
+  document.body.append(fond);
 }
 // écran admin : publier / modifier / supprimer, et qui a lu
 function ouvrirAnnonces(edit) {
