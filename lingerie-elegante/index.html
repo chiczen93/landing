@@ -78,6 +78,12 @@ form.order{background:var(--cream);color:var(--ink);padding:28px}
 .chips-row{display:flex;flex-wrap:wrap;gap:8px}.chips-row label{cursor:pointer}.chips-row input{position:absolute;opacity:0}
 .chips-row span{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;padding:9px 16px;font-size:14.5px;min-width:52px;justify-content:center}
 .chips-row input:checked+span{border-color:var(--wine);background:var(--wine);color:#fff}
+.chips-row.mdls{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.mdl span{display:block;padding:0;min-width:0;border:2px solid transparent;background:#fff;position:relative}
+.mdl img{aspect-ratio:3/4;width:100%;object-fit:cover}
+.mdl em{display:block;font:400 10.5px/1.2 var(--sans);font-style:normal;padding:5px 3px;text-align:center;color:var(--ink)}
+.chips-row .mdl input:checked+span{border-color:var(--wine);background:#fff;color:var(--ink)}
+.mdl input:checked+span::after{content:"✓";position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:var(--wine);color:#fff;font:600 12px/20px var(--sans);text-align:center}
 .field{margin-top:12px}input[type=text],input[type=tel],.field input{width:100%;border:1px solid var(--line);background:#fff;padding:14px;font:400 16px var(--sans);border-radius:0}
 .field input:focus{outline:2px solid var(--wine);outline-offset:-1px}
 .err{color:#b3261e;font-size:13px;min-height:0}
@@ -137,8 +143,8 @@ footer{text-align:center;font-size:12.5px;color:var(--muted);padding:26px 20px 9
   <div>
     <form class="order" id="form" novalidate>
       <span class="lbl">Votre offre</span><div class="offers" id="offers"></div>
-      <span class="lbl" id="lblM1">Modèle</span><div class="chips-row" id="m1"></div>
-      <div id="m2Box"><span class="lbl">2e modèle</span><div class="chips-row" id="m2"></div></div>
+      <span class="lbl" id="lblM1">Modèle</span><div class="chips-row mdls" id="m1" data-x></div>
+      <div id="m2Box"><span class="lbl">2e modèle</span><div class="chips-row mdls" id="m2"></div></div>
       <span class="lbl">Taille</span><div class="chips-row" id="sizes"></div>
       <div class="field"><input name="nom" autocomplete="name" placeholder="Nom complet *" required><div class="err" data-for="nom"></div></div>
       <div class="field"><input name="telephone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Téléphone * (06 / 07)" required><div class="err" data-for="telephone"></div></div>
@@ -181,7 +187,7 @@ footer{text-align:center;font-size:12.5px;color:var(--muted);padding:26px 20px 9
   [].forEach.call(document.querySelectorAll('.card'),function(c){c.addEventListener('click',function(){var i=Number(c.dataset.i);montrer(i);var r=f.querySelector('input[name=m1][value="'+MODELES[i].nom+'"]');if(r)r.checked=true;document.getElementById('commande').scrollIntoView({behavior:'smooth'});})});
   document.getElementById('offers').innerHTML=P.offres.map(function(o,i){return '<label class="offer">'+(o.badge?'<span class="pill">'+o.badge+'</span>':'')+'<input type="radio" name="offre" value="'+i+'"'+(i===P.offres.length-1?' checked':'')+'><span class="t">'+o.label+'<small>'+o.sub+'</small></span><span class="p">'+o.prix+' DH</span></label>'}).join('');
   document.getElementById('sizes').innerHTML=P.tailles.map(function(t,i){return '<label><input type="radio" name="taille" value="'+t+'"'+(i===1?' checked':'')+'><span>'+t+'</span></label>'}).join('');
-  function chips(n,d){return MODELES.map(function(m,i){return '<label><input type="radio" name="'+n+'" value="'+m.nom+'"'+(i===d?' checked':'')+'><span>'+m.nom+'</span></label>'}).join('')}
+  function chips(n,d){return MODELES.map(function(m,i){return '<label class="mdl"><input type="radio" name="'+n+'" value="'+m.nom+'"'+(i===d?' checked':'')+'><span><img src="'+m.img+'" alt="'+m.nom+'"><em>'+m.nom+'</em></span></label>'}).join('')}
   document.getElementById('m1').innerHTML=chips('m1',2);document.getElementById('m2').innerHTML=chips('m2',3);
   function offre(){return P.offres[Number((f.querySelector('input[name=offre]:checked')||{}).value||0)]}
   function val(n){return (f.querySelector('input[name='+n+']:checked')||{}).value||''}
