@@ -638,7 +638,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611171230';
+const VERSION = '202611181430';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -2589,7 +2589,7 @@ async function noter(o, key, type, statut) {
   const nbAppels = n.filter(x => x.appel).length;
   let r;
   if (type === 'appel') r = await feuille({ titre: '📵 ' + (LABEL[statut] || 'Pas répondu') + ' · appel ' + (nbAppels + 1), sous: "Choisissez ce qui s'est passé (1 clic)", motifs: MOTIFS_APPEL, ton: 'warn', bouton: 'Enregistrer', defaut: MOTIFS_APPEL[0] });
-  else if (type === 'annule') r = await feuille({ titre: '❌ Pourquoi annulée ?', sous: "Raison obligatoire avant d'annuler", motifs: MOTIFS_ANNULE, obligatoire: 'motif', bouton: 'Annuler la commande' });
+  else if (type === 'annule') r = await feuille({ titre: '❌ Pourquoi annulée ?', sous: irsAnnulable(o) ? "Raison obligatoire · le colis sera aussi annulé chez Irsaliyat" : "Raison obligatoire avant d'annuler", motifs: MOTIFS_ANNULE, obligatoire: 'motif', bouton: 'Annuler la commande' });
   else if (type === 'report') r = await feuille({ titre: '📅 Reporter à quand ?', sous: 'Le client veut être livré plus tard', motifs: joursReport(), obligatoire: 'motif', ton: 'info', bouton: 'Reporter la commande' });
   else r = await feuille({ titre: '📝 Note', sous: 'Visible par vous et l’administrateur', obligatoire: 'texte', ton: 'info', bouton: 'Ajouter la note' });
   if (!r) return;
@@ -2605,7 +2605,18 @@ async function noter(o, key, type, statut) {
     if (d.notes !== undefined) o.notes = d.notes;
     delete st.brouillon[key]; st.ouvert.delete(key);
     toast(type === 'note' ? 'Note ajoutée' : 'Enregistré'); rerender();
+    if (type === 'annule' && irsAnnulable(o)) annulerChezIrsaliyat(o);
   } catch (e) { toast(e.message, true); }
+}
+// Commande annulée dans le CRM : le colis Irsaliyat est annulé aussi (sauf livré / déjà annulé / retour)
+const irsAnnulable = o => /^CL-IRY-/i.test(o.colis || '') && !/livr[ée] au client|annul|refus|retour/i.test(o.livraison || '');
+async function annulerChezIrsaliyat(o) {
+  const infos = { client: o.client, total: String(o.total || '').replace('درهم', 'DH').trim(), produit: o.produit, ville: o.ville, tel: o.tel, agent: o.agent, livraison: o.livraison };
+  try {
+    await api('annul_irs', { colis: o.colis, infos });
+    o.livraison = 'Annulé';
+    toast('✓ Colis annulé aussi chez Irsaliyat'); rerender();
+  } catch (e) { toast("Commande annulée, mais le colis Irsaliyat n'a pas pu être annulé : " + e.message, true); }
 }
 
 // ---------- messages WhatsApp prêts (darija) ----------
