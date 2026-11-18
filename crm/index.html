@@ -638,7 +638,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611181445';
+const VERSION = '202611181500';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -2750,6 +2750,7 @@ function carte(o) {
   }, el('span', { class: 'dot' }), s.t)),
     o.row ? el('button', { class: 'act', onclick: () => noter(o, key, 'note') }, '📝 Note') : null,
     el('button', { class: 'act', onclick: () => ouvrirChat(null, [o.client, o.produit, o.total ? o.total.replace('درهم', 'DH') : '', o.tel].filter(Boolean).join(' · ')) }, '💬 Équipe'));
+  if (!o.row && irsAnnulable(o)) acts.append(el('button', { class: 'act c-bad', onclick: () => annulerColisCarte(o, key) }, '🛑 Annuler le colis'));
   const lesNotes = lireNotes(o.notes);
   const nbAppels = lesNotes.filter(x => x.appel).length;
   const blocNotes = lesNotes.length ? el('div', { class: 'notes' },
