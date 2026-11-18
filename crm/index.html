@@ -638,7 +638,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611181500';
+const VERSION = '202611181515';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -2608,6 +2608,18 @@ async function noter(o, key, type, statut) {
     if (type === 'annule' && irsAnnulable(o)) annulerChezIrsaliyat(o);
   } catch (e) { toast(e.message, true); }
 }
+// Bouton « Intéressé » : le client veut son colis → statut « Intéressé » chez Irsaliyat
+async function interesseColis(o) {
+  const r = await feuille({ titre: '✅ Client intéressé ?', sous: 'Le colis passera en « Intéressé » chez Irsaliyat', motifs: ['Le client veut recevoir le colis'], ton: 'info', bouton: 'Marquer intéressé', defaut: 'Le client veut recevoir le colis' });
+  if (!r) return;
+  const infos = { client: o.client, total: String(o.total || '').replace('درهم', 'DH').trim(), produit: o.produit, ville: o.ville, tel: o.tel, agent: o.agent, livraison: o.livraison };
+  try {
+    await api('annul_irs', { colis: o.colis, statut: 'interesse', infos });
+    if (o.row) { try { const d = await api('maj', { row: o.row, id: o.id, champs: {}, note: { type: 'note', texte: 'Intéressé (Irsaliyat)' } }); if (d && d.notes !== undefined) o.notes = d.notes; } catch (e) {} }
+    o.livraison = 'Intéressé';
+    toast('✓ Colis marqué Intéressé chez Irsaliyat'); rerender();
+  } catch (e) { toast(e.message, true); }
+}
 // Bouton « Annuler le colis » sur une carte de livraison (Irsaliyat) : raison obligatoire, puis ANNULER dans la feuille + annulation chez Irsaliyat
 async function annulerColisCarte(o, key) {
   if (o.row) return noter(o, key, 'annule', 'ANNULER');
@@ -2616,7 +2628,7 @@ async function annulerColisCarte(o, key) {
   await annulerChezIrsaliyat(o);
 }
 // Commande annulée dans le CRM : le colis Irsaliyat est annulé aussi (sauf livré / déjà annulé / retour)
-const irsAnnulable = o => /^CL-IRY-/i.test(o.colis || '') && !/livr[ée] au client|annul|refus|retour/i.test(o.livraison || '');
+const irsAnnulable = o => /^CL-IRY-/i.test(o.colis || '') && !/livr[ée] au client|annul|refus|retour|int[ée]ress/i.test(o.livraison || '');
 async function annulerChezIrsaliyat(o) {
   const infos = { client: o.client, total: String(o.total || '').replace('درهم', 'DH').trim(), produit: o.produit, ville: o.ville, tel: o.tel, agent: o.agent, livraison: o.livraison };
   try {
@@ -2750,7 +2762,7 @@ function carte(o) {
   }, el('span', { class: 'dot' }), s.t)),
     o.row ? el('button', { class: 'act', onclick: () => noter(o, key, 'note') }, '📝 Note') : null,
     el('button', { class: 'act', onclick: () => ouvrirChat(null, [o.client, o.produit, o.total ? o.total.replace('درهم', 'DH') : '', o.tel].filter(Boolean).join(' · ')) }, '💬 Équipe'));
-  if (!o.row && irsAnnulable(o)) acts.append(el('button', { class: 'act c-bad', onclick: () => annulerColisCarte(o, key) }, '🛑 Annuler le colis'));
+  if (!o.row && irsAnnulable(o)) acts.append(el('button', { class: 'act c-ok', onclick: () => interesseColis(o) }, '✅ Intéressé'), el('button', { class: 'act c-bad', onclick: () => annulerColisCarte(o, key) }, '🛑 Annuler le colis'));
   const lesNotes = lireNotes(o.notes);
   const nbAppels = lesNotes.filter(x => x.appel).length;
   const blocNotes = lesNotes.length ? el('div', { class: 'notes' },
@@ -2792,6 +2804,7 @@ function carte(o) {
     meta, blocLivreur(o), blocSuivi(o), gl && (gl.id === 'pr' || gl.id === 'an') ? boiteSituation(o) : null, blocNotes,
     contact, estCasa(o) ? el('a', { class: 'btn-casa', href: 'https://wa.me/?text=' + encodeURIComponent(msgSuiviCasa(o)), target: '_blank', rel: 'noopener' }, '📤 Suivi Casa') : null,
     gl ? el('div', { class: 'acts' }, el('button', { class: 'act', onclick: () => ouvrirChat(null, [o.client, o.produit, o.colis, o.livraison, o.tel].filter(Boolean).join(' · ')) }, '💬 Équipe'),
+      irsAnnulable(o) ? el('button', { class: 'act c-ok', onclick: () => interesseColis(o) }, '✅ Intéressé') : null,
       irsAnnulable(o) ? el('button', { class: 'act c-bad', onclick: () => annulerColisCarte(o, key) }, '🛑 Annuler le colis') : null) : acts,
     gl ? null : el('button', { class: 'more', onclick: () => { ouvert ? st.ouvert.delete(key) : st.ouvert.add(key); rerender(); } }, icone('edit'), ouvert ? 'Fermer' : 'Modifier ville, adresse, produit'),
     edit, save,
