@@ -638,7 +638,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611181430';
+const VERSION = '202611181445';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -2608,6 +2608,13 @@ async function noter(o, key, type, statut) {
     if (type === 'annule' && irsAnnulable(o)) annulerChezIrsaliyat(o);
   } catch (e) { toast(e.message, true); }
 }
+// Bouton « Annuler le colis » sur une carte de livraison (Irsaliyat) : raison obligatoire, puis ANNULER dans la feuille + annulation chez Irsaliyat
+async function annulerColisCarte(o, key) {
+  if (o.row) return noter(o, key, 'annule', 'ANNULER');
+  const r = await feuille({ titre: '❌ Pourquoi annuler ce colis ?', sous: 'Le colis sera annulé chez Irsaliyat', motifs: MOTIFS_ANNULE, obligatoire: 'motif', bouton: 'Annuler le colis' });
+  if (!r) return;
+  await annulerChezIrsaliyat(o);
+}
 // Commande annulée dans le CRM : le colis Irsaliyat est annulé aussi (sauf livré / déjà annulé / retour)
 const irsAnnulable = o => /^CL-IRY-/i.test(o.colis || '') && !/livr[ée] au client|annul|refus|retour/i.test(o.livraison || '');
 async function annulerChezIrsaliyat(o) {
@@ -2783,7 +2790,8 @@ function carte(o) {
     el('div', { class: 'prod' }, o.produit || '—', o.total ? el('b', { text: '  ·  ' + o.total.replace('درهم', 'DH') }) : null),
     meta, blocLivreur(o), blocSuivi(o), gl && (gl.id === 'pr' || gl.id === 'an') ? boiteSituation(o) : null, blocNotes,
     contact, estCasa(o) ? el('a', { class: 'btn-casa', href: 'https://wa.me/?text=' + encodeURIComponent(msgSuiviCasa(o)), target: '_blank', rel: 'noopener' }, '📤 Suivi Casa') : null,
-    gl ? el('div', { class: 'acts' }, el('button', { class: 'act', onclick: () => ouvrirChat(null, [o.client, o.produit, o.colis, o.livraison, o.tel].filter(Boolean).join(' · ')) }, '💬 Équipe')) : acts,
+    gl ? el('div', { class: 'acts' }, el('button', { class: 'act', onclick: () => ouvrirChat(null, [o.client, o.produit, o.colis, o.livraison, o.tel].filter(Boolean).join(' · ')) }, '💬 Équipe'),
+      irsAnnulable(o) ? el('button', { class: 'act c-bad', onclick: () => annulerColisCarte(o, key) }, '🛑 Annuler le colis') : null) : acts,
     gl ? null : el('button', { class: 'more', onclick: () => { ouvert ? st.ouvert.delete(key) : st.ouvert.add(key); rerender(); } }, icone('edit'), ouvert ? 'Fermer' : 'Modifier ville, adresse, produit'),
     edit, save,
   );
