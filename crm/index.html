@@ -638,7 +638,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611181515';
+const VERSION = '202611181530';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -2571,9 +2571,9 @@ function quandNote(q) {
 function feuille({ titre, sous, motifs, obligatoire, ton, bouton, defaut }) {
   return new Promise(res => {
     let choix = defaut || '';
-    const ta = el('textarea', { placeholder: obligatoire === 'texte' ? 'Écrivez la note…' : 'Note (facultatif)…' });
+    const ta = el('textarea', { placeholder: obligatoire === 'texte' || obligatoire === 'les-deux' ? 'Écrivez la note (obligatoire)…' : 'Note (facultatif)…' });
     const go = el('button', { class: 'go', text: bouton });
-    const maj = () => { go.disabled = (obligatoire === 'motif' && !choix) || (obligatoire === 'texte' && !ta.value.trim()); };
+    const maj = () => { go.disabled = ((obligatoire === 'motif' || obligatoire === 'les-deux') && !choix) || ((obligatoire === 'texte' || obligatoire === 'les-deux') && !ta.value.trim()); };
     const boutons = (motifs || []).map(m => { const b = el('button', { class: 'motif', 'aria-pressed': String(m === choix), text: m }); b.addEventListener('click', () => { choix = m; for (const x of boutons) x.setAttribute('aria-pressed', String(x === b)); maj(); }); return b; });
     ta.addEventListener('input', maj);
     const box = el('div', { class: 'feuille ' + (ton || '') }, el('div', { class: 'grab' }), el('h3', { text: titre }), el('p', { text: sous }), motifs ? el('div', { class: 'motifs' }, ...boutons) : null, ta, go);
@@ -2589,7 +2589,7 @@ async function noter(o, key, type, statut) {
   const nbAppels = n.filter(x => x.appel).length;
   let r;
   if (type === 'appel') r = await feuille({ titre: '📵 ' + (LABEL[statut] || 'Pas répondu') + ' · appel ' + (nbAppels + 1), sous: "Choisissez ce qui s'est passé (1 clic)", motifs: MOTIFS_APPEL, ton: 'warn', bouton: 'Enregistrer', defaut: MOTIFS_APPEL[0] });
-  else if (type === 'annule') r = await feuille({ titre: '❌ Pourquoi annulée ?', sous: irsAnnulable(o) ? "Raison obligatoire · le colis sera aussi annulé chez Irsaliyat" : "Raison obligatoire avant d'annuler", motifs: MOTIFS_ANNULE, obligatoire: 'motif', bouton: 'Annuler la commande' });
+  else if (type === 'annule') r = await feuille({ titre: '❌ Pourquoi annulée ?', sous: irsAnnulable(o) ? "Raison + note obligatoires · le colis sera aussi annulé chez Irsaliyat" : "Raison + note obligatoires avant d'annuler", motifs: MOTIFS_ANNULE, obligatoire: 'les-deux', bouton: 'Annuler la commande' });
   else if (type === 'report') r = await feuille({ titre: '📅 Reporter à quand ?', sous: 'Le client veut être livré plus tard', motifs: joursReport(), obligatoire: 'motif', ton: 'info', bouton: 'Reporter la commande' });
   else r = await feuille({ titre: '📝 Note', sous: 'Visible par vous et l’administrateur', obligatoire: 'texte', ton: 'info', bouton: 'Ajouter la note' });
   if (!r) return;
@@ -2605,7 +2605,7 @@ async function noter(o, key, type, statut) {
     if (d.notes !== undefined) o.notes = d.notes;
     delete st.brouillon[key]; st.ouvert.delete(key);
     toast(type === 'note' ? 'Note ajoutée' : 'Enregistré'); rerender();
-    if (type === 'annule' && irsAnnulable(o)) annulerChezIrsaliyat(o);
+    if (type === 'annule' && irsAnnulable(o)) annulerChezIrsaliyat(o, [r.motif, r.texte].filter(Boolean).join(' - '));
   } catch (e) { toast(e.message, true); }
 }
 // Bouton « Intéressé » : le client veut son colis → statut « Intéressé » chez Irsaliyat
@@ -2623,14 +2623,14 @@ async function interesseColis(o) {
 // Bouton « Annuler le colis » sur une carte de livraison (Irsaliyat) : raison obligatoire, puis ANNULER dans la feuille + annulation chez Irsaliyat
 async function annulerColisCarte(o, key) {
   if (o.row) return noter(o, key, 'annule', 'ANNULER');
-  const r = await feuille({ titre: '❌ Pourquoi annuler ce colis ?', sous: 'Le colis sera annulé chez Irsaliyat', motifs: MOTIFS_ANNULE, obligatoire: 'motif', bouton: 'Annuler le colis' });
+  const r = await feuille({ titre: '❌ Pourquoi annuler ce colis ?', sous: 'Raison + note obligatoires · le colis sera annulé chez Irsaliyat', motifs: MOTIFS_ANNULE, obligatoire: 'les-deux', bouton: 'Annuler le colis' });
   if (!r) return;
-  await annulerChezIrsaliyat(o);
+  await annulerChezIrsaliyat(o, [r.motif, r.texte].filter(Boolean).join(' - '));
 }
 // Commande annulée dans le CRM : le colis Irsaliyat est annulé aussi (sauf livré / déjà annulé / retour)
 const irsAnnulable = o => /^CL-IRY-/i.test(o.colis || '') && !/livr[ée] au client|annul|refus|retour|int[ée]ress/i.test(o.livraison || '');
-async function annulerChezIrsaliyat(o) {
-  const infos = { client: o.client, total: String(o.total || '').replace('درهم', 'DH').trim(), produit: o.produit, ville: o.ville, tel: o.tel, agent: o.agent, livraison: o.livraison };
+async function annulerChezIrsaliyat(o, raison) {
+  const infos = { client: o.client, total: String(o.total || '').replace('درهم', 'DH').trim(), produit: o.produit, ville: o.ville, tel: o.tel, agent: o.agent, livraison: o.livraison, raison: String(raison || '').slice(0, 200) };
   try {
     await api('annul_irs', { colis: o.colis, infos });
     o.livraison = 'Annulé';
