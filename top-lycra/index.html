@@ -105,6 +105,13 @@ footer{text-align:center;font-size:12.5px;color:var(--muted);padding:26px 20px 9
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 
 input[type=text],textarea{font-family:var(--sans)}.field textarea{width:100%;border:1px solid var(--line);background:#fff;padding:14px;font:400 16px/1.5 var(--sans);border-radius:0;resize:vertical}.field textarea:focus{outline:2px solid var(--wine);outline-offset:-1px}
+.fit{background:var(--cream);padding-bottom:56px}
+.fit .hint{font:500 12px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:10px}
+.rail{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px 20px 14px;scrollbar-width:thin;scrollbar-color:var(--wine) transparent}
+.rail::-webkit-scrollbar{height:6px}.rail::-webkit-scrollbar-thumb{background:var(--wine);border-radius:9px}
+.rail figure{flex:0 0 min(74vw,300px);margin:0;scroll-snap-align:center;background:var(--blush)}
+.rail img{width:100%;aspect-ratio:2/3;object-fit:cover}
+@media(min-width:900px){.rail{justify-content:flex-start;padding-left:max(20px,calc((100vw - 1080px)/2 + 20px))}}
 .chips-row.sz span{min-width:60px}
 </style>
 </head>
@@ -128,6 +135,18 @@ input[type=text],textarea{font-family:var(--sans)}.field textarea{width:100%;bor
 <section><div class="wrap">
   <div class="center"><div class="eyebrow">Les coloris</div><h2>Quatre teintes, <em>zéro hésitation</em></h2></div>
   <div class="grid" id="models"></div>
+</div></section>
+
+<section class="fit"><div class="wrap">
+  <div class="center" style="margin-bottom:22px"><div class="eyebrow">Porté au quotidien</div><h2>Voyez comment il <em>tombe</em></h2><div class="hint">Faites glisser →</div></div>
+</div>
+<div class="rail" id="rail" aria-label="Photos portées">
+  <figure><img src="img/porte1.webp" alt="Top coton lycra porté, photo 1" loading="lazy"></figure>
+  <figure><img src="img/porte2.webp" alt="Top coton lycra porté, photo 2" loading="lazy"></figure>
+  <figure><img src="img/porte3.webp" alt="Top coton lycra porté, photo 3" loading="lazy"></figure>
+  <figure><img src="img/porte4.webp" alt="Top coton lycra porté, photo 4" loading="lazy"></figure>
+  <figure><img src="img/porte5.webp" alt="Top coton lycra porté, photo 5" loading="lazy"></figure>
+  <figure><img src="img/porte6.webp" alt="Top coton lycra porté, photo 6" loading="lazy"></figure>
 </div></section>
 
 <section class="story"><div class="wrap">
