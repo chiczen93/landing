@@ -638,7 +638,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611181545';
+const VERSION = '202611200010';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -2118,14 +2118,18 @@ document.addEventListener('visibilitychange', () => { if (st.pin && document.vis
 const ANL = { liste: [] };
 async function chargerAnnul() { try { const d = await api('annul', {}); ANL.liste = d.annulations || []; } catch (e) {} }
 const annulDe = c => ANL.liste.find(a => a.colis === c);
-const debutRetard = o => Math.min(o.inj1 ? tLiv(o.inj1) : Infinity, o.g === 'pasrep' && o.dliv ? tLiv(o.dliv) : Infinity);
+const debutRetard = o => Math.min(o.inj1 ? tLiv(o.inj1) : Infinity, (o.g === 'pasrep' || o.g === 'rp') && o.dliv ? tLiv(o.dliv) : Infinity);
+// nombre de jours différents où la situation « Reporté » a été écrite pour ce colis
+const nbReports = o => new Set(lignesLivreur(o).filter(m => /report/i.test(m[3] || '')).map(m => jourLocal(tLiv(m[1])))).size;
 const societe = o => /^CL-IRY/i.test(o.colis || '') ? 'Irsaliyat' : 'Colya';
 function retards() {
   if (!st.agent) return [];
   if (st.agent === 'ADMIN' && ANL.adminFerme) return []; // l'admin les a fermées : elles reviennent à la prochaine ouverture de l'application
   const now = Date.now();
   return ALR.items.filter(o => ['pasrep', 'rp', 'sorti'].includes(o.g) && (o.agent === st.agent || st.agent === 'ADMIN')).filter(o => {
-    const t = debutRetard(o); if (!isFinite(t) || now - t < 3 * 86400000) return false;
+    const t = debutRetard(o); if (!isFinite(t)) return false;
+    // dès 2 jours sans livraison, ou dès que le colis a été reporté 2 jours différents : l'agente doit décider (annuler ou garder)
+    if (now - t < 2 * 86400000 && nbReports(o) < 2) return false;
     const a = annulDe(o.colis); if (!a) return true;
     return a.etat === 'garder' && now > Date.parse(a.jusqua || 0);
   }).sort((a, b) => debutRetard(a) - debutRetard(b));
@@ -2152,7 +2156,7 @@ function montrerRetard(o, n) {
       derniere ? el('div', {}, el('span', { text: '📝 Dernière situation' }), el('b', { text: '"' + (derniere[3] || '').slice(0, 40) + '"' })) : el('div', {}),
       el('div', {}, el('span', { text: '⏳ Depuis' }), el('b', { style: 'color:#ff8a8a', text: dureeJ(Date.now() - t0) }))),
     el('div', { class: 'alr-2' }, el('a', { class: 'alr-b gr', href: 'tel:0' + telLiv(o) }, '📞 Appeler'), el('a', { class: 'alr-b wa', href: waLiv(o, (GROUPES.find(g => g.id === 'pr') || {}).msg || MSG_DEFAUT), target: '_blank', rel: 'noopener' }, 'WhatsApp')),
-    el('div', { class: 'alr-q', text: 'هاد الكوليس هادي ' + Math.floor((Date.now() - t0) / 86400000) + ' أيام والليفرور ما لقاش الكليان، وباقي ما تليفراش. واش نلغيوه؟' }),
+    el('div', { class: 'alr-q', text: 'هاد الكوليس هادي ' + Math.floor((Date.now() - t0) / 86400000) + ' أيام والليفرور ما لقاش الكليان، وباقي ما تليفراش' + (nbReports(o) >= 2 ? ' (تأجل ' + nbReports(o) + ' مرات)' : '') + '. فكري مزيان: واش نلغيوه؟' }),
     el('div', { class: 'alr-2' }, oui, non));
   // l'admin seulement : fermer sans choisir (les agentes doivent répondre)
   if (st.agent === 'ADMIN') {
