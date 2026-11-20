@@ -96,6 +96,8 @@ form.order{background:#fff;color:var(--ink);padding:24px;border-radius:20px}
 .sizes input:checked+span{border-color:var(--rose);background:var(--rose);color:#fff}
 .field{margin-top:12px}.field input{width:100%;border:2px solid var(--line);background:#fff;padding:14px;font:600 17px var(--f);border-radius:12px;color:var(--ink)}
 .field input:focus{outline:2px solid var(--rose);outline-offset:-1px}
+.field textarea{width:100%;border:2px solid var(--line);background:#fff;padding:13px 14px;font:600 16px/1.6 var(--f);border-radius:12px;color:var(--ink);resize:vertical}
+.field textarea:focus{outline:2px solid var(--rose);outline-offset:-1px}
 .err{color:#b3261e;font:600 14px var(--f);min-height:0}
 .hp{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none}.submit{width:100%;margin-top:18px;font-size:20px}.submit:disabled{opacity:.6}
 .small{text-align:center;font:500 14px var(--f);color:var(--muted);margin:10px 0 0}
@@ -156,12 +158,11 @@ footer{text-align:center;font:500 13.5px var(--f);color:var(--muted);padding:24p
   <div>
     <form class="order" id="form" novalidate>
       <span class="lbl">العرض</span><div class="offers" id="offers"></div>
-      <span class="lbl">الألوان <small id="cnt"></small></span><div class="cpick" id="cpick"></div>
-      <div class="err" id="errC"></div>
       <span class="lbl">المقاس</span><div class="sizes" id="sizes"></div>
       <div class="field"><input name="nom" autocomplete="name" placeholder="الاسم الكامل *" required><div class="err" data-for="nom"></div></div>
       <div class="field"><input name="telephone" type="tel" inputmode="tel" autocomplete="tel" placeholder="رقم الهاتف * (06 / 07)" required><div class="err" data-for="telephone"></div></div>
       <div class="field"><input name="ville" autocomplete="address-level2" placeholder="المدينة *" required><div class="err" data-for="ville"></div></div>
+      <div class="field"><textarea name="note" rows="3" maxlength="300" placeholder="ملاحظة (اختياري): كتب هنا الألوان اللي بغيتي، ولا أي إضافة أخرى"></textarea></div>
       <input class="hp" name="site" tabindex="-1" autocomplete="off" aria-hidden="true">
       <button class="btn submit" id="btn" type="submit">اطلب دابا — <span id="btnPrix">179</span> درهم</button>
       <div class="err" id="errForm" style="text-align:center"></div>
@@ -186,9 +187,8 @@ footer{text-align:center;font:500 13.5px var(--f);color:var(--muted);padding:24p
 <script>
 (function(){
   var P=window.PAGE,f=document.getElementById('form'),hero=document.getElementById('heroImg'),CO=P.couleurs;
-  var cur={c:0,i:1},counts={};CO.forEach(function(c){counts[c.id]=0});
+  var cur={c:0,i:1};
   function offre(){return P.offres[Number((f.querySelector('input[name=offre]:checked')||{}).value||0)]}
-  function total(){return CO.reduce(function(s,c){return s+counts[c.id]},0)}
   function montrer(ci,n){cur.c=ci;cur.i=n||1;var c=CO[ci];hero.style.opacity=.25;setTimeout(function(){hero.src='img/'+c.img+cur.i+'.webp';hero.alt='توب ليكرا قطن '+c.ar;hero.style.opacity=1},120);
     [].forEach.call(document.querySelectorAll('#dots button'),function(b,k){b.setAttribute('aria-pressed',k===ci?'true':'false')});}
   document.getElementById('dots').innerHTML=CO.map(function(c,i){return '<button type="button" data-i="'+i+'" aria-label="'+c.ar+'" aria-pressed="false"><img src="img/'+c.img+'1-t.webp" alt=""></button>'}).join('');
@@ -197,42 +197,31 @@ footer{text-align:center;font:500 13.5px var(--f);color:var(--muted);padding:24p
   [].forEach.call(document.querySelectorAll('.col'),function(b){b.addEventListener('click',function(){montrer(Number(b.dataset.i),2);window.scrollTo({top:0,behavior:'smooth'})})});
   document.getElementById('offers').innerHTML=P.offres.map(function(o,i){return '<label class="offer">'+(o.badge?'<span class="pill">'+o.badge+'</span>':'')+'<input type="radio" name="offre" value="'+i+'"'+(i===0?' checked':'')+'><span class="t">'+o.titre+'<small>'+o.sub+'</small></span><span class="p">'+o.prix+' <small>درهم</small></span></label>'}).join('');
   document.getElementById('sizes').innerHTML=P.tailles.map(function(t,i){return '<label><input type="radio" name="taille" value="'+t+'"'+(i===1?' checked':'')+'><span>'+t+'</span></label>'}).join('');
-  document.getElementById('cpick').innerHTML=CO.map(function(c){return '<div class="cr" data-id="'+c.id+'"><img src="img/'+c.img+'1-t.webp" alt=""><span class="n"><i style="background:'+c.hex+'"></i>'+c.ar+'</span><span class="step"><button type="button" class="minus" aria-label="نقص">−</button><output>0</output><button type="button" class="plus" aria-label="زيد">+</button></span></div>'}).join('');
-  function renderC(){var need=offre().qty,t=total();
-    [].forEach.call(document.querySelectorAll('.cr'),function(r){var id=r.dataset.id,n=counts[id];r.classList.toggle('on',n>0);r.querySelector('output').textContent=n;r.querySelector('.minus').disabled=n<=0;r.querySelector('.plus').disabled=t>=need});
-    var cnt=document.getElementById('cnt');cnt.textContent=t+' / '+need+' قطع';cnt.style.color=t===need?'#1b7a3d':'';}
-  function reset(){var need=offre().qty;CO.forEach(function(c){counts[c.id]=0});counts[CO[0].id]=need;renderC();}
-  document.getElementById('cpick').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var id=b.closest('.cr').dataset.id;
-    if(b.classList.contains('plus')&&total()<offre().qty)counts[id]++;else if(b.classList.contains('minus')&&counts[id]>0)counts[id]--;
-    document.getElementById('errC').textContent='';renderC();
-    var k=CO.findIndex(function(c){return c.id===id});if(b.classList.contains('plus'))montrer(k,1);});
   function maj(){var o=offre();document.getElementById('btnPrix').textContent=o.prix;document.querySelector('#sticky .btn').textContent='اطلب دابا — '+o.qty+' قطع بـ '+o.prix+' درهم';}
-  f.addEventListener('change',function(e){if(e.target.name==='offre'){reset();maj();}});
-  reset();maj();montrer(0,1);
+  f.addEventListener('change',function(e){if(e.target.name==='offre'){maj();}});
+  maj();montrer(0,1);
   var debut=false;f.addEventListener('focusin',function(){if(debut)return;debut=true;try{fbq('track','InitiateCheckout',{value:offre().prix,currency:'MAD',content_name:P.produit})}catch(e){}try{ttq.track('InitiateCheckout',{value:offre().prix,currency:'MAD'})}catch(e){}});
   function tel(v){var d=String(v).replace(/\D/g,'');if(d.indexOf('212')===0)d='0'+d.slice(3);return /^0[5-7]\d{8}$/.test(d)?d:''}
   function erreur(n,m){var e=f.querySelector('[data-for="'+n+'"]');if(e)e.textContent=m||''}
   function cookie(n){var m=document.cookie.match('(?:^|; )'+n+'=([^;]*)');return m?decodeURIComponent(m[1]):''}
   function fbcUrl(){var c=new URLSearchParams(location.search).get('fbclid');return c?'fb.1.'+Date.now()+'.'+c:''}
-  function detailCouleurs(){return CO.filter(function(c){return counts[c.id]>0}).map(function(c){return counts[c.id]+' '+c.ar}).join('، ')}
   f.addEventListener('submit',function(ev){
     ev.preventDefault();
     var o=offre(),nom=f.nom.value.trim(),t=tel(f.telephone.value),ville=f.ville.value.trim(),ok=true;
-    if(total()!==o.qty){document.getElementById('errC').textContent='ختار '+o.qty+' قطع (اخترتي '+total()+')';ok=false}
     erreur('nom',nom.length<3?'كتب الاسم الكامل':'');if(nom.length<3)ok=false;
     erreur('telephone',t?'':'رقم الهاتف غير صحيح (مثال: 0612345678)');if(!t)ok=false;
     erreur('ville',ville.length<2?'كتب المدينة':'');if(ville.length<2)ok=false;
     if(!ok||f.site.value)return;
-    var taille=(f.querySelector('input[name=taille]:checked')||{}).value||'',coul=detailCouleurs();
+    var taille=(f.querySelector('input[name=taille]:checked')||{}).value||'',note=(f.note.value||'').trim();
     var eventId='tl'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-    var data=new URLSearchParams({produit:P.produit,taille:o.label,quantite:'Taille '+taille+' — '+coul,prix:String(o.prix),nom:nom,telephone:t,ville:ville,note:'',page:location.pathname,event_id:eventId,pixels:P.pixelsMeta.join(','),fbp:cookie('_fbp'),fbc:cookie('_fbc')||fbcUrl(),url:location.href});
+    var data=new URLSearchParams({produit:P.produit,taille:o.label,quantite:'Taille '+taille,prix:String(o.prix),nom:nom,telephone:t,ville:ville,note:note,page:location.pathname,event_id:eventId,pixels:P.pixelsMeta.join(','),fbp:cookie('_fbp'),fbc:cookie('_fbc')||fbcUrl(),url:location.href});
     var ph='212'+t.replace(/\D/g,'').replace(/^0/,'');
     try{P.pixelsMeta.forEach(function(id){fbq('init',id,{ph:ph,fn:nom.split(' ')[0].toLowerCase(),country:'ma'})})}catch(e){}
     try{ttq.identify({phone_number:'+'+ph})}catch(e){}
     var btn=document.getElementById('btn');btn.disabled=true;btn.firstChild.nodeValue='كيتصيفط… ';document.getElementById('errForm').textContent='';
     fetch(P.webhook,{method:'POST',body:data}).then(function(r){
       if(!r.ok)throw new Error('http '+r.status);
-      try{sessionStorage.setItem('tl_cmd',JSON.stringify({nom:nom.split(' ')[0],tel:t,prix:o.prix,label:o.label,det:'المقاس '+taille+' — '+coul}))}catch(e){}
+      try{sessionStorage.setItem('tl_cmd',JSON.stringify({nom:nom.split(' ')[0],tel:t,prix:o.prix,label:o.label,det:'المقاس '+taille+(note?' — '+note:'')}))}catch(e){}
       location.replace('merci.html?ev='+encodeURIComponent(eventId)+'&v='+o.prix+'&q='+o.qty);
     }).catch(function(){btn.disabled=false;btn.firstChild.nodeValue='اطلب دابا — ';document.getElementById('errForm').textContent='وقع مشكل. تأكد من الإنترنت وعاود المحاولة.'});
   });
