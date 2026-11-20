@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1f1a1c">
+<title>شكراً، تم استلام طلبك</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script>
+(function(){
+  var q=new URLSearchParams(location.search),ev=q.get('ev')||'',v=Number(q.get('v'))||0,n=Number(q.get('q'))||1;
+  var cle='tl_px_'+ev,deja=false;
+  try{deja=!!sessionStorage.getItem(cle);sessionStorage.setItem(cle,'1');}catch(e){}
+  var c={};try{c=JSON.parse(sessionStorage.getItem('tl_cmd')||'{}');}catch(e){}
+  var ph=c.tel?'212'+String(c.tel).replace(/\D/g,'').replace(/^0/,''):'';
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+  ['1718145662760876','1028850562761926'].forEach(function(id){fbq('init',id,ph?{ph:ph,country:'ma'}:{});});
+  fbq('track','PageView');
+  if(ev&&!deja)fbq('track','Purchase',{value:v,currency:'MAD',content_name:'top lycra coton',num_items:n},{eventID:ev});
+  !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+
+  ['D67QF8RC77U07ECR785G','D7BCPGJC77U8CCU0I4N0'].forEach(function(id){ttq.load(id);});ttq.page();
+  if(ph)ttq.identify({phone_number:'+'+ph});
+  if(ev&&!deja)ttq.track('CompletePayment',{value:v,currency:'MAD'},{event_id:ev});
+  }(window,document,'ttq');
+})();
+</script>
+<style>
+:root{--ink:#1f1a1c;--cream:#fbf6f1;--rose:#a63d5a;--gold:#e8c48f;--f:Cairo,"Segoe UI",Tahoma,Arial,sans-serif}
+*{box-sizing:border-box}html,body{overflow-x:clip}
+body{margin:0;background:var(--ink);color:#f3e6da;font:400 17px/1.8 var(--f);min-height:100vh;display:flex;flex-direction:column}
+.bar{background:var(--rose);color:#fff;text-align:center;font:700 14px var(--f);padding:9px 12px}
+main{flex:1;max-width:560px;width:100%;margin:0 auto;padding:36px 18px}
+.ok{width:76px;height:76px;border-radius:50%;background:var(--rose);color:#fff;display:grid;place-items:center;font-size:38px;margin:0 auto 14px;animation:pop .5s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+h1{font:900 clamp(26px,6vw,36px)/1.35 var(--f);text-align:center;margin:0 0 8px;color:#fff}
+.sub{text-align:center;color:#d5c5ba;margin:0 0 24px}
+.recap{background:var(--cream);color:var(--ink);padding:14px 18px;border-radius:14px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.recap b{font:800 18px var(--f)}.recap small{display:block;color:#7a6d70;font-size:14.5px}
+.recap .px{font:900 26px var(--f);color:var(--rose);white-space:nowrap}
+h2{font:800 24px var(--f);color:#fff;margin:30px 0 12px}
+ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ol li{display:flex;gap:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:14px 16px;border-radius:14px}
+ol li span{flex:none;width:32px;height:32px;border-radius:50%;background:var(--gold);color:#1f1a1c;display:grid;place-items:center;font-weight:800}
+ol li b{display:block;font-weight:800;color:#fff}ol li small{color:#d5c5ba;font-size:15px;line-height:1.7;display:block}
+.tip{margin-top:20px;background:var(--rose);color:#fff;padding:16px;text-align:center;font-weight:800;line-height:1.8;border-radius:14px}
+.tip small{display:block;font-weight:500;opacity:.92}
+footer{text-align:center;font:500 13px var(--f);color:#a8958d;padding:22px}
+</style>
+</head>
+<body>
+<div class="bar">🚚 التوصيل مجاني · 💵 الدفع عند الاستلام</div>
+<main>
+  <div class="ok">✓</div>
+  <h1 id="titre">شكراً، تم استلام طلبك</h1>
+  <p class="sub">غادي نتاصلو بيك فـ أقرب وقت باش نأكدو الطلب.</p>
+  <div class="recap" id="recap" hidden><div><b id="rLabel"></b><small id="rDet"></small></div><div class="px"><span id="rPrix"></span> درهم</div></div>
+  <h2>شنو غادي يوقع دابا؟</h2>
+  <ol>
+    <li><span>1</span><div><b>كنتاصلو بيك</b><small>واحد من الفريق غادي يتصل بيك فـ الساعات الجاية باش نأكدو المقاس والعنوان.</small></div></li>
+    <li><span>2</span><div><b>كنصيفطو الطلب</b><small>من بعد التأكيد كيوصلك الطلب فـ 24 حتى 72 ساعة حسب مدينتك، والتوصيل مجاني.</small></div></li>
+    <li><span>3</span><div><b>كتخلص فاش كيوصلك</b><small>كتخلص للموزع كاش فاش كتستلم الطلب. ما كاين والو تخلص قبل.</small></div></li>
+  </ol>
+  <div class="tip">📞 خلي التيليفون حدالك وجاوب على المكالمة<small>بلا تأكيد بالتيليفون ما نقدروش نصيفطو الطلب</small></div>
+</main>
+<footer>الدفع عند الاستلام · التوصيل مجاني لجميع مدن المغرب</footer>
+<script>
+(function(){
+  var c={};try{c=JSON.parse(sessionStorage.getItem('tl_cmd')||'{}');}catch(e){}
+  if(c.nom)document.getElementById('titre').textContent='شكراً '+c.nom+'، تم استلام طلبك';
+  if(c.prix){document.getElementById('rLabel').textContent=c.label||'';document.getElementById('rDet').textContent=c.det||'';document.getElementById('rPrix').textContent=c.prix;document.getElementById('recap').hidden=false;}
+  try{history.pushState(null,'',location.href);window.addEventListener('popstate',function(){history.pushState(null,'',location.href);});}catch(e){}
+})();
+</script>
+</body>
+</html>
