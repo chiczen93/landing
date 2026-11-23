@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Merci, votre commande est bien reçue | eka deco</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Cormorant+Garamond:wght@600;700&display=swap" rel="stylesheet">
+<script>
+/* Purchase envoyé ici (même eventID que la Conversions API → pas de doublon), une seule fois par commande */
+(function () {
+  var q = new URLSearchParams(location.search), ev = q.get('ev') || '', v = Number(q.get('v')) || 0, n = Number(q.get('q')) || 1;
+  var cle = 'ed_px_' + ev, deja = false;
+  try { deja = !!sessionStorage.getItem(cle); sessionStorage.setItem(cle, '1'); } catch (e) {}
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+  var cmd = {}; try { cmd = JSON.parse(sessionStorage.getItem('ed_cmd') || '{}'); } catch (e) {}
+  var ph = cmd.tel ? '212' + String(cmd.tel).replace(/^0/, '') : '';
+  ['1718145662760876', '1028850562761926'].forEach(function (id) { fbq('init', id, ph ? { ph: ph, country: 'ma' } : {}); });
+  fbq('track', 'PageView');
+  if (ev && !deja) fbq('track', 'Purchase', { value: v, currency: 'MAD', content_name: 'Étagère murale design LED eka deco', num_items: n }, { eventID: ev });
+  !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+  ['D7BCPGJC77U8CCU0I4N0', 'D67QF8RC77U07ECR785G'].forEach(function (id) { ttq.load(id); }); ttq.page();
+  if (ph) ttq.identify({ phone_number: '+' + ph });
+  if (ev && !deja) ttq.track('CompletePayment', { value: v, currency: 'MAD', event_id: ev });
+  }(window,document,'ttq');
+})();
+</script>
+<style>
+:root{--ink:#1b1917;--muted:#6f6a64;--line:#e7e1d9;--bg:#faf8f5;--soft:#f1ece5;--gold:#a07d4f;--ok:#2f7d57}
+*{box-sizing:border-box}
+html,body{overflow-x:clip}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Jost,"Segoe UI",Arial,sans-serif;font-size:16.5px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.bar{background:var(--ink);color:#f4efe8;text-align:center;font-size:13.5px;padding:8px 12px}
+.wrap{max-width:540px;margin:0 auto;padding:22px 16px 40px}
+.logo{font-family:"Cormorant Garamond",Georgia,serif;font-weight:700;font-size:27px;text-align:center;margin-bottom:18px}
+.logo i{font-style:normal;color:var(--gold)}
+.ok{width:68px;height:68px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:34px;margin:0 auto 12px}
+h1{font-family:"Cormorant Garamond",Georgia,serif;font-size:clamp(30px,7vw,38px);line-height:1.15;text-align:center;margin:0 0 6px}
+.sub{text-align:center;color:var(--muted);margin:0 0 22px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;gap:14px;align-items:center}
+.card img{width:84px;height:110px;object-fit:cover;border-radius:10px;background:var(--soft);flex:none}
+.card b{display:block;font-size:17px}
+.card ul{list-style:none;margin:4px 0 0;padding:0;color:var(--muted);font-size:14.5px;line-height:1.7}
+.card .tot{color:var(--ink);font-weight:600;font-size:17px;margin-top:4px}
+h2{font-family:"Cormorant Garamond",Georgia,serif;font-size:25px;margin:26px 0 10px}
+ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ol li{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 14px}
+ol li span{flex:none;width:30px;height:30px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-weight:600;color:var(--gold)}
+ol li b{display:block}
+ol li small{color:var(--muted);font-size:14px;line-height:1.55;display:block}
+.tip{margin-top:20px;background:var(--ink);color:#fff;border-radius:14px;padding:16px;text-align:center;font-weight:500;line-height:1.6}
+.tip small{display:block;font-weight:400;opacity:.85;margin-top:2px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:24px 0 10px}
+</style>
+</head>
+<body>
+<div class="bar">Livraison gratuite · Paiement à la livraison</div>
+<main class="wrap">
+  <div class="logo">eka<i>.</i>deco</div>
+  <div class="ok">✓</div>
+  <h1 id="titre">Merci, votre commande est bien reçue</h1>
+  <p class="sub">Votre étagère sera expédiée très bientôt.</p>
+
+  <div class="card" id="recap" hidden>
+    <img id="rImg" src="img/noir-1-t.webp" alt="">
+    <div>
+      <b>Étagère murale design à spots LED</b>
+      <ul>
+        <li>Couleur : <span id="rCoul"></span></li>
+        <li>Dimensions : 70 × 50 cm</li>
+      </ul>
+      <div class="tot">Total : <span id="rPrix"></span> DH · livraison gratuite</div>
+    </div>
+  </div>
+
+  <h2>Et maintenant ?</h2>
+  <ol>
+    <li><span>1</span><div><b>Nous vous appelons</b><small>Un membre de l'équipe vous contacte dans les heures qui suivent pour confirmer la couleur et l'adresse.</small></div></li>
+    <li><span>2</span><div><b>Nous expédions</b><small>Après confirmation, vous recevez votre colis sous 24 à 72 heures selon votre ville.</small></div></li>
+    <li><span>3</span><div><b>Vous payez à la livraison</b><small>Vous vérifiez le produit puis vous réglez le livreur en espèces. Rien à payer avant.</small></div></li>
+  </ol>
+
+  <div class="tip">Gardez votre téléphone à portée de main et répondez à notre appel
+    <small>Sans confirmation par téléphone, nous ne pouvons pas expédier la commande</small></div>
+</main>
+<footer>© eka deco · Paiement à la livraison dans tout le Maroc</footer>
+<script>
+(function () {
+  var c = {}; try { c = JSON.parse(sessionStorage.getItem('ed_cmd') || '{}'); } catch (e) {}
+  if (c.nom) document.getElementById('titre').textContent = 'Merci ' + c.nom + ', votre commande est bien reçue';
+  if (c.prix) {
+    document.getElementById('rCoul').textContent = c.couleur || '';
+    document.getElementById('rPrix').textContent = c.prix;
+    if (/^[a-z0-9-]+$/.test(c.img || '')) document.getElementById('rImg').src = 'img/' + c.img + '-t.webp';
+    document.getElementById('recap').hidden = false;
+  }
+  try { history.pushState(null, '', location.href); window.addEventListener('popstate', function () { history.pushState(null, '', location.href); }); } catch (e) {}
+})();
+</script>
+</body>
+</html>
