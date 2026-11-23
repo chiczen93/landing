@@ -46,8 +46,12 @@ header.top{display:flex;align-items:center;justify-content:space-between;padding
 .hero{display:grid;grid-template-columns:1.05fr 1fr;gap:38px;padding:6px 0 44px;align-items:start}
 .hero>*{min-width:0}
 .gallery{position:relative}
-.main-img{border-radius:var(--radius);overflow:hidden;background:var(--soft);aspect-ratio:3/4}
-.main-img img{width:100%;height:100%;object-fit:cover;transition:opacity .25s}
+.main-img{border-radius:var(--radius);overflow:hidden;background:var(--soft);aspect-ratio:3/4;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+.main-img::-webkit-scrollbar{display:none}
+.main-img img{flex:0 0 100%;width:100%;height:100%;object-fit:cover;scroll-snap-align:center}
+.dots{position:absolute;left:0;right:0;bottom:calc(var(--dots,96px) + 12px);display:flex;justify-content:center;gap:6px;pointer-events:none}
+.dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 0 3px rgba(0,0,0,.3);transition:all .25s}
+.dots i.on{background:#fff;width:18px;border-radius:4px}
 .chip{position:absolute;top:14px;left:14px;background:rgba(255,255,255,.92);font-weight:600;font-size:13px;border-radius:999px;padding:5px 13px}
 .thumbs{display:flex;gap:8px;margin-top:10px;overflow-x:auto;scrollbar-width:none}
 .thumbs::-webkit-scrollbar{display:none}
@@ -123,8 +127,9 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13px}
 
   <div class="hero">
     <div class="gallery">
-      <div class="main-img"><img id="mainImg" src="img/noir-1.webp" alt="Étagère murale design noire" width="900" height="1205" fetchpriority="high"></div>
+      <div class="main-img" id="slider"></div>
       <span class="chip" id="chip">Noir</span>
+      <div class="dots" id="dots"></div>
       <div class="thumbs" id="thumbs"></div>
     </div>
 
@@ -203,26 +208,41 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13px}
 <script>
 (function () {
   var P = window.PAGE, f = document.getElementById('commande');
-  var main = document.getElementById('mainImg'), chip = document.getElementById('chip'), thumbs = document.getElementById('thumbs');
-
+  var slider = document.getElementById('slider'), chip = document.getElementById('chip'), thumbs = document.getElementById('thumbs'), dots = document.getElementById('dots');
+  var tous = [], vus = {};
+  P.couleurs.forEach(function (c) { c.imgs.forEach(function (img) { if (!vus[img]) { vus[img] = 1; tous.push({ img: img, c: img === 'dim' ? null : c }); } }); });
+  var cur = 0, pause = 0;
   function couleur() { var v = (f.querySelector('input[name=couleur]:checked') || {}).value; return P.couleurs.filter(function (c) { return c.id === v; })[0] || P.couleurs[0]; }
-  function voir(c, img) { main.src = 'img/' + img + '.webp'; main.alt = 'Étagère murale design ' + c.fr.toLowerCase(); chip.textContent = c.fr; [].forEach.call(thumbs.children, function (b) { b.setAttribute('aria-current', String(b.dataset.img === img)); }); }
-  function galerie() {
-    var c = couleur(); thumbs.innerHTML = '';
-    c.imgs.forEach(function (img) {
-      var b = document.createElement('button'); b.type = 'button'; b.dataset.img = img; b.setAttribute('aria-label', c.fr);
-      b.innerHTML = '<img src="img/' + img + '-t.webp" alt="" loading="lazy">';
-      b.onclick = function () { voir(c, img); };
-      thumbs.appendChild(b);
-    });
-    voir(c, c.imgs[0]);
-    document.getElementById('nomCouleur').textContent = c.fr;
+  tous.forEach(function (t, i) {
+    var im = document.createElement('img'); im.src = 'img/' + t.img + '.webp'; im.width = 900; im.height = 1205; im.alt = 'Étagère murale design' + (t.c ? ' ' + t.c.fr.toLowerCase() : ''); if (i) im.loading = 'lazy'; else im.fetchPriority = 'high';
+    slider.appendChild(im);
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', 'Photo ' + (i + 1));
+    b.innerHTML = '<img src="img/' + t.img + '-t.webp" alt="" loading="lazy">';
+    b.onclick = function () { aller(i, true); }; thumbs.appendChild(b);
+    dots.appendChild(document.createElement('i'));
+  });
+  function marquer(i) {
+    cur = i; var t = tous[i];
+    if (t.c) { chip.textContent = t.c.fr; chip.style.display = ''; var r = f.querySelector('input[name=couleur][value=' + t.c.id + ']'); if (r && !r.checked) { r.checked = true; document.getElementById('nomCouleur').textContent = t.c.fr; } } else chip.style.display = 'none';
+    [].forEach.call(thumbs.children, function (b, k) { b.setAttribute('aria-current', String(k === i)); });
+    [].forEach.call(dots.children, function (d, k) { d.className = k === i ? 'on' : ''; });
+    var tb = thumbs.children[i]; if (tb) thumbs.scrollTo({ left: tb.offsetLeft - 20, behavior: 'smooth' });
   }
+  function aller(i, manuel) { if (manuel) pause = Date.now() + 8000; slider.scrollTo({ left: i * slider.clientWidth, behavior: 'smooth' }); }
+  slider.addEventListener('scroll', function () { var i = Math.round(slider.scrollLeft / slider.clientWidth); if (i !== cur && tous[i]) marquer(i); });
+  ['touchstart', 'mousedown', 'wheel'].forEach(function (e) { slider.addEventListener(e, function () { pause = Date.now() + 8000; }, { passive: true }); });
+  setInterval(function () { if (Date.now() < pause || document.hidden) return; aller((cur + 1) % tous.length); }, 3500);
+  function galerie() {
+    var c = couleur(); document.getElementById('nomCouleur').textContent = c.fr;
+    var i = tous.findIndex(function (t) { return t.c && t.c.id === c.id; });
+    if (!tous[cur].c || tous[cur].c.id !== c.id) aller(i, true);
+  }
+  marquer(0);
   document.getElementById('couleurs').innerHTML = P.couleurs.map(function (c, i) {
     return '<label><input type="radio" name="couleur" value="' + c.id + '"' + (i === 0 ? ' checked' : '') + '><i style="background:' + c.hex + '"></i>' + c.fr + '</label>';
   }).join('');
   f.addEventListener('change', function (e) { if (e.target.name === 'couleur') galerie(); });
-  galerie();
+  document.getElementById('nomCouleur').textContent = couleur().fr;
 
   var debut = false;
   f.addEventListener('focusin', function () {
