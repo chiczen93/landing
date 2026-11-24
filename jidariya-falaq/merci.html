@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>شكرا، طلبك وصلنا | نور ديكو</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script>
+/* Purchase envoyé ici (même eventID que la Conversions API → pas de doublon), une seule fois par commande */
+(function () {
+  var q = new URLSearchParams(location.search), ev = q.get('ev') || '', v = Number(q.get('v')) || 0, n = Number(q.get('q')) || 1;
+  var cle = 'jf_px_' + ev, deja = false;
+  try { deja = !!sessionStorage.getItem(cle); sessionStorage.setItem(cle, '1'); } catch (e) {}
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+  var cmd = {}; try { cmd = JSON.parse(sessionStorage.getItem('jf_cmd') || '{}'); } catch (e) {}
+  var ph = cmd.tel ? '212' + String(cmd.tel).replace(/^0/, '') : '';
+  ['1718145662760876', '1028850562761926'].forEach(function (id) { fbq('init', id, ph ? { ph: ph, country: 'ma' } : {}); });
+  fbq('track', 'PageView');
+  if (ev && !deja) fbq('track', 'Purchase', { value: v, currency: 'MAD', content_name: 'جدارية سورة الفلق كاملة ذهبية (ألمنيوم لامع)', num_items: n }, { eventID: ev });
+  !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+  ['D7BCPGJC77U8CCU0I4N0', 'D67QF8RC77U07ECR785G', 'D9F9T8BC77U852QMARR0'].forEach(function (id) { ttq.load(id); }); ttq.page();
+  if (ph) ttq.identify({ phone_number: '+' + ph });
+  if (ev && !deja) ttq.track('CompletePayment', { value: v, currency: 'MAD', event_id: ev });
+  }(window,document,'ttq');
+})();
+</script>
+<style>
+:root{--ink:#2a2118;--muted:#6f655a;--line:#eadfce;--bg:#fbf7f0;--soft:#f3ead9;--gold:#b08a3e;--ok:#2f7d57}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Cairo,"Segoe UI",Tahoma,sans-serif;font-size:17px;line-height:1.7}
+.bar{background:var(--ink);color:#f6ecd8;text-align:center;font-size:14px;padding:8px 12px}
+.wrap{max-width:540px;margin:0 auto;padding:22px 16px 40px}
+.logo{text-align:center;font-weight:800;font-size:24px;color:var(--gold);margin-bottom:14px}
+.ok{width:68px;height:68px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:34px;margin:0 auto 12px}
+h1{font-size:clamp(24px,6vw,30px);line-height:1.35;text-align:center;margin:0 0 6px}
+.sub{text-align:center;color:var(--muted);margin:0 0 22px}
+.tot{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:14px;text-align:center;font-weight:700;margin-bottom:22px}
+h2{font-size:21px;margin:0 0 10px}
+ol{list-style:none;padding:0;margin:0 0 18px}ol li{display:flex;gap:12px;margin-bottom:14px}
+ol span{flex:none;width:32px;height:32px;border-radius:50%;background:var(--gold);color:#fff;display:grid;place-items:center;font-weight:800}
+ol small{display:block;color:var(--muted);line-height:1.5}
+.tip{background:var(--soft);border-radius:12px;padding:12px 14px;font-size:15px;text-align:center}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:10px 12px 30px}
+</style>
+</head>
+<body>
+<div class="bar">التوصيل مجاني · الدفع عند الاستلام</div>
+<main class="wrap">
+  <div class="logo">نور ديكو</div>
+  <div class="ok">✓</div>
+  <h1 id="titre">شكرا، طلبك وصلنا</h1>
+  <p class="sub">غادي نصيفطو ليك الجدارية قريبا إن شاء الله.</p>
+  <div class="tot">جدارية سورة الفلق كاملة · <span id="rPrix">250</span> درهم · التوصيل مجاني</div>
+  <h2>شنو غادي يوقع دابا؟</h2>
+  <ol>
+    <li><span>1</span><div><b>غادي نتصلو بيك</b><small>واحد من الفريق غادي يتصل بيك فبضع ساعات باش يأكد الطلب والعنوان.</small></div></li>
+    <li><span>2</span><div><b>كنصيفطو الطلب</b><small>من بعد التأكيد كيوصلك الكولي من 24 حتى 72 ساعة حسب المدينة.</small></div></li>
+    <li><span>3</span><div><b>كتخلص عند الاستلام</b><small>كتعاين المنتوج وبعدها كتخلص الموزع. ما كتخلص والو قبل.</small></div></li>
+  </ol>
+  <div class="tip">خلي التيليفون قريب منك وجاوب على الاتصال، بلا تأكيد ما نقدروش نصيفطو الطلب.</div>
+</main>
+<footer>© نور ديكو · الدفع عند الاستلام في جميع مدن المغرب</footer>
+<script>
+(function () {
+  var c = {}; try { c = JSON.parse(sessionStorage.getItem('jf_cmd') || '{}'); } catch (e) {}
+  if (c.nom) document.getElementById('titre').textContent = 'شكرا ' + c.nom + '، طلبك وصلنا';
+  try { history.pushState(null, '', location.href); window.addEventListener('popstate', function () { history.pushState(null, '', location.href); }); } catch (e) {}
+})();
+</script>
+</body>
+</html>
