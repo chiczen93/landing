@@ -638,7 +638,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611251119';
+const VERSION = '202611251122';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1286,7 +1286,7 @@ async function pollAppel() {
 }
 function rythmeAppel() {
   clearTimeout(APL.t);
-  APL.t = setTimeout(async () => { if (st.pin && (APL.etat || document.visibilityState === 'visible')) await pollAppel(); rythmeAppel(); }, APL.etat ? 1500 : 6000);
+  APL.t = setTimeout(async () => { if (st.pin && (APL.etat || document.visibilityState === 'visible')) await pollAppel(); rythmeAppel(); }, APL.etat ? 1500 : 15000);
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && st.pin) { pollAppel(); rythmeAppel(); } });
 function traiterSignaux(l, maintenant) {
