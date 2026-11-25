@@ -134,9 +134,9 @@ footer{text-align:center;font-size:12.5px;color:var(--muted);padding:26px 20px 9
   <div>
     <div class="eyebrow">Collection strings</div>
     <h1>Une couleur<br><em>pour chaque jour.</em></h1>
-    <p class="lead">Dentelle fine, bretelles réglables, strass et perles. Composez votre pack avec les couleurs que vous aimez.</p>
+    <p class="lead">Dentelle fine, bretelles réglables, strass et perles. Des packs assortis, modèles et couleurs variés.</p>
     <div class="price-tag"><div><b>159 DH</b><small>5 pièces</small></div><div><b>220 DH</b><small>10 pièces</small></div></div>
-    <a class="btn" href="#commande">Composer mon pack</a>
+    <a class="btn" href="#commande">Commander mon pack</a>
   </div>
   <div class="frame"><img id="heroImg" src="img/look1.jpg" alt="String en dentelle" fetchpriority="high"><div class="tag" id="heroTag">Pack 5 pièces · 159 DH</div></div>
 </div></div>
@@ -159,21 +159,18 @@ footer{text-align:center;font-size:12.5px;color:var(--muted);padding:26px 20px 9
 <section class="order-sec" id="commande"><div class="wrap order-grid">
   <div>
     <div class="eyebrow">Commande</div>
-    <h2>Composez votre pack</h2>
-    <p class="lead">Choisissez vos couleurs, nous vous appelons pour confirmer la taille et la livraison.</p>
+    <h2>Choisissez votre pack</h2>
+    <p class="lead">Choisissez 5 ou 10 pièces, nous vous appelons pour confirmer la taille et la livraison.</p>
     <ul class="promise">
       <li>— Colis 100% discret, rien n'est écrit dessus</li>
       <li>— Vous payez uniquement à la réception</li>
-      <li>— Mélangez les modèles et les couleurs comme vous voulez</li>
+      <li>— Pack assorti : modèles et couleurs variés</li>
       <li>— Livraison gratuite en 24–72h dans tout le Maroc</li>
     </ul>
   </div>
   <div>
     <form class="order" id="form" novalidate>
       <span class="lbl">Votre offre</span><div class="offers" id="offers"></div>
-      <span class="lbl">Vos couleurs</span>
-      <div class="cnt"><span><b id="nb">0</b> / <span id="max">10</span> choisies</span><button type="button" class="mix" id="mix">Laisser l'équipe choisir</button></div>
-      <div class="pk" id="pk"></div>
       <span class="lbl">Taille</span><div class="chips-row" id="sizes"></div>
       <div class="field"><input name="nom" autocomplete="name" placeholder="Nom complet *" required><div class="err" data-for="nom"></div></div>
       <div class="field"><input name="telephone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Téléphone * (06 / 07)" required><div class="err" data-for="telephone"></div></div>
@@ -189,13 +186,13 @@ footer{text-align:center;font-size:12.5px;color:var(--muted);padding:26px 20px 9
 <section><div class="wrap" style="max-width:720px">
   <div class="center"><div class="eyebrow">Questions</div><h2>Bon à savoir</h2></div>
   <details><summary>Comment choisir ma taille ?</summary><p>Tailles S/M, L/XL et XXL. Les bretelles sont réglables. Lors de l'appel de confirmation, nous vous conseillons selon votre poids.</p></details>
-  <details><summary>Puis-je mélanger les modèles ?</summary><p>Oui, vous choisissez librement les couleurs et les styles de votre pack. Si vous ne choisissez pas tout, notre équipe complète avec un mix varié.</p></details>
+  <details><summary>Quels modèles vais-je recevoir ?</summary><p>Chaque pack est assorti par notre équipe : un mélange de modèles et de couleurs différents parmi la collection.</p></details>
   <details><summary>Le colis est-il discret ?</summary><p>Oui, aucune mention du contenu n'est écrite sur le colis.</p></details>
   <details><summary>Dois-je payer d'avance ?</summary><p>Non. Vous payez uniquement à la réception, après avoir vu votre commande.</p></details>
   <details><summary>Quel est le délai de livraison ?</summary><p>Entre 24 et 72 heures selon votre ville, partout au Maroc. La livraison est gratuite.</p></details>
 </div></section>
 
-<section class="final"><div class="wrap"><p>10 strings, 220 DH, livrés chez vous.</p><a class="btn dark" href="#commande">Je compose mon pack</a></div></section>
+<section class="final"><div class="wrap"><p>10 strings, 220 DH, livrés chez vous.</p><a class="btn dark" href="#commande">Je commande</a></div></section>
 <footer>© Dentelle · Emballage discret · Paiement à la livraison partout au Maroc</footer>
 <a class="wa" id="wa" href="https://wa.me/15055750581" target="_blank" rel="noopener" aria-label="WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2a9.9 9.9 0 0 0-8.5 14.96L2 22l5.2-1.5A9.9 9.9 0 1 0 12.04 2zm5.8 14.1c-.25.7-1.45 1.33-2 1.4-.52.07-1.17.1-1.9-.12a17 17 0 0 1-1.72-.63c-3-1.3-4.95-4.32-5.1-4.52-.15-.2-1.2-1.6-1.2-3.05 0-1.45.76-2.16 1.03-2.46.27-.3.6-.37.8-.37h.58c.18 0 .43-.07.67.5.25.6.85 2.07.92 2.22.08.15.13.33.03.52-.1.2-.15.32-.3.5-.15.17-.32.38-.45.5-.15.15-.3.3-.13.6.17.3.77 1.27 1.65 2.05 1.13 1 2.08 1.3 2.38 1.45.3.15.47.12.65-.07.17-.2.75-.87.95-1.17.2-.3.4-.25.67-.15.27.1 1.72.82 2.02.97.3.15.5.22.57.35.08.12.08.72-.17 1.42z"/></svg></a>
 <div class="sticky" id="sticky"><a class="btn" href="#commande">Commander — Pack 10 pièces 220 DH</a></div>
@@ -214,24 +211,16 @@ footer{text-align:center;font-size:12.5px;color:var(--muted);padding:26px 20px 9
   var cats=['Tous','Dentelle','Strass','Perles'];
   document.getElementById('cats').innerHTML=cats.map(function(c,i){return '<button type="button" data-c="'+c+'" aria-pressed="'+(i===0)+'">'+c+'</button>'}).join('');
   function grille(c){document.getElementById('models').innerHTML=M.filter(function(m){return c==='Tous'||m.c===c}).map(function(m){return '<button type="button" class="card" data-k="'+m.k+'"><div class="ph"><img src="img/'+m.k+'.jpg" alt="'+m.nom+'" loading="lazy"></div><h3>'+m.nom+'</h3><small>'+NOTES[m.c]+'</small></button>'}).join('');
-    [].forEach.call(document.querySelectorAll('.card'),function(b){b.addEventListener('click',function(){ajout(b.dataset.k,1);document.getElementById('commande').scrollIntoView({behavior:'smooth'})})});}
+    [].forEach.call(document.querySelectorAll('.card'),function(b){b.addEventListener('click',function(){document.getElementById('commande').scrollIntoView({behavior:'smooth'})})});}
   [].forEach.call(document.querySelectorAll('#cats button'),function(b){b.addEventListener('click',function(){[].forEach.call(document.querySelectorAll('#cats button'),function(x){x.setAttribute('aria-pressed',x===b)});grille(b.dataset.c)})});
   grille('Tous');
   document.getElementById('offers').innerHTML=P.offres.map(function(o,i){return '<label class="offer">'+(o.badge?'<span class="pill">'+o.badge+'</span>':'')+'<input type="radio" name="offre" value="'+i+'"'+(i===P.offres.length-1?' checked':'')+'><span class="t">'+o.label+'<small>'+o.sub+'</small></span><span class="p">'+o.prix+' DH</span></label>'}).join('');
   document.getElementById('sizes').innerHTML=P.tailles.map(function(t,i){return '<label><input type="radio" name="taille" value="'+t+'"'+(i===0?' checked':'')+'><span>'+t+'</span></label>'}).join('');
-  document.getElementById('pk').innerHTML=M.map(function(m){return '<div class="it" data-k="'+m.k+'"><span class="n">0</span><img src="img/'+m.k+'.jpg" alt="'+m.nom+'" loading="lazy"><em>'+m.nom+'</em><div class="st"><button type="button" data-d="-1" aria-label="Retirer">−</button><b>0</b><button type="button" data-d="1" aria-label="Ajouter">+</button></div></div>'}).join('');
   function offre(){return P.offres[Number((f.querySelector('input[name=offre]:checked')||{}).value||0)]}
-  function total(){var t=0;for(var k in q)t+=q[k];return t}
-  function rendu(){var o=offre(),t=total();document.getElementById('nb').textContent=t;document.getElementById('max').textContent=o.qty;
-    [].forEach.call(document.querySelectorAll('#pk .it'),function(el){var n=q[el.dataset.k]||0;el.classList.toggle('on',n>0);el.querySelector('.n').textContent=n;el.querySelector('.st b').textContent=n});
-    document.getElementById('btnPrix').textContent=o.prix;document.querySelector('#sticky .btn').textContent='Commander — '+o.label+' '+o.prix+' DH';}
-  function ajout(k,d){var o=offre();if(d>0&&total()>=o.qty)return;q[k]=Math.max(0,(q[k]||0)+d);if(!q[k])delete q[k];rendu()}
-  document.getElementById('pk').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;ajout(b.closest('.it').dataset.k,Number(b.dataset.d))});
-  document.getElementById('mix').addEventListener('click',function(){q={};var o=offre(),s=M.slice().sort(function(){return Math.random()-.5});for(var i=0;i<o.qty;i++){var k=s[i%s.length].k;q[k]=(q[k]||0)+1}rendu()});
-  f.addEventListener('change',function(e){if(e.target.name==='offre'){var o=offre();while(total()>o.qty){var ks=Object.keys(q),k=ks[ks.length-1];q[k]--;if(!q[k])delete q[k]}}rendu()});
-  rendu();
+  function rendu(){var o=offre();document.getElementById('btnPrix').textContent=o.prix;document.querySelector('#sticky .btn').textContent='Commander — '+o.label+' '+o.prix+' DH';}
+  f.addEventListener('change',rendu);rendu();
   function val(n){return (f.querySelector('input[name='+n+']:checked')||{}).value||''}
-  function detail(){var o=offre(),t=total(),parts=[];M.forEach(function(m){if(q[m.k])parts.push(q[m.k]+'× '+m.nom)});if(t<o.qty)parts.push((o.qty-t)+'× au choix (mix)');return parts.join(', ')}
+  function detail(){return 'Pack assorti (mix couleurs)'}
   var debut=false;f.addEventListener('focusin',function(){if(debut)return;debut=true;try{fbq('track','InitiateCheckout',{value:offre().prix,currency:'MAD',content_name:P.produit})}catch(e){}try{ttq.track('InitiateCheckout',{value:offre().prix,currency:'MAD'})}catch(e){}});
   function tel(v){var d=String(v).replace(/\D/g,'');if(d.indexOf('212')===0)d='0'+d.slice(3);return /^0[5-7]\d{8}$/.test(d)?d:''}
   function erreur(n,m){var e=f.querySelector('[data-for="'+n+'"]');if(e)e.textContent=m||''}
