@@ -638,7 +638,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611200010';
+const VERSION = '202611251110';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -740,10 +740,15 @@ async function login(pin) {
     $('#f-agent').hidden = false; $('#f-jours').hidden = false;
     $('#f-agent').replaceChildren(el('option', { value: 'TOUS', text: 'Toutes les agentes' }), el('option', { value: 'LIBRE', text: 'Non attribuées' }), ...AGENTES.map(a => el('option', { value: a, text: nomPropre(a) })), el('option', { value: 'NO APPEL', text: 'No appel' }));
   }
-  $('#fab-chat').hidden = false; lireLus(); chargerChat(); chargerAlertes(); chargerAnnonces(); signalPresence().then(chargerPresence); setTimeout(() => { chargerStock(); chargerArgent(); }, 2500);
+  // Rapidité : les commandes partent en premier, le reste est étalé (le navigateur limite à ~6 requêtes en parallèle vers le serveur)
+  $('#fab-chat').hidden = false; lireLus();
   charger();
-  api('villes').then(d => { st.villes = d.villes; $('#villes').replaceChildren(...d.villes.map(v => el('option', { value: v }))); }).catch(() => {});
-  chargerStats();
+  setTimeout(() => { chargerAlertes(); chargerChat(); signalPresence().then(chargerPresence); }, 1200);
+  setTimeout(() => {
+    chargerAnnonces(); chargerStats();
+    api('villes').then(d => { st.villes = d.villes; $('#villes').replaceChildren(...d.villes.map(v => el('option', { value: v }))); }).catch(() => {});
+  }, 2800);
+  setTimeout(() => { chargerStock(); chargerArgent(); }, 5000);
 }
 $('#go').addEventListener('click', async () => {
   const p = $('#pin').value.trim(); if (!p) return;
