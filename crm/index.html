@@ -638,7 +638,7 @@
 <script>
 const API = 'https://n8n.srv2034083.hstgr.cloud/webhook/crm';
 // Mise à jour automatique : si une nouvelle version est publiée, la page se recharge toute seule
-const VERSION = '202611251110';
+const VERSION = '202611251119';
 async function verifierVersion() {
   try {
     const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
@@ -1187,7 +1187,7 @@ document.body.append(
     el('span', { class: 'b', hidden: true })),
   el('div', { class: 'chat', id: 'chat', hidden: true }),
 );
-setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerChat(); }, 12000);
+setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerChat(); }, 30000);
 // ---------- Actions sur un message (appui long) : Répondre · Transférer · Partager · Copier ----------
 function appuiLong(n, m) {
   if (!m || m.envoi) return n;
@@ -1635,7 +1635,7 @@ function ouvrirAnnonces(edit) {
   const sheet = el('div', { class: 'lu-sheet', style: 'max-height:88%' });
   rendre(); fond.append(sheet); document.body.append(fond);
 }
-setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerAnnonces(); }, 60000);
+setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerAnnonces(); }, 120000);
 // en revenant dans l'application, les annonces fermées réapparaissent
 let annCacheeA = 0;
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') annCacheeA = Date.now(); else if (st.pin) { if (annCacheeA && Date.now() - annCacheeA > 60000) { ANN.caches.clear(); ANN.ecoutes.clear(); } chargerAnnonces(); } });
@@ -1651,14 +1651,14 @@ function finPresence() {
   if (!st.pin || !st.agent || st.agent === 'ADMIN') return;
   try { navigator.sendBeacon(API, new URLSearchParams({ payload: JSON.stringify({ pin: st.pin, action: 'presence', n: PRES.n, fin: true }) })); PRES.n = 0; } catch (e) {}
 }
-setInterval(signalPresence, 60000);
+setInterval(signalPresence, 90000);
 document.addEventListener('visibilitychange', () => { document.visibilityState === 'visible' ? (signalPresence(), chargerPresence()) : finPresence(); });
 window.addEventListener('pagehide', finPresence);
 async function chargerPresence() {
   if (!st.pin || !st.agent) return;
   try { const d = await api('presence', { op: 'liste' }); PRES.liste = d.agentes || []; PRES.decal = Date.now() - Date.parse(d.maintenant); rendrePresence(); } catch (e) {}
 }
-setInterval(() => { if (document.visibilityState === 'visible') chargerPresence(); }, 30000);
+setInterval(() => { if (document.visibilityState === 'visible') chargerPresence(); }, 60000);
 function etatPresence(a) {
   if (a.agent === st.agent) return { c: 'g', t: 'En ligne' };   // soi-même : l'application est ouverte
   if (!a.vu) return { c: 'n', t: 'jamais' };
@@ -2115,7 +2115,7 @@ function verifierAlertes() {
   if (ALR.file.length) return montrerAlerte(ALR.file.shift());
 }
 setInterval(verifierAlertes, 15000);
-setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerAlertes(); }, 90000);
+setInterval(() => { if (st.pin && document.visibilityState === 'visible') chargerAlertes(); }, 180000);
 document.addEventListener('visibilitychange', () => { if (st.pin && document.visibilityState === 'visible') chargerAlertes(); });
 
 // ---------- Colis 3 jours après « le livreur n'a pas pu joindre » et toujours pas livré ----------
@@ -2422,7 +2422,7 @@ document.body.append(el('button', { class: 'fab-camion', id: 'fab-camion', hidde
 } }, '🚚', el('span', { class: 'b' })));
 
 document.addEventListener('visibilitychange', () => { if (st.pin && document.visibilityState === 'visible') chargerChat(); });
-setInterval(() => { if (st.pin && chat.ouvert && chat.conv && document.visibilityState === 'visible') chargerChat(); }, 8000);
+setInterval(() => { if (st.pin && chat.ouvert && chat.conv && document.visibilityState === 'visible') chargerChat(); }, 20000);
 
 // ---------- application (PWA) : installation, notifications, pastille ----------
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
