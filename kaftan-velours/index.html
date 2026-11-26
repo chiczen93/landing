@@ -147,6 +147,14 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
 @media (max-width:420px){.benefits{grid-template-columns:1fr}}
 .qty1 .offer input{display:none}
 .guide-note{text-align:right}
+#couleurs{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+#couleurs label{text-align:center}
+#couleurs i{width:100%;height:auto;aspect-ratio:3/4;border-radius:10px;overflow:hidden;border:2px solid transparent;box-shadow:0 0 0 1px var(--line);background:var(--soft);position:relative}
+#couleurs i img{width:100%;height:100%;object-fit:cover;object-position:center 30%}
+#couleurs input:checked+i{border-color:var(--ink);box-shadow:none}
+#couleurs input:checked+i::after{content:"✓";position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:var(--ink);color:#fff;font:800 12px/20px Cairo,sans-serif;text-align:center}
+#couleurs em{display:block;font-style:normal;font-size:12.5px;font-weight:700;margin-top:3px;line-height:1.3}
+#couleurs input:checked~em{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -276,7 +284,7 @@ footer{padding:28px 0 100px;text-align:center;color:var(--muted);font-size:13.5p
 
   function pastilles(nom, defaut) {
     return P.couleurs.map(function (c) {
-      return '<label title="' + c.ar + '"><input type="radio" name="' + nom + '" value="' + c.id + '"' + (c.id === defaut ? ' checked' : '') + ' aria-label="' + c.ar + '"><i style="background:' + c.hex + '"></i></label>';
+      return '<label title="' + c.ar + '"><input type="radio" name="' + nom + '" value="' + c.id + '"' + (c.id === defaut ? ' checked' : '') + ' aria-label="' + c.ar + '"><i><img src="img/' + c.id + '-t.webp" alt="" loading="lazy"></i><em>' + c.ar + '</em></label>';
     }).join('');
   }
   document.getElementById('couleurs').innerHTML = pastilles('couleur', P.couleurs[0].id);
