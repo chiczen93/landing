@@ -18,7 +18,7 @@
   var ph = cmd.tel ? '212' + String(cmd.tel).replace(/^0/, '') : '';
   ['1718145662760876', '1028850562761926'].forEach(function (id) { fbq('init', id, ph ? { ph: ph, country: 'ma' } : {}); });
   fbq('track', 'PageView');
-  if (ev && !deja) fbq('track', 'Purchase', { value: v, currency: 'MAD', content_name: 'Caftan velours brodé Taj', num_items: n }, { eventID: ev });
+  if (ev && !deja) fbq('track', 'Purchase', { value: v, currency: 'MAD', content_name: 'Caftan brodé tissu Mobra Taj', num_items: n }, { eventID: ev });
   !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
   ['D7BCPGJC77U8CCU0I4N0', 'D67QF8RC77U07ECR785G'].forEach(function (id) { ttq.load(id); }); ttq.page();
   if (ph) ttq.identify({ phone_number: '+' + ph });
@@ -65,7 +65,7 @@ footer{text-align:center;color:var(--muted);font-size:13.5px;padding:24px 0 10px
   <div class="card" id="recap" hidden>
     <img id="rImg" src="img/bordeaux-t.webp" alt="">
     <div>
-      <b>قفطان القطيفة المطرز</b>
+      <b>قفطان مطرز · ثوب مبرة تاج</b>
       <ul>
         <li>اللون: <span id="rCoul"></span></li>
         <li>المقاس: <span id="rTaille" dir="ltr"></span> · <span id="rQte"></span></li>
